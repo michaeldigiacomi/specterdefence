@@ -2,7 +2,10 @@
 
 import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch, MagicMock, call
+import ipaddress
+
+import httpx
 
 from src.analytics.geo_ip import (
     GeoIPClient,
@@ -47,6 +50,17 @@ class TestGeoLocation:
         assert geo.country is None
         assert geo.lookup_success is False
         assert geo.is_private is False
+    
+    def test_geo_location_error(self):
+        """Test GeoLocation with error message."""
+        geo = GeoLocation(
+            ip_address="invalid",
+            lookup_success=False,
+            error_message="Invalid IP address"
+        )
+        
+        assert geo.lookup_success is False
+        assert geo.error_message == "Invalid IP address"
 
 
 class TestGeoIPClient:
@@ -63,9 +77,11 @@ class TestGeoIPClient:
             "192.168.1.1",
             "10.0.0.1",
             "172.16.0.1",
+            "172.31.255.255",
             "127.0.0.1",
             "::1",
-            "fe80::1"
+            "fe80::1",
+            "169.254.0.1",  # Link-local
         ]
         
         for ip in private_ips:
@@ -77,7 +93,9 @@ class TestGeoIPClient:
             "8.8.8.8",
             "1.1.1.1",
             "104.16.249.249",
-            "2001:4860:4860::8888"
+            "2001:4860:4860::8888",
+            "172.32.0.1",  # Outside private 172.16-31 range
+            "9.0.0.1",
         ]
         
         for ip in public_ips:
@@ -87,6 +105,8 @@ class TestGeoIPClient:
         """Test handling of invalid IP addresses."""
         assert client._is_private_ip("invalid") is False
         assert client._is_private_ip("") is False
+        assert client._is_private_ip("256.1.1.1") is False
+        assert client._is_private_ip("not.an.ip.address") is False
     
     def test_cache_operations(self, client):
         """Test cache storage and retrieval."""
@@ -120,6 +140,15 @@ class TestGeoIPClient:
         # Cache should be expired
         assert client._is_cache_valid(ip) is False
     
+    def test_cache_key_normalization(self, client):
+        """Test that cache keys are normalized."""
+        # Different cases should map to same key
+        key1 = client._get_cache_key("8.8.8.8")
+        key2 = client._get_cache_key("8.8.8.8 ")
+        key3 = client._get_cache_key(" 8.8.8.8")
+        
+        assert key1 == key2 == key3
+    
     @pytest.mark.asyncio
     async def test_lookup_private_ip(self, client):
         """Test lookup of private IP returns local info."""
@@ -129,6 +158,15 @@ class TestGeoIPClient:
         assert result.is_private is True
         assert result.lookup_success is True
         assert result.country == "Private Network"
+    
+    @pytest.mark.asyncio
+    async def test_lookup_private_ip_loopback(self, client):
+        """Test lookup of loopback IP."""
+        result = await client.lookup("127.0.0.1")
+        
+        assert result.ip_address == "127.0.0.1"
+        assert result.is_private is True
+        assert result.lookup_success is True
     
     @pytest.mark.asyncio
     async def test_lookup_with_successful_response(self, client):
@@ -162,6 +200,29 @@ class TestGeoIPClient:
         assert result.longitude == -122.0838
     
     @pytest.mark.asyncio
+    async def test_lookup_with_cache_hit(self, client):
+        """Test that cached results are returned without API call."""
+        # Pre-populate cache
+        ip = "8.8.8.8"
+        cached_geo = GeoLocation(
+            ip_address=ip,
+            country="Cached Country",
+            lookup_success=True
+        )
+        cache_key = client._get_cache_key(ip)
+        client._cache[cache_key] = cached_geo
+        client._cache_timestamps[cache_key] = datetime.now()
+        
+        # Create mock to verify it's not called
+        mock_get_client = AsyncMock()
+        
+        with patch.object(client, '_get_client', mock_get_client):
+            result = await client.lookup(ip)
+        
+        assert result is cached_geo
+        mock_get_client.assert_not_called()
+    
+    @pytest.mark.asyncio
     async def test_lookup_with_failed_response(self, client):
         """Test handling of failed API response."""
         mock_response = MagicMock()
@@ -184,13 +245,25 @@ class TestGeoIPClient:
     async def test_lookup_with_http_error(self, client):
         """Test handling of HTTP error."""
         mock_client = AsyncMock()
-        mock_client.get.side_effect = Exception("Connection error")
+        mock_client.get.side_effect = httpx.HTTPError("Connection error")
         
         with patch.object(client, '_get_client', return_value=mock_client):
             result = await client.lookup("8.8.8.8")
         
         assert result.lookup_success is False
-        assert "Connection error" in result.error_message
+        assert "HTTP error" in result.error_message
+    
+    @pytest.mark.asyncio
+    async def test_lookup_with_unexpected_error(self, client):
+        """Test handling of unexpected error."""
+        mock_client = AsyncMock()
+        mock_client.get.side_effect = ValueError("Unexpected error")
+        
+        with patch.object(client, '_get_client', return_value=mock_client):
+            result = await client.lookup("8.8.8.8")
+        
+        assert result.lookup_success is False
+        assert "Error" in result.error_message
     
     @pytest.mark.asyncio
     async def test_lookup_batch(self, client):
@@ -243,6 +316,18 @@ class TestGeoIPClient:
         assert elapsed >= 0
     
     @pytest.mark.asyncio
+    async def test_rate_limiting_first_request(self, client):
+        """Test that first request doesn't wait."""
+        client._last_request_time = None
+        
+        start_time = datetime.now()
+        await client._rate_limit()
+        elapsed = (datetime.now() - start_time).total_seconds()
+        
+        # Should be essentially instant
+        assert elapsed < 0.1
+    
+    @pytest.mark.asyncio
     async def test_close_client(self, client):
         """Test closing the HTTP client."""
         mock_http_client = AsyncMock()
@@ -252,6 +337,49 @@ class TestGeoIPClient:
         await client.close()
         
         mock_http_client.aclose.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_close_already_closed(self, client):
+        """Test closing already closed client."""
+        mock_http_client = AsyncMock()
+        mock_http_client.is_closed = True
+        client._client = mock_http_client
+        
+        await client.close()
+        
+        # Should not try to close again
+        mock_http_client.aclose.assert_not_called()
+    
+    @pytest.mark.asyncio
+    async def test_get_client_creates_new(self, client):
+        """Test that _get_client creates a new client if None."""
+        client._client = None
+        
+        new_client = await client._get_client()
+        
+        assert new_client is not None
+    
+    @pytest.mark.asyncio
+    async def test_get_client_reuses_existing(self, client):
+        """Test that _get_client reuses existing client."""
+        mock_client = AsyncMock()
+        mock_client.is_closed = False
+        client._client = mock_client
+        
+        result = await client._get_client()
+        
+        assert result is mock_client
+    
+    @pytest.mark.asyncio
+    async def test_get_client_reopens_closed(self, client):
+        """Test that _get_client creates new if existing is closed."""
+        mock_client = AsyncMock()
+        mock_client.is_closed = True
+        client._client = mock_client
+        
+        new_client = await client._get_client()
+        
+        assert new_client is not mock_client
 
 
 class TestGlobalClient:
@@ -263,6 +391,17 @@ class TestGlobalClient:
         client2 = get_geo_ip_client()
         
         assert client1 is client2
+    
+    def test_get_geo_ip_client_creates_new(self):
+        """Test that get_geo_ip_client creates new client on first call."""
+        # Reset the global client
+        import src.analytics.geo_ip as geo_ip_module
+        geo_ip_module._geo_ip_client = None
+        
+        client = get_geo_ip_client()
+        
+        assert client is not None
+        assert isinstance(client, GeoIPClient)
     
     @pytest.mark.asyncio
     async def test_lookup_ip_convenience_function(self):
@@ -281,3 +420,67 @@ class TestGlobalClient:
             assert result.lookup_success is True
             assert result.country == "US"
             mock_client.lookup.assert_called_once_with("8.8.8.8")
+
+
+class TestGeoIPClientEdgeCases:
+    """Tests for edge cases in GeoIPClient."""
+    
+    @pytest.fixture
+    def client(self):
+        """Create a fresh GeoIPClient for each test."""
+        return GeoIPClient()
+    
+    @pytest.mark.asyncio
+    async def test_lookup_with_whitespace_ip(self, client):
+        """Test lookup with whitespace in IP."""
+        result = await client.lookup("  192.168.1.1  ")
+        
+        # Should recognize as private IP
+        assert result.is_private is True
+    
+    @pytest.mark.asyncio
+    async def test_lookup_ipv6_private(self, client):
+        """Test lookup of IPv6 private addresses."""
+        # IPv6 loopback
+        result = await client.lookup("::1")
+        assert result.is_private is True
+        
+        # IPv6 link-local
+        result = await client.lookup("fe80::1")
+        assert result.is_private is True
+    
+    @pytest.mark.asyncio
+    async def test_lookup_with_empty_response_fields(self, client):
+        """Test handling of API response with missing fields."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "status": "success",
+            "query": "8.8.8.8",
+            # Missing many optional fields
+        }
+        mock_response.raise_for_status = MagicMock()
+        
+        mock_client = AsyncMock()
+        mock_client.get.return_value = mock_response
+        
+        with patch.object(client, '_get_client', return_value=mock_client):
+            result = await client.lookup("8.8.8.8")
+        
+        assert result.lookup_success is True
+        assert result.ip_address == "8.8.8.8"
+        assert result.country is None  # Not in response
+    
+    def test_cache_ttl_configuration(self, client):
+        """Test that cache TTL can be configured."""
+        # Default TTL is 30 minutes
+        assert client._cache_ttl == timedelta(minutes=30)
+        
+        # Can be changed
+        client._cache_ttl = timedelta(minutes=60)
+        assert client._cache_ttl == timedelta(minutes=60)
+    
+    def test_rate_limit_interval(self, client):
+        """Test rate limit interval calculation."""
+        # 45 requests per minute = 60/45 = 1.33 seconds between requests
+        expected_interval = 60.0 / 45
+        assert abs(client.REQUEST_INTERVAL - expected_interval) < 0.01
