@@ -130,6 +130,30 @@ Hooks configured:
 - Helm 3.12+
 - kubectl configured for your cluster
 
+### k3s Deployment (Production)
+
+The application is deployed at:
+- **URL**: http://specterdefence.k3s.digitaladrenalin.net
+- **Cluster**: k3s @ k3s.digitaladrenalin.net (57.129.132.176)
+
+#### Quick Deploy
+
+```bash
+# Create namespace
+kubectl create namespace specterdefence
+
+# Create secrets
+kubectl create secret generic specterdefence-secrets \
+  --namespace specterdefence \
+  --from-literal=SECRET_KEY="$(openssl rand -hex 32)" \
+  --from-literal=DATABASE_URL="sqlite+aiosqlite:////app/data/specterdefence.db" \
+  --from-literal=ENCRYPTION_KEY="$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" \
+  --from-literal=KIMI_API_KEY="your-kimi-api-key"
+
+# Deploy
+kubectl apply -f k8s-deployment.yaml
+```
+
 ### Secret Management
 
 SpecterDefence requires sensitive configuration (database credentials, encryption keys, OAuth secrets) to be provided securely. The Helm chart supports multiple secret management strategies.

@@ -166,6 +166,11 @@ spec:
             - name: tenant-credentials
               mountPath: /app/secrets
               readOnly: true
+            {{- if .Values.persistence.enabled }}
+            # Mount data volume for SQLite
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- end }}
       
       volumes:
         # Tenant credentials stored as K8s secret
@@ -173,6 +178,12 @@ spec:
           secret:
             secretName: {{ include "specterdefence.fullname" . }}-tenant-credentials
             defaultMode: 0400
+        {{- if .Values.persistence.enabled }}
+        # Data volume for SQLite
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "specterdefence.fullname" . }}-data
+        {{- end }}
       
       {{- with .Values.nodeSelector }}
       nodeSelector:
