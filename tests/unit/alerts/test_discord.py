@@ -288,3 +288,188 @@ class TestDiscordWebhookClient:
         
         mock_http_client.aclose.assert_called_once()
         assert client._client is None
+    
+    @pytest.mark.asyncio
+    async def test_send_alert_unexpected_error(self, client):
+        """Test alert sending with unexpected error."""
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(side_effect=ValueError("Unexpected error"))
+        
+        with patch.object(client, '_get_client', return_value=mock_client):
+            with pytest.raises(DiscordWebhookError) as exc_info:
+                await client.send_alert(
+                    title="Test Alert",
+                    description="Test description",
+                    severity=SeverityLevel.HIGH,
+                    event_type=EventType.IMPOSSIBLE_TRAVEL,
+                )
+        
+        assert "Unexpected error" in str(exc_info.value)
+    
+    @pytest.mark.asyncio
+    async def test_get_client_creates_new(self, client):
+        """Test that _get_client creates a new client when none exists."""
+        assert client._client is None
+        
+        result = await client._get_client()
+        
+        assert result is not None
+        assert client._client is not None
+    
+    @pytest.mark.asyncio
+    async def test_close_no_client(self, client):
+        """Test closing when no client exists."""
+        # Should not raise
+        await client.close()
+        assert client._client is None
+    
+    @pytest.mark.asyncio
+    async def test_build_embed_new_ip(self, client):
+        """Test embed building for new IP."""
+        metadata = {
+            "ip_address": "192.168.1.1",
+            "known_ips_count": 5,
+        }
+        
+        embed = client._build_embed(
+            title="New IP Address",
+            description="User logged in from new IP",
+            severity=SeverityLevel.LOW,
+            event_type=EventType.NEW_IP,
+            user_email="user@example.com",
+            metadata=metadata,
+            fields=None,
+            timestamp=datetime(2026, 3, 1, 2, 14, 0),
+        )
+        
+        field_names = [f["name"] for f in embed["fields"]]
+        assert "🌐 IP Address" in field_names
+        assert "📊 Known IPs" in field_names
+    
+    @pytest.mark.asyncio
+    async def test_build_embed_admin_action(self, client):
+        """Test embed building for admin action."""
+        metadata = {
+            "action": "delete_user",
+            "target": "user@example.com",
+            "ip_address": "10.0.0.1",
+        }
+        
+        embed = client._build_embed(
+            title="Admin Action",
+            description="Admin action detected",
+            severity=SeverityLevel.MEDIUM,
+            event_type=EventType.ADMIN_ACTION,
+            user_email="admin@example.com",
+            metadata=metadata,
+            fields=None,
+            timestamp=datetime(2026, 3, 1, 2, 14, 0),
+        )
+        
+        field_names = [f["name"] for f in embed["fields"]]
+        assert "⚙️ Action" in field_names
+        assert "🎯 Target" in field_names
+        assert "🌐 IP Address" in field_names
+    
+    @pytest.mark.asyncio
+    async def test_build_embed_new_country_first_login(self, client):
+        """Test embed building for new country with first login."""
+        metadata = {
+            "country_code": "FR",
+            "known_countries": [],
+            "is_first_login": True,
+            "ip_address": "192.168.1.1",
+        }
+        
+        embed = client._build_embed(
+            title="New Country Login",
+            description="User logged in from new country",
+            severity=SeverityLevel.MEDIUM,
+            event_type=EventType.NEW_COUNTRY,
+            user_email="user@example.com",
+            metadata=metadata,
+            fields=None,
+            timestamp=datetime(2026, 3, 1, 2, 14, 0),
+        )
+        
+        field_names = [f["name"] for f in embed["fields"]]
+        assert "🏳️ New Country" in field_names
+        assert "🆕 First Login" in field_names
+    
+    @pytest.mark.asyncio
+    async def test_build_embed_impossible_travel_partial_metadata(self, client):
+        """Test embed building for impossible travel with partial metadata."""
+        # Missing some fields like risk_score, distance_km
+        metadata = {
+            "previous_location": {
+                "city": "New York",
+                "country": "US",
+            },
+            "current_location": {
+                "city": "Tokyo",
+                "country": "JP",
+            },
+        }
+        
+        embed = client._build_embed(
+            title="Impossible Travel Detected",
+            description="User traveled too fast",
+            severity=SeverityLevel.CRITICAL,
+            event_type=EventType.IMPOSSIBLE_TRAVEL,
+            user_email="user@example.com",
+            metadata=metadata,
+            fields=None,
+            timestamp=datetime(2026, 3, 1, 2, 14, 0),
+        )
+        
+        field_names = [f["name"] for f in embed["fields"]]
+        assert "🌍 Locations" in field_names
+        # Risk score should not be present
+        assert "🎯 Risk Score" not in field_names
+    
+    @pytest.mark.asyncio
+    async def test_build_embed_ip_already_added(self, client):
+        """Test embed building when IP is already in metadata fields."""
+        # For NEW_IP event, IP is already added - shouldn't duplicate
+        metadata = {
+            "ip_address": "192.168.1.1",
+            "known_ips_count": 3,
+        }
+        
+        embed = client._build_embed(
+            title="New IP",
+            description="New IP detected",
+            severity=SeverityLevel.LOW,
+            event_type=EventType.NEW_IP,
+            user_email="user@example.com",
+            metadata=metadata,
+            fields=None,
+            timestamp=datetime(2026, 3, 1, 2, 14, 0),
+        )
+        
+        # Count IP field occurrences
+        ip_fields = [f for f in embed["fields"] if "IP Address" in f["name"]]
+        assert len(ip_fields) == 1  # Should only appear once
+    
+    @pytest.mark.asyncio
+    async def test_build_embed_suspicious_location(self, client):
+        """Test embed building for suspicious location with IP."""
+        # SUSPICIOUS_LOCATION isn't specifically handled but should still work
+        metadata = {
+            "ip_address": "10.0.0.1",
+        }
+        
+        embed = client._build_embed(
+            title="Suspicious Location",
+            description="Suspicious location detected",
+            severity=SeverityLevel.HIGH,
+            event_type=EventType.SUSPICIOUS_LOCATION,
+            user_email="user@example.com",
+            metadata=metadata,
+            fields=None,
+            timestamp=datetime(2026, 3, 1, 2, 14, 0),
+        )
+        
+        # Should still include IP address
+        field_names = [f["name"] for f in embed["fields"]]
+        assert "🌐 IP Address" in field_names

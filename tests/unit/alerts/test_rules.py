@@ -315,3 +315,216 @@ class TestAlertRuleService:
         )
         
         assert len(results) == 1
+    
+    @pytest.mark.asyncio
+    async def test_update_webhook_not_found(self, service, mock_db):
+        """Test updating a non-existent webhook."""
+        webhook_id = uuid4()
+        
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_db.execute.return_value = mock_result
+        
+        result = await service.update_webhook(
+            webhook_id,
+            {"name": "New Name"}
+        )
+        
+        assert result is None
+    
+    @pytest.mark.asyncio
+    async def test_list_webhooks_global_only(self, service, mock_db):
+        """Test listing only global webhooks (tenant_id=None)."""
+        webhook1 = MagicMock(spec=AlertWebhookModel)
+        webhook1.id = uuid4()
+        webhook1.tenant_id = None
+        
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [webhook1]
+        
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+        mock_db.execute.return_value = mock_result
+        
+        results = await service.list_webhooks(
+            tenant_id=None,
+            include_inactive=False,
+        )
+        
+        assert len(results) == 1
+    
+    @pytest.mark.asyncio
+    async def test_list_webhooks_with_tenant_filter(self, service, mock_db):
+        """Test listing webhooks for specific tenant."""
+        tenant_id = str(uuid4())
+        
+        webhook1 = MagicMock(spec=AlertWebhookModel)
+        webhook1.id = uuid4()
+        webhook1.tenant_id = tenant_id
+        
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [webhook1]
+        
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+        mock_db.execute.return_value = mock_result
+        
+        results = await service.list_webhooks(
+            tenant_id=tenant_id,
+            include_inactive=True,
+        )
+        
+        assert len(results) == 1
+    
+    @pytest.mark.asyncio
+    async def test_list_webhooks_include_inactive(self, service, mock_db):
+        """Test listing webhooks including inactive ones."""
+        webhook1 = MagicMock(spec=AlertWebhookModel)
+        webhook1.id = uuid4()
+        webhook1.is_active = False
+        
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [webhook1]
+        
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+        mock_db.execute.return_value = mock_result
+        
+        results = await service.list_webhooks(
+            tenant_id=None,
+            include_inactive=True,
+        )
+        
+        assert len(results) == 1
+    
+    @pytest.mark.asyncio
+    async def test_list_rules_global_only(self, service, mock_db):
+        """Test listing only global rules (tenant_id=None)."""
+        rule1 = MagicMock(spec=AlertRuleModel)
+        rule1.id = uuid4()
+        rule1.tenant_id = None
+        
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [rule1]
+        
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+        mock_db.execute.return_value = mock_result
+        
+        results = await service.list_rules(
+            tenant_id=None,
+            include_inactive=False,
+        )
+        
+        assert len(results) == 1
+    
+    @pytest.mark.asyncio
+    async def test_list_rules_with_tenant_filter(self, service, mock_db):
+        """Test listing rules for specific tenant."""
+        tenant_id = str(uuid4())
+        
+        rule1 = MagicMock(spec=AlertRuleModel)
+        rule1.id = uuid4()
+        rule1.tenant_id = tenant_id
+        
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [rule1]
+        
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+        mock_db.execute.return_value = mock_result
+        
+        results = await service.list_rules(
+            tenant_id=tenant_id,
+            include_inactive=True,
+        )
+        
+        assert len(results) == 1
+    
+    @pytest.mark.asyncio
+    async def test_get_rule_not_found(self, service, mock_db):
+        """Test getting a non-existent rule."""
+        rule_id = uuid4()
+        
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_db.execute.return_value = mock_result
+        
+        result = await service.get_rule(rule_id)
+        
+        assert result is None
+    
+    @pytest.mark.asyncio
+    async def test_find_matching_rules_inactive_excluded(self, service, mock_db):
+        """Test that inactive rules are excluded from matching."""
+        # The query filters by is_active=True, so inactive rules shouldn't be returned
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = []  # No active rules
+        
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+        mock_db.execute.return_value = mock_result
+        
+        results = await service.find_matching_rules(
+            event_type="impossible_travel",
+            severity=SeverityLevel.HIGH,
+        )
+        
+        assert len(results) == 0
+    
+    @pytest.mark.asyncio
+    async def test_find_matching_rules_event_type_mismatch(self, service, mock_db):
+        """Test that rules with different event types don't match."""
+        # Rule for new_country, looking for impossible_travel
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = []
+        
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+        mock_db.execute.return_value = mock_result
+        
+        results = await service.find_matching_rules(
+            event_type="impossible_travel",
+            severity=SeverityLevel.HIGH,
+        )
+        
+        assert len(results) == 0
+    
+    @pytest.mark.asyncio
+    async def test_create_rule_with_tenant(self, service, mock_db):
+        """Test creating a rule with tenant ID."""
+        tenant_id = str(uuid4())
+        
+        rule = await service.create_rule(
+            name="Tenant Rule",
+            event_types=["impossible_travel"],
+            min_severity="HIGH",
+            cooldown_minutes=30,
+            tenant_id=tenant_id,
+        )
+        
+        assert rule.name == "Tenant Rule"
+        assert rule.tenant_id == tenant_id
+        assert rule.min_severity == SeverityLevel.HIGH
+    
+    @pytest.mark.asyncio
+    async def test_update_rule_without_severity(self, service, mock_db):
+        """Test updating a rule without changing severity."""
+        rule_id = uuid4()
+        mock_rule = MagicMock(spec=AlertRuleModel)
+        mock_rule.name = "Old Name"
+        mock_rule.min_severity = SeverityLevel.MEDIUM
+        
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_rule
+        mock_db.execute.return_value = mock_result
+        
+        result = await service.update_rule(
+            rule_id,
+            {"name": "New Name", "cooldown_minutes": 60}
+        )
+        
+        assert result == mock_rule
+        assert mock_rule.name == "New Name"
+        # Severity should remain unchanged
+        assert mock_rule.min_severity == SeverityLevel.MEDIUM
