@@ -1,196 +1,249 @@
 import { useState } from 'react';
 import { 
-  Users, 
-  XCircle, 
-  AlertTriangle, 
-  Building2, 
-  ArrowRight
+  Download, 
+  RefreshCw, 
+  TrendingUp,
+  TrendingDown,
+  Shield,
+  AlertTriangle,
+  Users,
+  Activity
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import {
+  LoginTimelineChart,
+  GeoHeatmap,
+  AnomalyTrendChart,
+  AlertVolumeChart,
+  TopRiskUsers,
+  AnomalyBreakdownChart,
+} from '@/components/charts';
+import { useDashboardData, TimeRange } from '@/hooks/useDashboard';
 import StatsCard from '@/components/StatsCard';
-import AnomalyCard from '@/components/AnomalyCard';
-import FilterPanel from '@/components/FilterPanel';
-import { useDashboardStats, useRecentAnomalies } from '@/hooks/useApi';
-import { LoginFilters } from '@/types';
+import clsx from 'clsx';
 
 export default function Dashboard() {
-  const [filters, setFilters] = useState<LoginFilters>({ page_size: 10 });
-  
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
-  const { data: anomalies, isLoading: anomaliesLoading } = useRecentAnomalies({ hours: 24, limit: 5 });
+  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
+  const [isExporting, setIsExporting] = useState(false);
+
+  const { data, isLoading, refetch, isRefetching } = useDashboardData(timeRange);
+
+  const handleExport = async (format: 'csv' | 'json' | 'pdf') => {
+    setIsExporting(true);
+    try {
+      const blob = await fetch(`/api/v1/dashboard/export/download/${format}?time_range=${timeRange}`)
+        .then(res => res.blob());
+      
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `dashboard-export-${new Date().toISOString().split('T')[0]}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`Dashboard exported as ${format.toUpperCase()}`);
+    } catch (error) {
+      toast.error('Failed to export dashboard');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const summary = data?.summary;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Security Dashboard
+          </h1>
           <p className="mt-1 text-gray-500 dark:text-gray-400">
-            Overview of your security posture and recent activity
+            Monitor security events, anomalies, and user activity across all tenants
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Link
-            to="/analytics"
-            className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+          {/* Time Range Selector */}
+          <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            {(['7d', '30d', '90d'] as TimeRange[]).map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={clsx(
+                  'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                  timeRange === range
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                )}
+              >
+                {range === '7d' && '7 Days'}
+                {range === '30d' && '30 Days'}
+                {range === '90d' && '90 Days'}
+              </button>
+            ))}
+          </div>
+
+          {/* Refresh Button */}
+          <button
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            title="Refresh data"
           >
-            View Analytics
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+            <RefreshCw className={clsx('w-5 h-5', isRefetching && 'animate-spin')} />
+          </button>
+
+          {/* Export Dropdown */}
+          <div className="relative group">
+            <button
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </button>
+            
+            <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+              <button
+                onClick={() => handleExport('csv')}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg"
+              >
+                Export CSV
+              </button>
+              <button
+                onClick={() => handleExport('json')}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-lg"
+              >
+                Export JSON
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Logins (24h)"
-          value={stats?.total_logins?.toLocaleString() || 0}
-          icon={Users}
+          value={summary?.total_logins_24h?.toLocaleString() || 0}
+          icon={Activity}
           color="blue"
-          loading={statsLoading}
-          trend={{ value: 12, label: 'vs yesterday', positive: true }}
+          loading={isLoading}
+          trend={
+            summary && {
+              value: Math.round(((summary.total_logins_24h - summary.failed_logins_24h) / (summary.total_logins_24h || 1)) * 100),
+              label: 'success rate',
+              positive: summary.failed_logins_24h < summary.total_logins_24h * 0.1
+            }
+          }
         />
 
         <StatsCard
           title="Failed Logins (24h)"
-          value={stats?.failed_logins?.toLocaleString() || 0}
-          icon={XCircle}
+          value={summary?.failed_logins_24h?.toLocaleString() || 0}
+          icon={TrendingDown}
           color="red"
-          loading={statsLoading}
-          trend={{ value: -5, label: 'vs yesterday', positive: true }}
+          loading={isLoading}
         />
 
         <StatsCard
-          title="Anomalies Today"
-          value={stats?.anomalies_today?.toLocaleString() || 0}
+          title="Anomalies Detected"
+          value={summary?.anomalies_today?.toLocaleString() || 0}
           icon={AlertTriangle}
           color="amber"
-          loading={statsLoading}
+          loading={isLoading}
+          trend={
+            summary?.anomalies_today > 0
+              ? { value: summary.anomalies_today, label: 'today', positive: false }
+              : undefined
+          }
         />
 
         <StatsCard
-          title="Active Tenants"
-          value={stats?.active_tenants?.toLocaleString() || 0}
-          icon={Building2}
-          color="green"
-          loading={statsLoading}
+          title="Avg Risk Score"
+          value={summary?.avg_risk_score?.toFixed(1) || '0.0'}
+          icon={Shield}
+          color={
+            (summary?.avg_risk_score || 0) >= 70
+              ? 'red'
+              : (summary?.avg_risk_score || 0) >= 40
+              ? 'amber'
+              : 'green'
+          }
+          loading={isLoading}
         />
       </div>
 
-      {/* Quick Filters */}
-      <FilterPanel
-        filters={filters}
-        onChange={setFilters}
-        compact={true}
-      />
-
-      {/* Recent Activity Section */}
+      {/* Main Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Anomalies */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Recent Anomalies
-            </h2>
-            <Link
-              to="/anomalies"
-              className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 flex items-center gap-1"
-            >
-              View all
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+        {/* Login Activity Timeline */}
+        <LoginTimelineChart
+          data={data?.login_timeline?.data || []}
+          changePercent={data?.login_timeline?.change_percent || 0}
+          isLoading={isLoading}
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+        />
 
-          <div className="space-y-3">
-            {anomaliesLoading ? (
-              [1, 2, 3].map((i) => (
-                <div 
-                  key={i} 
-                  className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 animate-pulse"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2"></div>
-                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : anomalies && anomalies.length > 0 ? (
-              anomalies.slice(0, 5).map((anomaly, idx) => (
-                <AnomalyCard key={idx} anomaly={anomaly} compact />
-              ))
-            ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
-                <AlertTriangle className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-500 dark:text-gray-400">No anomalies detected in the last 24 hours</p>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Geographic Heatmap */}
+        <GeoHeatmap
+          data={data?.geo_heatmap?.locations || []}
+          totalCountries={data?.geo_heatmap?.total_countries || 0}
+          topCountry={data?.geo_heatmap?.top_country || undefined}
+          isLoading={isLoading}
+        />
 
-        {/* Quick Stats / Trends */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Security Trends
-            </h2>
-          </div>
+        {/* Anomaly Trend */}
+        <AnomalyTrendChart
+          data={data?.anomaly_trend?.data || []}
+          totalAnomalies={data?.anomaly_trend?.total_anomalies || 0}
+          topType={data?.anomaly_trend?.top_type || undefined}
+          changePercent={data?.anomaly_trend?.change_percent || 0}
+          isLoading={isLoading}
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+        />
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Login Success Rate</span>
-                  <span className="text-sm font-semibold text-green-600">98.5%</span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '98.5%' }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Anomaly Detection Rate</span>
-                  <span className="text-sm font-semibold text-amber-600">2.3%</span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-amber-500 h-2 rounded-full" style={{ width: '2.3%' }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Tenant Health Score</span>
-                  <span className="text-sm font-semibold text-primary-600">92%</span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-primary-500 h-2 rounded-full" style={{ width: '92%' }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.total_logins || 0}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Total Logins</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{anomalies?.length || 0}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Recent Anomalies</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.active_tenants || 0}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Active Tenants</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Alert Volume */}
+        <AlertVolumeChart
+          data={data?.alert_volume?.data || []}
+          totalBySeverity={data?.alert_volume?.total_by_severity || {}}
+          peakVolume={data?.alert_volume?.peak_volume || 0}
+          isLoading={isLoading}
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+        />
       </div>
+
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Top Risk Users */}
+        <div className="lg:col-span-2">
+          <TopRiskUsers
+            users={data?.top_risk_users?.users || []}
+            totalUsers={data?.top_risk_users?.total_users || 0}
+            avgRiskScore={data?.top_risk_users?.avg_risk_score || 0}
+            isLoading={isLoading}
+          />
+        </div>
+
+        {/* Anomaly Breakdown */}
+        <AnomalyBreakdownChart
+          data={data?.anomaly_breakdown || []}
+          isLoading={isLoading}
+        />
+      </div>
+
+      {/* Last Updated */}
+      {data?.generated_at && (
+        <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+          Last updated: {new Date(data.generated_at).toLocaleString()}
+        </div>
+      )}
     </div>
   );
 }

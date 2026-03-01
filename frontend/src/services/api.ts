@@ -12,6 +12,17 @@ import {
   AnomalyDetail,
   DashboardStats
 } from '@/types';
+import type { 
+  TimeRange,
+  DashboardDataResponse,
+  DashboardSummary,
+  LoginActivityTimeline,
+  GeoHeatmapData,
+  AnomalyTrendData,
+  TopRiskUsersData,
+  AlertVolumeData,
+  AnomalyBreakdownItem
+} from '@/hooks/useDashboard';
 
 const API_BASE_URL = '/api/v1';
 
@@ -127,7 +138,7 @@ class ApiService {
     return response.data;
   }
 
-  // ============== Dashboard Stats ==============
+  // ============== Dashboard Stats (Legacy) ==============
 
   async getDashboardStats(): Promise<DashboardStats> {
     // Aggregate data from multiple endpoints
@@ -157,6 +168,91 @@ class ApiService {
       anomalies_today: anomaliesToday,
       active_tenants: activeTenants,
     };
+  }
+
+  // ============== Dashboard API ==============
+
+  async getDashboardData(timeRange: TimeRange, tenantId?: string): Promise<DashboardDataResponse> {
+    const params = new URLSearchParams();
+    params.append('time_range', timeRange);
+    if (tenantId) params.append('tenant_id', tenantId);
+
+    const response = await this.client.get(`/dashboard/full?${params.toString()}`);
+    return response.data;
+  }
+
+  async getDashboardSummary(tenantId?: string): Promise<DashboardSummary> {
+    const params = new URLSearchParams();
+    if (tenantId) params.append('tenant_id', tenantId);
+
+    const response = await this.client.get(`/dashboard/summary?${params.toString()}`);
+    return response.data;
+  }
+
+  async getLoginTimeline(timeRange: TimeRange, tenantId?: string): Promise<LoginActivityTimeline> {
+    const params = new URLSearchParams();
+    params.append('time_range', timeRange);
+    if (tenantId) params.append('tenant_id', tenantId);
+
+    const response = await this.client.get(`/dashboard/login-timeline?${params.toString()}`);
+    return response.data;
+  }
+
+  async getGeoHeatmap(timeRange: TimeRange, tenantId?: string): Promise<GeoHeatmapData> {
+    const params = new URLSearchParams();
+    params.append('time_range', timeRange);
+    if (tenantId) params.append('tenant_id', tenantId);
+
+    const response = await this.client.get(`/dashboard/geo-heatmap?${params.toString()}`);
+    return response.data;
+  }
+
+  async getAnomalyTrend(timeRange: TimeRange, tenantId?: string): Promise<AnomalyTrendData> {
+    const params = new URLSearchParams();
+    params.append('time_range', timeRange);
+    if (tenantId) params.append('tenant_id', tenantId);
+
+    const response = await this.client.get(`/dashboard/anomaly-trend?${params.toString()}`);
+    return response.data;
+  }
+
+  async getTopRiskUsers(limit: number = 10, tenantId?: string): Promise<TopRiskUsersData> {
+    const params = new URLSearchParams();
+    params.append('limit', String(limit));
+    if (tenantId) params.append('tenant_id', tenantId);
+
+    const response = await this.client.get(`/dashboard/top-risk-users?${params.toString()}`);
+    return response.data;
+  }
+
+  async getAlertVolume(timeRange: TimeRange, tenantId?: string): Promise<AlertVolumeData> {
+    const params = new URLSearchParams();
+    params.append('time_range', timeRange);
+    if (tenantId) params.append('tenant_id', tenantId);
+
+    const response = await this.client.get(`/dashboard/alert-volume?${params.toString()}`);
+    return response.data;
+  }
+
+  async getAnomalyBreakdown(timeRange: TimeRange, tenantId?: string): Promise<AnomalyBreakdownItem[]> {
+    const params = new URLSearchParams();
+    params.append('time_range', timeRange);
+    if (tenantId) params.append('tenant_id', tenantId);
+
+    const response = await this.client.get(`/dashboard/anomaly-breakdown?${params.toString()}`);
+    return response.data;
+  }
+
+  async exportDashboard(format: 'csv' | 'json' | 'pdf', timeRange: TimeRange, tenantId?: string): Promise<Blob> {
+    const params = new URLSearchParams();
+    params.append('format', format);
+    params.append('time_range', timeRange);
+    if (tenantId) params.append('tenant_id', tenantId);
+
+    const response = await this.client.get(`/dashboard/export/download/${format}?${params.toString()}`, {
+      responseType: 'blob',
+    });
+    return response.data;
   }
 
   // Export logins to CSV
