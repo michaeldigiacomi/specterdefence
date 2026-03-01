@@ -9,7 +9,8 @@ import {
   Sun,
   Moon,
   Shield,
-  Bell
+  Bell,
+  Settings
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { clsx, type ClassValue } from 'clsx';
@@ -26,6 +27,7 @@ const navItems = [
   { path: '/alerts', icon: Bell, label: 'Live Alerts' },
   { path: '/anomalies', icon: AlertTriangle, label: 'Anomalies' },
   { path: '/tenants', icon: Building2, label: 'Tenants' },
+  { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export default function Sidebar() {

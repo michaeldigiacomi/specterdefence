@@ -1,7 +1,7 @@
 # SpecterDefence API
 
 from fastapi import APIRouter
-from src.api import tenants, health, auth, analytics, alerts, mailbox_rules, oauth_apps, ca_policies, websocket, dashboard, mfa_report
+from src.api import tenants, health, auth, analytics, alerts, mailbox_rules, oauth_apps, ca_policies, websocket, dashboard, mfa_report, settings
 
 router = APIRouter()
 
@@ -16,3 +16,4 @@ router.include_router(ca_policies.router, prefix="/ca-policies", tags=["ca-polic
 router.include_router(mfa_report.router, prefix="/mfa-report", tags=["mfa-report"])
 router.include_router(websocket.router, prefix="/ws", tags=["websocket"])
 router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+router.include_router(settings.router, prefix="/settings", tags=["settings"])

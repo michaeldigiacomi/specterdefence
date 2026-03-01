@@ -10,7 +10,30 @@ import {
   AlertHistoryList,
   AlertFilters,
   AnomalyDetail,
-  DashboardStats
+  DashboardStats,
+  SystemSettings,
+  SystemSettingsUpdate,
+  UserPreferences,
+  UserPreferencesUpdate,
+  DetectionThresholds,
+  DetectionThresholdsUpdate,
+  ApiKey,
+  ApiKeyCreate,
+  ApiKeyCreateResponse,
+  ApiKeyUpdate,
+  WebhookTestRequest,
+  WebhookTestResponse,
+  ConfigExportRequest,
+  ConfigExportResponse,
+  ConfigImportRequest,
+  ConfigImportResponse,
+  ConfigBackup,
+  AlertRule,
+  AlertRuleCreate,
+  AlertRuleUpdate,
+  WebhookConfig,
+  WebhookCreate,
+  WebhookUpdate,
 } from '@/types';
 import type { 
   TimeRange,
@@ -269,6 +292,152 @@ class ApiService {
     const response = await this.client.get(`/analytics/logins/export?${params.toString()}`, {
       responseType: 'blob',
     });
+    return response.data;
+  }
+
+  // ============== Settings API ==============
+
+  // System Settings
+  async getSystemSettings(): Promise<SystemSettings> {
+    const response = await this.client.get('/settings/system');
+    return response.data;
+  }
+
+  async updateSystemSettings(data: SystemSettingsUpdate): Promise<SystemSettings> {
+    const response = await this.client.patch('/settings/system', data);
+    return response.data;
+  }
+
+  // User Preferences
+  async getUserPreferences(userEmail: string): Promise<UserPreferences> {
+    const response = await this.client.get(`/settings/preferences/${encodeURIComponent(userEmail)}`);
+    return response.data;
+  }
+
+  async updateUserPreferences(userEmail: string, data: UserPreferencesUpdate): Promise<UserPreferences> {
+    const response = await this.client.patch(`/settings/preferences/${encodeURIComponent(userEmail)}`, data);
+    return response.data;
+  }
+
+  // Detection Thresholds
+  async getDetectionThresholds(tenantId?: string): Promise<DetectionThresholds> {
+    const params = new URLSearchParams();
+    if (tenantId) params.append('tenant_id', tenantId);
+    const response = await this.client.get(`/settings/detection?${params.toString()}`);
+    return response.data;
+  }
+
+  async updateDetectionThresholds(data: DetectionThresholdsUpdate, tenantId?: string): Promise<DetectionThresholds> {
+    const params = new URLSearchParams();
+    if (tenantId) params.append('tenant_id', tenantId);
+    const response = await this.client.patch(`/settings/detection?${params.toString()}`, data);
+    return response.data;
+  }
+
+  // API Keys
+  async getApiKeys(tenantId?: string, includeInactive?: boolean): Promise<ApiKey[]> {
+    const params = new URLSearchParams();
+    if (tenantId) params.append('tenant_id', tenantId);
+    if (includeInactive) params.append('include_inactive', 'true');
+    const response = await this.client.get(`/settings/api-keys?${params.toString()}`);
+    return response.data;
+  }
+
+  async createApiKey(data: ApiKeyCreate): Promise<ApiKeyCreateResponse> {
+    const response = await this.client.post('/settings/api-keys', data);
+    return response.data;
+  }
+
+  async getApiKey(keyId: string): Promise<ApiKey> {
+    const response = await this.client.get(`/settings/api-keys/${keyId}`);
+    return response.data;
+  }
+
+  async updateApiKey(keyId: string, data: ApiKeyUpdate): Promise<ApiKey> {
+    const response = await this.client.patch(`/settings/api-keys/${keyId}`, data);
+    return response.data;
+  }
+
+  async revokeApiKey(keyId: string): Promise<void> {
+    await this.client.delete(`/settings/api-keys/${keyId}`);
+  }
+
+  // Webhook Test
+  async testWebhook(data: WebhookTestRequest): Promise<WebhookTestResponse> {
+    const response = await this.client.post('/settings/webhooks/test', data);
+    return response.data;
+  }
+
+  // Configuration Import/Export
+  async exportConfiguration(data: ConfigExportRequest): Promise<ConfigExportResponse> {
+    const response = await this.client.post('/settings/config/export', data);
+    return response.data;
+  }
+
+  async importConfiguration(data: ConfigImportRequest): Promise<ConfigImportResponse> {
+    const response = await this.client.post('/settings/config/import', data);
+    return response.data;
+  }
+
+  async getConfigurationBackups(): Promise<ConfigBackup[]> {
+    const response = await this.client.get('/settings/config/backups');
+    return response.data;
+  }
+
+  async deleteConfigurationBackup(backupId: string): Promise<void> {
+    await this.client.delete(`/settings/config/backups/${backupId}`);
+  }
+
+  async downloadConfigurationBackup(backupId: string): Promise<Blob> {
+    const response = await this.client.get(`/settings/config/export/${backupId}/download`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  // Alert Rules
+  async getAlertRules(): Promise<AlertRule[]> {
+    const response = await this.client.get('/alerts/rules');
+    return response.data;
+  }
+
+  async createAlertRule(data: AlertRuleCreate): Promise<AlertRule> {
+    const response = await this.client.post('/alerts/rules', data);
+    return response.data;
+  }
+
+  async updateAlertRule(ruleId: string, data: AlertRuleUpdate): Promise<AlertRule> {
+    const response = await this.client.patch(`/alerts/rules/${ruleId}`, data);
+    return response.data;
+  }
+
+  async deleteAlertRule(ruleId: string): Promise<void> {
+    await this.client.delete(`/alerts/rules/${ruleId}`);
+  }
+
+  // Webhooks
+  async getWebhooks(): Promise<WebhookConfig[]> {
+    const response = await this.client.get('/alerts/webhooks');
+    return response.data;
+  }
+
+  async createWebhook(data: WebhookCreate): Promise<WebhookConfig> {
+    const response = await this.client.post('/alerts/webhooks', data);
+    return response.data;
+  }
+
+  async updateWebhook(webhookId: string, data: WebhookUpdate): Promise<WebhookConfig> {
+    const response = await this.client.patch(`/alerts/webhooks/${webhookId}`, data);
+    return response.data;
+  }
+
+  async deleteWebhook(webhookId: string): Promise<void> {
+    await this.client.delete(`/alerts/webhooks/${webhookId}`);
+  }
+
+  // Tenant Settings
+  async getTenantSettings(tenantId: string): Promise<Record<string, unknown>> {
+    const response = await this.client.get(`/settings/tenants/${tenantId}`);
     return response.data;
   }
 }

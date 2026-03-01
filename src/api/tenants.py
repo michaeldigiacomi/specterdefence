@@ -1,7 +1,7 @@
 """Tenant API endpoints."""
 
-from typing import List
-from fastapi import APIRouter, HTTPException, status, Depends
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
@@ -9,12 +9,14 @@ from src.services.tenant import (
     TenantService,
     TenantAlreadyExistsError,
     TenantValidationError,
+    TenantNotFoundError,
 )
 from src.models.tenant import (
     TenantCreate,
     TenantUpdate,
     TenantResponse,
     TenantCreateResponse,
+    TenantHealthCheckResponse,
 )
 
 router = APIRouter()
@@ -234,3 +236,139 @@ async def validate_tenant_credentials(
     )
     
     return validation
+
+
+@router.post(
+    "/{tenant_id}/health-check",
+    response_model=TenantHealthCheckResponse,
+    summary="Test tenant connection health",
+    description="""
+    Perform a comprehensive health check on the tenant connection.
+    
+    Tests:
+    - Microsoft Graph API connectivity
+    - Authentication with tenant credentials
+    - Required permissions (AuditLog.Read.All by default)
+    - Response latency
+    
+    Updates the tenant's connection_status field with the result.
+    """
+)
+async def health_check_tenant(
+    tenant_id: str,
+    permissions: Optional[List[str]] = Query(
+        None,
+        description="Optional list of permissions to verify (default: AuditLog.Read.All)"
+    ),
+    timeout: float = Query(
+        30.0,
+        ge=5.0,
+        le=120.0,
+        description="Request timeout in seconds (5-120)"
+    ),
+    update_status: bool = Query(
+        True,
+        description="Whether to update the tenant's connection status in database"
+    ),
+    service: TenantService = Depends(get_tenant_service)
+) -> TenantHealthCheckResponse:
+    """Perform health check on a tenant connection.
+    
+    Args:
+        tenant_id: Internal tenant UUID
+        permissions: List of permissions to verify (default: ["AuditLog.Read.All"])
+        timeout: Request timeout in seconds
+        update_status: Whether to update connection status in database
+        service: Tenant service instance
+        
+    Returns:
+        Health check response with connectivity, authentication, and permission status
+        
+    Raises:
+        HTTPException: If tenant not found
+    """
+    try:
+        result = await service.health_check_tenant(
+            tenant_id=tenant_id,
+            required_permissions=permissions,
+            timeout=timeout,
+            update_status=update_status
+        )
+        return result
+    except TenantNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tenant with ID {tenant_id} not found"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Health check failed: {str(e)}"
+        )
+
+
+@router.post(
+    "/health-check/all",
+    response_model=List[TenantHealthCheckResponse],
+    summary="Test all tenant connections",
+    description="Perform health checks on all active tenants."
+)
+async def health_check_all_tenants(
+    permissions: Optional[List[str]] = Query(
+        None,
+        description="Optional list of permissions to verify (default: AuditLog.Read.All)"
+    ),
+    timeout: float = Query(
+        30.0,
+        ge=5.0,
+        le=120.0,
+        description="Request timeout in seconds (5-120)"
+    ),
+    service: TenantService = Depends(get_tenant_service)
+) -> List[TenantHealthCheckResponse]:
+    """Perform health checks on all active tenants.
+    
+    Args:
+        permissions: List of permissions to verify (default: ["AuditLog.Read.All"])
+        timeout: Request timeout in seconds
+        service: Tenant service instance
+        
+    Returns:
+        List of health check responses for all active tenants
+    """
+    tenants = await service.list_tenants(include_inactive=False)
+    results = []
+    
+    for tenant_response in tenants:
+        try:
+            result = await service.health_check_tenant(
+                tenant_id=tenant_response.id,
+                required_permissions=permissions,
+                timeout=timeout,
+                update_status=True
+            )
+            results.append(result)
+        except Exception as e:
+            # Include error result for this tenant
+            from datetime import datetime, timezone
+            from src.models.tenant import (
+                TenantHealthCheckConnectivity,
+                TenantHealthCheckAuth,
+                TenantHealthCheckPermissions,
+                TenantHealthCheckInfo,
+            )
+            results.append(TenantHealthCheckResponse(
+                tenant_id=tenant_response.id,
+                status="error",
+                connectivity=TenantHealthCheckConnectivity(
+                    success=False,
+                    error=str(e)
+                ),
+                authentication=TenantHealthCheckAuth(success=False, error=str(e)),
+                permissions=TenantHealthCheckPermissions(success=False),
+                tenant_info=TenantHealthCheckInfo(),
+                timestamp=datetime.now(timezone.utc),
+                message=f"Health check failed: {str(e)}"
+            ))
+    
+    return results

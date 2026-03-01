@@ -180,3 +180,248 @@ export interface AppState {
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
 }
+
+// ============================================
+// Settings Types
+// ============================================
+
+/** System settings */
+export interface SystemSettings {
+  audit_log_retention_days: number;
+  login_history_retention_days: number;
+  alert_history_retention_days: number;
+  auto_cleanup_enabled: boolean;
+  cleanup_schedule: string;
+  api_rate_limit: number;
+  max_export_rows: number;
+  log_level: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** System settings update */
+export interface SystemSettingsUpdate {
+  audit_log_retention_days?: number;
+  login_history_retention_days?: number;
+  alert_history_retention_days?: number;
+  auto_cleanup_enabled?: boolean;
+  cleanup_schedule?: string;
+  api_rate_limit?: number;
+  max_export_rows?: number;
+  log_level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+}
+
+/** User preferences */
+export interface UserPreferences {
+  user_email: string;
+  timezone: string;
+  date_format: 'ISO' | 'US' | 'EU';
+  theme: 'light' | 'dark' | 'system';
+  email_notifications: boolean;
+  discord_notifications: boolean;
+  notification_min_severity: SeverityLevel;
+  default_dashboard_view: string;
+  refresh_interval_seconds: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** User preferences update */
+export interface UserPreferencesUpdate {
+  timezone?: string;
+  date_format?: 'ISO' | 'US' | 'EU';
+  theme?: 'light' | 'dark' | 'system';
+  email_notifications?: boolean;
+  discord_notifications?: boolean;
+  notification_min_severity?: SeverityLevel;
+  default_dashboard_view?: string;
+  refresh_interval_seconds?: number;
+}
+
+/** Detection thresholds */
+export interface DetectionThresholds {
+  tenant_id?: string;
+  impossible_travel_enabled: boolean;
+  impossible_travel_min_speed_kmh: number;
+  impossible_travel_time_window_minutes: number;
+  new_country_enabled: boolean;
+  new_country_learning_period_days: number;
+  brute_force_enabled: boolean;
+  brute_force_threshold: number;
+  brute_force_window_minutes: number;
+  new_ip_enabled: boolean;
+  new_ip_learning_period_days: number;
+  multiple_failures_enabled: boolean;
+  multiple_failures_threshold: number;
+  multiple_failures_window_minutes: number;
+  risk_score_base_multiplier: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Detection thresholds update */
+export interface DetectionThresholdsUpdate {
+  impossible_travel_enabled?: boolean;
+  impossible_travel_min_speed_kmh?: number;
+  impossible_travel_time_window_minutes?: number;
+  new_country_enabled?: boolean;
+  new_country_learning_period_days?: number;
+  brute_force_enabled?: boolean;
+  brute_force_threshold?: number;
+  brute_force_window_minutes?: number;
+  new_ip_enabled?: boolean;
+  new_ip_learning_period_days?: number;
+  multiple_failures_enabled?: boolean;
+  multiple_failures_threshold?: number;
+  multiple_failures_window_minutes?: number;
+  risk_score_base_multiplier?: number;
+}
+
+/** API key */
+export interface ApiKey {
+  id: string;
+  name: string;
+  key_prefix: string;
+  scopes: string[];
+  tenant_id?: string;
+  is_active: boolean;
+  expires_at?: string;
+  last_used_at?: string;
+  created_by?: string;
+  created_at: string;
+}
+
+/** API key creation request */
+export interface ApiKeyCreate {
+  name: string;
+  scopes: string[];
+  tenant_id?: string;
+  expires_days?: number;
+}
+
+/** API key creation response */
+export interface ApiKeyCreateResponse {
+  id: string;
+  key: string;
+  name: string;
+  prefix: string;
+  message: string;
+}
+
+/** API key update */
+export interface ApiKeyUpdate {
+  name?: string;
+  scopes?: string[];
+  is_active?: boolean;
+}
+
+/** Webhook test request */
+export interface WebhookTestRequest {
+  webhook_url: string;
+  webhook_type: 'discord' | 'slack';
+  message: string;
+}
+
+/** Webhook test response */
+export interface WebhookTestResponse {
+  success: boolean;
+  message: string;
+  latency_ms?: number;
+}
+
+/** Configuration export request */
+export interface ConfigExportRequest {
+  categories: string[];
+  name: string;
+  description?: string;
+}
+
+/** Configuration export response */
+export interface ConfigExportResponse {
+  id: string;
+  name: string;
+  description?: string;
+  categories: string[];
+  created_at: string;
+  download_url: string;
+}
+
+/** Configuration import request */
+export interface ConfigImportRequest {
+  config: Record<string, unknown>;
+  overwrite?: boolean;
+}
+
+/** Configuration import response */
+export interface ConfigImportResponse {
+  imported: string[];
+  errors: string[];
+  message: string;
+}
+
+/** Configuration backup */
+export interface ConfigBackup {
+  id: string;
+  name: string;
+  description?: string;
+  categories: string[];
+  created_by?: string;
+  created_at: string;
+}
+
+/** Alert rule for rule builder */
+export interface AlertRule {
+  id: string;
+  name: string;
+  event_types: EventType[];
+  min_severity: SeverityLevel;
+  cooldown_minutes: number;
+  is_active: boolean;
+  tenant_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Alert rule creation/update */
+export interface AlertRuleCreate {
+  name: string;
+  event_types: EventType[];
+  min_severity: SeverityLevel;
+  cooldown_minutes?: number;
+  tenant_id?: string;
+}
+
+/** Alert rule update */
+export interface AlertRuleUpdate {
+  name?: string;
+  event_types?: EventType[];
+  min_severity?: SeverityLevel;
+  cooldown_minutes?: number;
+  is_active?: boolean;
+}
+
+/** Webhook configuration */
+export interface WebhookConfig {
+  id: string;
+  name: string;
+  webhook_type: 'discord' | 'slack';
+  is_active: boolean;
+  tenant_id?: string;
+  created_at: string;
+}
+
+/** Webhook creation */
+export interface WebhookCreate {
+  name: string;
+  webhook_url: string;
+  webhook_type: 'discord' | 'slack';
+  tenant_id?: string;
+}
+
+/** Webhook update */
+export interface WebhookUpdate {
+  name?: string;
+  webhook_url?: string;
+  webhook_type?: 'discord' | 'slack';
+  is_active?: boolean;
+}

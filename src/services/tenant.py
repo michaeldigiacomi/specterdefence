@@ -1,5 +1,6 @@
 """Tenant service for business logic."""
 
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,9 +11,14 @@ from src.models.tenant import (
     TenantUpdate,
     TenantResponse,
     TenantValidationResponse,
+    TenantHealthCheckResponse,
+    TenantHealthCheckConnectivity,
+    TenantHealthCheckAuth,
+    TenantHealthCheckPermissions,
+    TenantHealthCheckInfo,
 )
 from src.services.encryption import encryption_service
-from src.clients.ms_graph import validate_tenant_credentials, MSGraphAuthError
+from src.clients.ms_graph import MSGraphClient, MSGraphAuthError, MSGraphAPIError
 
 
 class TenantService:
@@ -76,7 +82,8 @@ class TenantService:
         self,
         tenant_id: str,
         client_id: str,
-        client_secret: str
+        client_secret: str,
+        timeout: float = 30.0
     ) -> TenantValidationResponse:
         """Validate tenant credentials against Microsoft Graph.
         
@@ -84,27 +91,190 @@ class TenantService:
             tenant_id: Azure AD tenant ID
             client_id: Azure AD application ID
             client_secret: Azure AD client secret
+            timeout: Request timeout in seconds
             
         Returns:
             Validation response
         """
         try:
-            validation_result = await validate_tenant_credentials(
+            client = MSGraphClient(
                 tenant_id=tenant_id,
                 client_id=client_id,
-                client_secret=client_secret
+                client_secret=client_secret,
+                timeout=timeout
             )
+            validation_result = await client.validate_credentials()
             return TenantValidationResponse(**validation_result)
         except MSGraphAuthError as e:
             return TenantValidationResponse(
                 valid=False,
-                error=str(e)
+                error=str(e),
+                error_code=getattr(e, 'error_code', 'auth_error')
             )
         except Exception as e:
             return TenantValidationResponse(
                 valid=False,
-                error=f"Validation error: {str(e)}"
+                error=f"Validation error: {str(e)}",
+                error_code="unknown_error"
             )
+
+    async def health_check_tenant(
+        self,
+        tenant_id: str,
+        required_permissions: Optional[List[str]] = None,
+        timeout: float = 30.0,
+        update_status: bool = True
+    ) -> TenantHealthCheckResponse:
+        """Perform health check on a tenant.
+        
+        Args:
+            tenant_id: Internal tenant UUID
+            required_permissions: List of permissions to verify (default: ["AuditLog.Read.All"])
+            timeout: Request timeout in seconds
+            update_status: Whether to update the tenant's connection status in database
+            
+        Returns:
+            Health check response
+            
+        Raises:
+            TenantNotFoundError: If tenant is not found
+        """
+        tenant = await self.get_tenant(tenant_id)
+        if not tenant:
+            raise TenantNotFoundError(f"Tenant with ID {tenant_id} not found")
+        
+        # Default required permissions
+        if required_permissions is None:
+            required_permissions = ["AuditLog.Read.All"]
+        
+        # Get decrypted secret
+        client_secret = self.get_decrypted_secret(tenant)
+        
+        # Perform health check
+        try:
+            client = MSGraphClient(
+                tenant_id=tenant.tenant_id,
+                client_id=tenant.client_id,
+                client_secret=client_secret,
+                timeout=timeout
+            )
+            
+            health_result = await client.health_check(
+                required_permissions=required_permissions
+            )
+            
+            # Build response
+            response = TenantHealthCheckResponse(
+                tenant_id=tenant_id,
+                status=health_result["status"],
+                connectivity=TenantHealthCheckConnectivity(
+                    success=health_result["connectivity"]["success"],
+                    latency_ms=health_result["connectivity"]["latency_ms"],
+                    error=health_result["connectivity"].get("error")
+                ),
+                authentication=TenantHealthCheckAuth(
+                    success=health_result["authentication"]["success"],
+                    error=health_result["authentication"].get("error"),
+                    error_code=health_result["authentication"].get("error_code")
+                ),
+                permissions=TenantHealthCheckPermissions(
+                    success=health_result["permissions"]["success"],
+                    granted=health_result["permissions"]["granted"],
+                    missing=health_result["permissions"]["missing"],
+                    details=health_result["permissions"].get("details"),
+                    error=health_result["permissions"].get("error")
+                ),
+                tenant_info=TenantHealthCheckInfo(
+                    display_name=health_result["tenant_info"].get("display_name"),
+                    tenant_id=health_result["tenant_info"].get("tenant_id"),
+                    verified_domains=health_result["tenant_info"].get("verified_domains", [])
+                ) if health_result.get("tenant_info") else TenantHealthCheckInfo(),
+                timestamp=datetime.fromisoformat(health_result["timestamp"]),
+                message=self._get_health_check_message(health_result)
+            )
+            
+            # Update tenant status in database if requested
+            if update_status:
+                await self._update_connection_status(tenant, response)
+            
+            return response
+            
+        except Exception as e:
+            # Handle unexpected errors
+            error_response = TenantHealthCheckResponse(
+                tenant_id=tenant_id,
+                status="error",
+                connectivity=TenantHealthCheckConnectivity(
+                    success=False,
+                    error=str(e)
+                ),
+                authentication=TenantHealthCheckAuth(success=False, error=str(e)),
+                permissions=TenantHealthCheckPermissions(success=False),
+                tenant_info=TenantHealthCheckInfo(),
+                timestamp=datetime.now(timezone.utc),
+                message=f"Health check failed: {str(e)}"
+            )
+            
+            if update_status:
+                await self._update_connection_status(tenant, error_response)
+            
+            return error_response
+
+    async def _update_connection_status(
+        self,
+        tenant: TenantModel,
+        health_check: TenantHealthCheckResponse
+    ) -> None:
+        """Update tenant's connection status based on health check results.
+        
+        Args:
+            tenant: Tenant model
+            health_check: Health check response
+        """
+        tenant.connection_status = health_check.status
+        tenant.last_health_check = health_check.timestamp
+        
+        # Set connection error message based on status
+        if health_check.status == "healthy":
+            tenant.connection_error = None
+        elif health_check.status == "timeout":
+            tenant.connection_error = "Connection timed out. Check network or Microsoft Graph API availability."
+        elif not health_check.authentication.success:
+            tenant.connection_error = health_check.authentication.error or "Authentication failed"
+        elif not health_check.permissions.success:
+            missing = ", ".join(health_check.permissions.missing) if health_check.permissions.missing else "Required permissions"
+            tenant.connection_error = f"Missing permissions: {missing}. Ensure admin consent is granted."
+        else:
+            tenant.connection_error = health_check.message
+        
+        await self.db.commit()
+
+    def _get_health_check_message(self, health_result: Dict[str, Any]) -> str:
+        """Generate a human-readable message from health check results.
+        
+        Args:
+            health_result: Raw health check result dictionary
+            
+        Returns:
+            Human-readable status message
+        """
+        status = health_result.get("status")
+        
+        if status == "healthy":
+            latency = health_result["connectivity"]["latency_ms"]
+            return f"Connection healthy (latency: {latency}ms)"
+        elif status == "timeout":
+            return "Connection timed out. Check network connectivity and Microsoft Graph API status."
+        elif status == "error":
+            auth_error = health_result["authentication"].get("error")
+            return f"Connection error: {auth_error or 'Unknown error'}"
+        elif status == "unhealthy":
+            missing = health_result["permissions"].get("missing", [])
+            if missing:
+                return f"Missing required permissions: {', '.join(missing)}"
+            return "Connection unhealthy - check credentials and permissions"
+        else:
+            return f"Unknown status: {status}"
 
     async def create_tenant(
         self,
@@ -129,6 +299,8 @@ class TenantService:
 
         validation_result = None
         ms_tenant_name = None
+        initial_status = "unknown"
+        connection_error = None
         
         # Validate credentials if requested
         if validate:
@@ -144,6 +316,7 @@ class TenantService:
                 )
             
             ms_tenant_name = validation_result.display_name
+            initial_status = "connected"
 
         # Encrypt client secret
         encrypted_secret = encryption_service.encrypt(tenant_data.client_secret)
@@ -155,6 +328,9 @@ class TenantService:
             client_id=tenant_data.client_id,
             client_secret=encrypted_secret,
             is_active=True,
+            connection_status=initial_status,
+            connection_error=connection_error,
+            last_health_check=datetime.now(timezone.utc) if validate else None
         )
 
         self.db.add(tenant)
@@ -252,6 +428,9 @@ class TenantService:
             tenant_id=tenant.tenant_id,
             client_id=tenant.client_id,
             is_active=tenant.is_active,
+            connection_status=tenant.connection_status,
+            connection_error=tenant.connection_error,
+            last_health_check=tenant.last_health_check,
             created_at=tenant.created_at,
             updated_at=tenant.updated_at,
         )

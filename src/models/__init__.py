@@ -64,6 +64,16 @@ from src.models.dashboard import (
     ExportRequest,
     ExportResponse,
 )
+from src.models.settings import (
+    SystemSettingsModel,
+    UserPreferencesModel,
+    DetectionThresholdsModel,
+    ApiKeyModel,
+    ConfigurationBackupModel,
+    TimeZone,
+    NotificationChannel,
+    SettingsCategory,
+)
 
 __all__ = [
     "TenantBase",
@@ -116,4 +126,12 @@ __all__ = [
     "DashboardDataResponse",
     "ExportRequest",
     "ExportResponse",
+    "SystemSettingsModel",
+    "UserPreferencesModel",
+    "DetectionThresholdsModel",
+    "ApiKeyModel",
+    "ConfigurationBackupModel",
+    "TimeZone",
+    "NotificationChannel",
+    "SettingsCategory",
 ]

@@ -45,6 +45,22 @@ class TenantModel(Base):
         default=True,
         nullable=False
     )
+    connection_status: Mapped[str] = mapped_column(
+        String(20),
+        default="unknown",
+        nullable=False,
+        comment="Connection status: connected, error, timeout, unknown"
+    )
+    connection_error: Mapped[str] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="Last connection error message"
+    )
+    last_health_check: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="Timestamp of last health check"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=utc_now,
@@ -58,4 +74,4 @@ class TenantModel(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<Tenant(id={self.id}, name={self.name}, tenant_id={self.tenant_id})>"
+        return f"<Tenant(id={self.id}, name={self.name}, tenant_id={self.tenant_id}, status={self.connection_status})>"
