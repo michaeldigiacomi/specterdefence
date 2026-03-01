@@ -22,6 +22,14 @@ from src.models.analytics import (
     UserLoginHistoryModel,
     AnomalyDetectionConfig,
 )
+from src.models.alerts import (
+    AlertWebhookModel,
+    AlertRuleModel,
+    AlertHistoryModel,
+    SeverityLevel,
+    EventType,
+    WebhookType,
+)
 
 __all__ = [
     "TenantBase",
@@ -40,4 +48,10 @@ __all__ = [
     "LoginAnalyticsModel",
     "UserLoginHistoryModel",
     "AnomalyDetectionConfig",
+    "AlertWebhookModel",
+    "AlertRuleModel",
+    "AlertHistoryModel",
+    "SeverityLevel",
+    "EventType",
+    "WebhookType",
 ]
