@@ -7,13 +7,13 @@ from typing import TYPE_CHECKING
 from typing import Optional, Any, Dict, List
 
 from sqlalchemy import String, Boolean, DateTime, Text, Enum as SQLEnum, Index
-from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     from src.models.analytics import LoginAnalyticsModel
 
 from src.database import Base
+from src.models.types import UUID, JSONB
 
 
 def utc_now() -> datetime:

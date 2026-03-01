@@ -7,10 +7,10 @@ from enum import Enum
 from typing import Optional, Any, Dict, List
 
 from sqlalchemy import String, Boolean, DateTime, Text, Enum as SQLEnum, Index, ForeignKey, Integer
-from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
+from src.models.types import UUID, JSONB, ARRAY
 
 
 def utc_now() -> datetime:

@@ -4,11 +4,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Any, Dict
 
-from sqlalchemy import String, Boolean, DateTime, Float, ForeignKey, Index, ARRAY
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import String, Boolean, DateTime, Float, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
+from src.models.types import UUID, JSONB
 
 
 def utc_now() -> datetime:
