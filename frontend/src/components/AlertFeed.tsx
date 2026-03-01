@@ -15,6 +15,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { toast } from 'react-hot-toast';
 import { AlertCard } from './AlertCard';
+import { MobileAlertCard } from './MobileAlertCard';
 import { useWebSocket, type WebSocketFilters } from '@/hooks/useWebSocket';
 
 // Utility for tailwind class merging
@@ -442,14 +443,31 @@ export function AlertFeed({
             <p className="text-sm mt-1">The alert feed is live and waiting for security events</p>
           </div>
         ) : (
-          alerts.map(alert => (
-            <AlertCard
-              key={alert.id}
-              alert={alert}
-              onAcknowledge={acknowledgeAlert}
-              onDismiss={dismissAlert}
-            />
-          ))
+          <div className="space-y-3">
+            {/* Desktop Alert Cards */}
+            <div className="hidden md:block space-y-3">
+              {alerts.map(alert => (
+                <AlertCard
+                  key={alert.id}
+                  alert={alert}
+                  onAcknowledge={acknowledgeAlert}
+                  onDismiss={dismissAlert}
+                />
+              ))}
+            </div>
+            
+            {/* Mobile Alert Cards */}
+            <div className="md:hidden">
+              {alerts.map(alert => (
+                <MobileAlertCard
+                  key={alert.id}
+                  alert={alert}
+                  onAcknowledge={acknowledgeAlert}
+                  onDismiss={dismissAlert}
+                />
+              ))}
+            </div>
+          </div>
         )}
       </div>
 

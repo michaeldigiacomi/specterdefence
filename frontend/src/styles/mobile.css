@@ -1,0 +1,492 @@
+/** Mobile-specific styles for SpecterDefence */
+
+/* Safe area insets for modern mobile devices */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Bottom safe area padding for fixed bottom nav */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+}
+
+/* Mobile-optimized font sizes */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+  
+  h1 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  
+  h2 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+  
+  h3 {
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+  }
+}
+
+/* Touch-friendly tap targets (minimum 44px) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Prevent text selection on UI elements */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Smooth scrolling for mobile */
+.scroll-smooth {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar on mobile for cleaner look */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Pull-to-refresh indicator */
+.ptr-indicator {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.ptr-indicator.pulling {
+  animation: ptr-spin 1s linear infinite;
+}
+
+@keyframes ptr-spin {
+  from {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  to {
+    transform: translateX(-50%) rotate(360deg);
+  }
+}
+
+/* Bottom sheet modal animation */
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 20px 20px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.bottom-sheet.open {
+  transform: translateY(0);
+}
+
+.bottom-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 99;
+}
+
+.bottom-sheet-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Handle bar for bottom sheet */
+.bottom-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: #d1d5db;
+  border-radius: 2px;
+  margin: 12px auto;
+}
+
+/* Swipe gesture hints */
+.swipe-hint {
+  position: absolute;
+  font-size: 10px;
+  color: #9ca3af;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.swipe-hint.visible {
+  opacity: 1;
+}
+
+/* Mobile card styles */
+.mobile-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mobile-card:active {
+  transform: scale(0.98);
+}
+
+/* Touch feedback */
+.touch-feedback {
+  position: relative;
+  overflow: hidden;
+}
+
+.touch-feedback::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.05);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.touch-feedback:active::after {
+  opacity: 1;
+}
+
+/* Mobile-optimized tables */
+.mobile-table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-table table {
+  width: 100%;
+  min-width: 600px;
+}
+
+/* Card-based table rows for mobile */
+.card-table {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-table-row {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile form inputs */
+.mobile-input {
+  font-size: 16px; /* Prevents iOS zoom on focus */
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mobile-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  outline: none;
+}
+
+/* Mobile button styles */
+.mobile-button {
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  min-height: 48px;
+  transition: transform 0.1s ease, opacity 0.2s ease;
+}
+
+.mobile-button:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+/* Floating action button (FAB) */
+.fab {
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 40;
+}
+
+.fab:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Contextual action bar */
+.action-bar {
+  position: fixed;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  left: 16px;
+  right: 16px;
+  background: #1f2937;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 45;
+  animation: slide-up 0.3s ease;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Offline indicator */
+.offline-indicator {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 56px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #f59e0b;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  animation: slide-down 0.3s ease;
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateX(-50%) translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Toast notifications for mobile */
+.mobile-toast {
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  left: 16px;
+  right: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #1f2937;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 60;
+  animation: toast-slide-up 0.3s ease;
+}
+
+@keyframes toast-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Skeleton loading for mobile */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f3f4f6 25%,
+    #e5e7eb 50%,
+    #f3f4f6 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Mobile-optimized charts */
+.mobile-chart {
+  width: 100%;
+  height: auto;
+  min-height: 200px;
+}
+
+/* Compact list items for mobile */
+.compact-list-item {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.compact-list-item:last-child {
+  border-bottom: none;
+}
+
+/* Mobile-optimized badge */
+.mobile-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* Sticky section headers for mobile lists */
+.sticky-header {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 56px);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  z-index: 30;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Dark mode adjustments */
+.dark .mobile-card,
+.dark .card-table-row {
+  background: #1f2937;
+}
+
+.dark .mobile-input {
+  background: #374151;
+  border-color: #4b5563;
+  color: white;
+}
+
+.dark .mobile-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.dark .compact-list-item {
+  border-color: #374151;
+}
+
+.dark .sticky-header {
+  background: rgba(31, 41, 55, 0.95);
+  border-color: #374151;
+  color: #9ca3af;
+}
+
+.dark .skeleton {
+  background: linear-gradient(
+    90deg,
+    #374151 25%,
+    #4b5563 50%,
+    #374151 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .ptr-indicator,
+  .skeleton,
+  .bottom-sheet,
+  .action-bar,
+  .offline-indicator,
+  .mobile-toast {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Landscape mode adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  .bottom-sheet {
+    max-height: 80vh;
+  }
+  
+  .fab {
+    bottom: 16px;
+  }
+  
+  .action-bar {
+    bottom: 16px;
+  }
+}
