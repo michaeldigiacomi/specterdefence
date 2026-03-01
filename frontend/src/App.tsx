@@ -9,6 +9,7 @@ import LoginAnalytics from '@/pages/LoginAnalytics';
 import Anomalies from '@/pages/Anomalies';
 import Tenants from '@/pages/Tenants';
 import MapPage from '@/pages/MapPage';
+import AlertFeed from '@/pages/AlertFeed';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,6 +47,7 @@ function App() {
               <Route path="map" element={<MapPage />} />
               <Route path="anomalies" element={<Anomalies />} />
               <Route path="tenants" element={<Tenants />} />
+              <Route path="alerts" element={<AlertFeed />} />
             </Route>
           </Routes>
         </BrowserRouter>

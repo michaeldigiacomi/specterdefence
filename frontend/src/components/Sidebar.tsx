@@ -8,7 +8,8 @@ import {
   Menu,
   Sun,
   Moon,
-  Shield
+  Shield,
+  Bell
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { clsx, type ClassValue } from 'clsx';
@@ -22,6 +23,7 @@ const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/analytics', icon: BarChart3, label: 'Analytics' },
   { path: '/map', icon: Map, label: 'Geographic Map' },
+  { path: '/alerts', icon: Bell, label: 'Live Alerts' },
   { path: '/anomalies', icon: AlertTriangle, label: 'Anomalies' },
   { path: '/tenants', icon: Building2, label: 'Tenants' },
 ];
