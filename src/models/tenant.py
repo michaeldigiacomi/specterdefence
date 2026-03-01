@@ -1,0 +1,114 @@
+"""Pydantic models for tenant operations."""
+
+from datetime import datetime
+from typing import Optional, List
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+
+
+class TenantBase(BaseModel):
+    """Base tenant model."""
+    name: str = Field(..., min_length=1, max_length=255, description="Tenant display name")
+    tenant_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Azure AD tenant ID (GUID)"
+    )
+    
+    @field_validator("tenant_id")
+    @classmethod
+    def validate_tenant_id(cls, v: str) -> str:
+        """Validate tenant_id format."""
+        if not v or not v.strip():
+            raise ValueError("tenant_id cannot be empty")
+        # Basic UUID format check (with or without hyphens)
+        cleaned = v.replace("-", "")
+        if len(cleaned) not in [32, 36]:
+            raise ValueError("tenant_id must be a valid GUID")
+        return v.strip()
+
+
+class TenantCreate(TenantBase):
+    """Model for creating a new tenant."""
+    client_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Azure AD application (client) ID"
+    )
+    client_secret: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Azure AD application client secret"
+    )
+    
+    @field_validator("client_id")
+    @classmethod
+    def validate_client_id(cls, v: str) -> str:
+        """Validate client_id format."""
+        if not v or not v.strip():
+            raise ValueError("client_id cannot be empty")
+        cleaned = v.replace("-", "")
+        if len(cleaned) not in [32, 36]:
+            raise ValueError("client_id must be a valid GUID")
+        return v.strip()
+
+
+class TenantUpdate(BaseModel):
+    """Model for updating a tenant."""
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    is_active: Optional[bool] = None
+
+
+class TenantResponse(BaseModel):
+    """Model for tenant responses (excludes sensitive data)."""
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: str = Field(..., description="Internal tenant UUID")
+    name: str = Field(..., description="Tenant display name")
+    tenant_id: str = Field(..., description="Azure AD tenant ID")
+    client_id: str = Field(..., description="Azure AD application ID (masked)")
+    is_active: bool = Field(..., description="Whether tenant is active")
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+    ms_tenant_name: Optional[str] = Field(None, description="Microsoft tenant display name")
+    
+    @field_validator("client_id")
+    @classmethod
+    def mask_client_id(cls, v: str) -> str:
+        """Mask client_id for security, showing only first 8 and last 4 chars."""
+        if len(v) <= 12:
+            return "****"
+        return f"{v[:8]}...{v[-4:]}"
+
+
+class TenantDetailResponse(TenantResponse):
+    """Model for detailed tenant response."""
+    ms_verified_domains: Optional[List[dict]] = Field(
+        None,
+        description="Microsoft verified domains"
+    )
+
+
+class TenantValidationResponse(BaseModel):
+    """Model for tenant validation response."""
+    valid: bool = Field(..., description="Whether credentials are valid")
+    display_name: Optional[str] = Field(None, description="Microsoft tenant display name")
+    tenant_id: Optional[str] = Field(None, description="Confirmed tenant ID")
+    verified_domains: Optional[List[dict]] = Field(None, description="Verified domains")
+    error: Optional[str] = Field(None, description="Error message if validation failed")
+
+
+class TenantListResponse(BaseModel):
+    """Model for listing tenants."""
+    items: List[TenantResponse]
+    total: int
+
+
+class TenantCreateResponse(BaseModel):
+    """Model for tenant creation response."""
+    success: bool
+    tenant: Optional[TenantResponse] = None
+    validation: Optional[TenantValidationResponse] = None
+    message: str

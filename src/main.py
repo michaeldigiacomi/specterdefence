@@ -4,11 +4,13 @@ from contextlib import asynccontextmanager
 
 from src.config import settings
 from src.api import router
+from src.database import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown events."""
-    # Startup
+    # Startup - initialize database
+    await init_db()
     yield
     # Shutdown
 

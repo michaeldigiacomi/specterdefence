@@ -1,10 +1,12 @@
 """Application configuration."""
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
+    
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
     
     # App
     APP_NAME: str = "SpecterDefence"
@@ -28,9 +30,5 @@ class Settings(BaseSettings):
     # Microsoft Graph
     MS_GRAPH_API_URL: str = "https://graph.microsoft.com/v1.0"
     MS_LOGIN_URL: str = "https://login.microsoftonline.com"
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 settings = Settings()
