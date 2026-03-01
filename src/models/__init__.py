@@ -11,6 +11,12 @@ from src.models.tenant import (
     TenantCreateResponse,
 )
 from src.models.db import TenantModel
+from src.models.audit_log import (
+    AuditLogModel,
+    CollectionStateModel,
+    ContentSubscriptionModel,
+    LogType,
+)
 
 __all__ = [
     "TenantBase",
@@ -22,4 +28,8 @@ __all__ = [
     "TenantListResponse",
     "TenantCreateResponse",
     "TenantModel",
+    "AuditLogModel",
+    "CollectionStateModel",
+    "ContentSubscriptionModel",
+    "LogType",
 ]

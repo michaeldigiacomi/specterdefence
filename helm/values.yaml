@@ -155,3 +155,38 @@ podSecurityContext:
   fsGroup: 1000
   # Ensure secret volumes are readable
   fsGroupChangePolicy: "OnRootMismatch"
+
+# Office 365 Audit Log Collector Configuration
+collector:
+  # Enable the collector CronJob
+  enabled: true
+  
+  # Cron schedule for collection (default: every 5 minutes)
+  schedule: "*/5 * * * *"
+  
+  # Collection settings
+  lookbackMinutes: 10  # How far back to look on first run (or if no previous state)
+  intervalMinutes: 5   # Expected collection interval
+  maxEventsPerBatch: 1000  # Maximum events to process per content type per run
+  
+  # Debug mode for verbose logging
+  debug: "false"
+  
+  # Job history limits
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  
+  # Deadline for starting job if missed
+  startingDeadlineSeconds: 300
+  
+  # Pod annotations
+  podAnnotations: {}
+  
+  # Resource limits for collector
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi

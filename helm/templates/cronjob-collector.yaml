@@ -1,0 +1,168 @@
+{{/*
+Office 365 Audit Log Collector CronJob
+
+This CronJob periodically collects audit logs from Office 365 Management Activity API
+and stores them in the database for analysis.
+
+Schedule: Every 5 minutes (configurable)
+*/}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "specterdefence.fullname" . }}-collector
+  labels:
+    {{- include "specterdefence.labels" . | nindent 4 }}
+    app.kubernetes.io/component: collector
+spec:
+  schedule: {{ .Values.collector.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.collector.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.collector.failedJobsHistoryLimit }}
+  startingDeadlineSeconds: {{ .Values.collector.startingDeadlineSeconds }}
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "specterdefence.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: collector
+    spec:
+      template:
+        metadata:
+          annotations:
+            # Force pod restart on each run to ensure fresh state
+            checksum/config: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+          {{- with .Values.collector.podAnnotations }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          labels:
+            {{- include "specterdefence.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: collector
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "specterdefence.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          
+          restartPolicy: OnFailure
+          
+          {{- if .Values.secrets.validation.initContainer.enabled }}
+          # Init container to validate secrets before collector starts
+          initContainers:
+            - name: validate-secrets
+              image: "{{ .Values.secrets.validation.initContainer.image.repository }}:{{ .Values.secrets.validation.initContainer.image.tag }}"
+              imagePullPolicy: {{ .Values.secrets.validation.initContainer.image.pullPolicy }}
+              command:
+                - sh
+                - -c
+                - |
+                  echo "🔐 Validating SpecterDefence secrets for collector..."
+                  
+                  SECRET_NAME="{{ include "specterdefence.secretName" . }}"
+                  
+                  # Check if secret exists
+                  if kubectl get secret "$SECRET_NAME" -n "${NAMESPACE}" > /dev/null 2>&1; then
+                    echo "✓ Secret $SECRET_NAME exists"
+                  else
+                    echo "✗ ERROR: Secret $SECRET_NAME not found in namespace ${NAMESPACE}"
+                    exit 1
+                  fi
+                  
+                  echo "✅ Secrets validated!"
+              env:
+                - name: NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+          {{- end }}
+          
+          containers:
+            - name: collector
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - python
+                - -m
+                - src.collector.main
+              resources:
+                {{- toYaml .Values.collector.resources | nindent 16 }}
+              env:
+                # Collection configuration
+                - name: COLLECTION_LOOKBACK_MINUTES
+                  value: {{ .Values.collector.lookbackMinutes | quote }}
+                - name: COLLECTION_INTERVAL_MINUTES
+                  value: {{ .Values.collector.intervalMinutes | quote }}
+                - name: MAX_EVENTS_PER_BATCH
+                  value: {{ .Values.collector.maxEventsPerBatch | quote }}
+                
+                # Database configuration
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "specterdefence.secretName" . }}
+                      key: DATABASE_URL
+                
+                # Security keys
+                - name: SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "specterdefence.secretName" . }}
+                      key: SECRET_KEY
+                
+                - name: ENCRYPTION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "specterdefence.secretName" . }}
+                      key: ENCRYPTION_KEY
+                
+                # Debug mode
+                - name: DEBUG
+                  value: {{ .Values.collector.debug | quote }}
+                
+                # Python path
+                - name: PYTHONPATH
+                  value: "/app"
+                
+                # Unbuffered output for better logging
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+              
+              # Security context
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              
+              volumeMounts:
+                # Temporary directory for any file operations
+                - name: tmp
+                  mountPath: /tmp
+          
+          volumes:
+            - name: tmp
+              emptyDir: {}
+          
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
