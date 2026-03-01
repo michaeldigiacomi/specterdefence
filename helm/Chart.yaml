@@ -1,0 +1,16 @@
+apiVersion: v2
+name: specterdefence
+description: A Helm chart for SpecterDefence M365 Security Platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/bluedigiacomi/specterdefence
+sources:
+  - https://github.com/bluedigiacomi/specterdefence
+maintainers:
+  - name: Blue DiGiacomi
+    email: blue@digitaladrenalin.net
+keywords:
+  - security
+  - microsoft365
+  - fastapi
