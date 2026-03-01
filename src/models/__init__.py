@@ -17,6 +17,11 @@ from src.models.audit_log import (
     ContentSubscriptionModel,
     LogType,
 )
+from src.models.analytics import (
+    LoginAnalyticsModel,
+    UserLoginHistoryModel,
+    AnomalyDetectionConfig,
+)
 
 __all__ = [
     "TenantBase",
@@ -32,4 +37,7 @@ __all__ = [
     "CollectionStateModel",
     "ContentSubscriptionModel",
     "LogType",
+    "LoginAnalyticsModel",
+    "UserLoginHistoryModel",
+    "AnomalyDetectionConfig",
 ]
