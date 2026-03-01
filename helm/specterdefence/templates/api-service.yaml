@@ -1,0 +1,24 @@
+{{/*
+API Server Service
+*/}}
+{{- if .Values.api.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "specterdefence.apiFullname" . }}
+  labels:
+    {{- include "specterdefence.apiLabels" . | nindent 4 }}
+  {{- with .Values.api.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.api.service.type }}
+  ports:
+    - port: {{ .Values.api.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "specterdefence.apiSelectorLabels" . | nindent 4 }}
+{{- end }}

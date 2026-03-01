@@ -1,0 +1,228 @@
+{{/*
+API Server Deployment
+*/}}
+{{- if .Values.api.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "specterdefence.apiFullname" . }}
+  labels:
+    {{- include "specterdefence.apiLabels" . | nindent 4 }}
+spec:
+  {{- if not .Values.api.autoscaling.enabled }}
+  replicas: {{ .Values.api.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "specterdefence.apiSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # Force redeployment on config change
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+        {{- with .Values.api.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "specterdefence.apiSelectorLabels" . | nindent 8 }}
+        {{- with .Values.api.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      serviceAccountName: {{ include "specterdefence.serviceAccountName" . }}
+      
+      securityContext:
+        {{- toYaml .Values.api.podSecurityContext | nindent 8 }}
+      
+      {{- if .Values.secrets.validation.initContainer.enabled }}
+      # Init container to validate secrets exist before app starts
+      initContainers:
+        - name: validate-secrets
+          image: "{{ .Values.secrets.validation.initContainer.image.repository }}:{{ .Values.secrets.validation.initContainer.image.tag }}"
+          imagePullPolicy: {{ .Values.secrets.validation.initContainer.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              echo "🔐 Validating SpecterDefence secrets..."
+              
+              SECRET_NAME="{{ include "specterdefence.secretName" . }}"
+              NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+              
+              # Check if secret exists
+              if kubectl get secret "$SECRET_NAME" -n "$NAMESPACE" > /dev/null 2>&1; then
+                echo "✓ Secret $SECRET_NAME exists"
+              else
+                echo "✗ ERROR: Secret $SECRET_NAME not found in namespace $NAMESPACE"
+                echo ""
+                echo "To create the secret, run:"
+                echo "  kubectl create secret generic $SECRET_NAME -n $NAMESPACE \\"
+                echo "    --from-literal=SECRET_KEY=your-secret \\"
+                echo "    --from-literal=DATABASE_URL=your-database-url \\"
+                echo "    --from-literal=ENCRYPTION_KEY=your-encryption-key"
+                exit 1
+              fi
+              
+              # Validate required keys exist
+              REQUIRED_KEYS="SECRET_KEY DATABASE_URL ENCRYPTION_KEY"
+              MISSING_KEYS=""
+              
+              for KEY in $REQUIRED_KEYS; do
+                if kubectl get secret "$SECRET_NAME" -n "$NAMESPACE" -o jsonpath="{.data.$KEY}" 2>/dev/null | base64 -d > /dev/null 2>&1; then
+                  echo "✓ Key $KEY exists"
+                else
+                  echo "✗ Key $KEY is missing"
+                  MISSING_KEYS="$MISSING_KEYS $KEY"
+                fi
+              done
+              
+              if [ -n "$MISSING_KEYS" ]; then
+                echo ""
+                echo "ERROR: Missing required keys:$MISSING_KEYS"
+                exit 1
+              fi
+              
+              echo ""
+              echo "✅ All secrets validated successfully!"
+          resources:
+            {{- toYaml .Values.secrets.validation.initContainer.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      {{- end }}
+      
+      containers:
+        - name: api
+          securityContext:
+            {{- toYaml .Values.api.containerSecurityContext | nindent 12 }}
+          
+          image: "{{ include "specterdefence.apiImageRepository" . }}:{{ include "specterdefence.apiImageTag" . }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.service.targetPort }}
+              protocol: TCP
+          
+          {{- if .Values.api.healthCheck.enabled }}
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.api.healthCheck.livenessProbe.httpGet.path }}
+              port: {{ .Values.api.healthCheck.livenessProbe.httpGet.port }}
+            initialDelaySeconds: {{ .Values.api.healthCheck.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.healthCheck.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.api.healthCheck.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.api.healthCheck.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.api.healthCheck.livenessProbe.successThreshold }}
+          
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.api.healthCheck.readinessProbe.httpGet.path }}
+              port: {{ .Values.api.healthCheck.readinessProbe.httpGet.port }}
+            initialDelaySeconds: {{ .Values.api.healthCheck.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.healthCheck.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.api.healthCheck.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.api.healthCheck.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.api.healthCheck.readinessProbe.successThreshold }}
+          
+          # Startup probe
+          {{- if .Values.api.healthCheck.startupProbe.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.api.healthCheck.startupProbe.httpGet.path }}
+              port: {{ .Values.api.healthCheck.startupProbe.httpGet.port }}
+            initialDelaySeconds: {{ .Values.api.healthCheck.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.healthCheck.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.api.healthCheck.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.api.healthCheck.startupProbe.failureThreshold }}
+          {{- end }}
+          {{- end }}
+          
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          
+          envFrom:
+            - configMapRef:
+                name: {{ include "specterdefence.fullname" . }}-config
+          
+          env:
+            # Secret references
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "specterdefence.secretName" . }}
+                  key: SECRET_KEY
+            
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "specterdefence.secretName" . }}
+                  key: DATABASE_URL
+            
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "specterdefence.secretName" . }}
+                  key: ENCRYPTION_KEY
+            
+            # Optional: O365 client secret
+            - name: O365_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "specterdefence.secretName" . }}
+                  key: O365_CLIENT_SECRET
+                  optional: true
+          
+          volumeMounts:
+            # Mount for temporary files
+            - name: tmp
+              mountPath: /tmp
+            
+            # Mount for tenant credentials (if needed)
+            - name: tenant-credentials
+              mountPath: /app/secrets
+              readOnly: true
+      
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        
+        # Tenant credentials secret
+        - name: tenant-credentials
+          secret:
+            secretName: {{ include "specterdefence.fullname" . }}-tenant-credentials
+            defaultMode: 0400
+            optional: true
+      
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.api.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

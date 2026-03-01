@@ -1,0 +1,108 @@
+{{/*
+Frontend Deployment (React app served via Nginx)
+*/}}
+{{- if .Values.frontend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "specterdefence.frontendFullname" . }}
+  labels:
+    {{- include "specterdefence.frontendLabels" . | nindent 4 }}
+spec:
+  {{- if not .Values.frontend.autoscaling.enabled }}
+  replicas: {{ .Values.frontend.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "specterdefence.frontendSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/nginx-config: {{ include (print $.Template.BasePath "/configmap-nginx.yaml") . | sha256sum }}
+        {{- with .Values.frontend.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "specterdefence.frontendSelectorLabels" . | nindent 8 }}
+        {{- with .Values.frontend.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      serviceAccountName: {{ include "specterdefence.serviceAccountName" . }}
+      
+      securityContext:
+        {{- toYaml .Values.frontend.podSecurityContext | nindent 8 }}
+      
+      containers:
+        - name: frontend
+          securityContext:
+            {{- toYaml .Values.frontend.containerSecurityContext | nindent 12 }}
+          
+          image: "{{ include "specterdefence.frontendImageRepository" . }}:{{ include "specterdefence.frontendImageTag" . }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          
+          {{- if .Values.frontend.healthCheck.enabled }}
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.frontend.healthCheck.livenessProbe.httpGet.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.frontend.healthCheck.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.frontend.healthCheck.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.frontend.healthCheck.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.frontend.healthCheck.livenessProbe.failureThreshold }}
+          
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.frontend.healthCheck.readinessProbe.httpGet.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.frontend.healthCheck.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.frontend.healthCheck.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.frontend.healthCheck.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.frontend.healthCheck.readinessProbe.failureThreshold }}
+          {{- end }}
+          
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          
+          env:
+            - name: NGINX_ENTRYPOINT_QUIET_LOGS
+              value: "1"
+          
+          volumeMounts:
+            # Mount nginx configuration
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: {{ include "specterdefence.frontendFullname" . }}-nginx
+      
+      {{- with .Values.frontend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.frontend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.frontend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

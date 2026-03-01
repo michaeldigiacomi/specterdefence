@@ -1,0 +1,89 @@
+{{/*
+Network Policy for SpecterDefence
+Restricts pod-to-pod communication for security
+*/}}
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "specterdefence.fullname" . }}
+  labels:
+    {{- include "specterdefence.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "specterdefence.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  ingress:
+    # Allow from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{- range .Values.networkPolicy.ingress.allowedNamespaces }}
+              kubernetes.io/metadata.name: {{ . }}
+              {{- end }}
+        - podSelector:
+            matchLabels:
+              {{- range .Values.networkPolicy.ingress.allowedPods }}
+              {{ .key }}: {{ .value }}
+              {{- end }}
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 80
+    
+    # Allow from specific CIDRs
+    {{- range .Values.networkPolicy.ingress.allowedCIDRs }}
+    - from:
+        - ipBlock:
+            cidr: {{ . }}
+    {{- end }}
+    
+    # Allow inter-pod communication within the release
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "specterdefence.selectorLabels" $ | nindent 14 }}
+  
+  {{- if .Values.networkPolicy.egress.enabled }}
+  egress:
+    # Allow DNS
+    {{- if .Values.networkPolicy.egress.allowDNS }}
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    {{- end }}
+    
+    # Allow to specific CIDRs
+    {{- range .Values.networkPolicy.egress.allowedCIDRs }}
+    - to:
+        - ipBlock:
+            cidr: {{ . }}
+    {{- end }}
+    
+    # Allow to specific namespaces
+    {{- range .Values.networkPolicy.egress.allowedNamespaces }}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+    {{- end }}
+    
+    # Allow inter-pod communication within the release
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "specterdefence.selectorLabels" $ | nindent 14 }}
+  {{- end }}
+{{- end }}

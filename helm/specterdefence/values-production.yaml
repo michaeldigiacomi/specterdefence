@@ -1,0 +1,358 @@
+# =============================================================================
+# Production Values for SpecterDefence
+# =============================================================================
+# These values override the defaults for production deployments
+
+global:
+  environment: production
+  domain: specterdefence.example.com
+
+# =============================================================================
+# API Server - Production Configuration
+# =============================================================================
+api:
+  replicaCount: 3
+  
+  image:
+    pullPolicy: IfNotPresent
+    tag: "stable"
+  
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 75
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 600
+        policies:
+          - type: Percent
+            value: 10
+            periodSeconds: 120
+      scaleUp:
+        stabilizationWindowSeconds: 0
+        policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+          - type: Pods
+            value: 4
+            periodSeconds: 15
+        selectPolicy: Max
+  
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 20
+      timeoutSeconds: 10
+      failureThreshold: 3
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 5
+      failureThreshold: 3
+    startupProbe:
+      enabled: true
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 30
+  
+  config:
+    debug: "false"
+    logLevel: "info"
+    requestTimeout: "60"
+  
+  # Spread pods across availability zones
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: api
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: api
+  
+  # Require pods to be on different nodes
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - api
+            topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# Frontend - Production Configuration
+# =============================================================================
+frontend:
+  replicaCount: 3
+  
+  image:
+    pullPolicy: IfNotPresent
+    tag: "stable"
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 75
+  
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 20
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 5
+  
+  nginx:
+    gzip: true
+    clientMaxBodySize: "50m"
+    proxyTimeout: "120"
+  
+  # Spread pods across zones
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: frontend
+
+# =============================================================================
+# Ingress - Production Configuration
+# =============================================================================
+ingress:
+  enabled: true
+  className: nginx
+  
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    # HSTS headers
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+    nginx.ingress.kubernetes.io/hsts-include-subdomains: "true"
+  
+  tls:
+    enabled: true
+    secretName: specterdefence-tls
+
+# =============================================================================
+# Collector - Production Configuration
+# =============================================================================
+collector:
+  enabled: true
+  schedule: "*/5 * * * *"
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  maxEventsPerBatch: 5000
+  debug: "false"
+
+# =============================================================================
+# Secret Management - Production
+# =============================================================================
+secrets:
+  existingSecret:
+    enabled: true
+    name: specterdefence-secrets
+  
+  externalSecrets:
+    enabled: false
+  
+  helmManaged:
+    enabled: false
+  
+  validation:
+    enabled: true
+    initContainer:
+      enabled: true
+
+# =============================================================================
+# Network Policy - Production
+# =============================================================================
+networkPolicy:
+  enabled: true
+  ingress:
+    allowedNamespaces:
+      - ingress-nginx
+      - monitoring
+    allowedCIDRs: []
+  egress:
+    enabled: true
+    allowDNS: true
+    allowedCIDRs: []
+    allowedNamespaces:
+      - kube-system  # For DNS
+
+# =============================================================================
+# Pod Security - Production
+# =============================================================================
+podSecurityStandard:
+  enforce: "restricted"
+  audit: "restricted"
+  warn: "restricted"
+
+# =============================================================================
+# Monitoring - Production
+# =============================================================================
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    interval: 30s
+    scrapeTimeout: 10s
+  
+  prometheusRule:
+    enabled: true
+    namespace: monitoring
+    rules:
+      - alert: SpecterDefenceHighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{service="specterdefence-api",status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{service="specterdefence-api"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on SpecterDefence API"
+          description: "Error rate is above 5% for more than 5 minutes"
+      
+      - alert: SpecterDefenceHighLatency
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_request_duration_seconds_bucket{service="specterdefence-api"}[5m])) by (le)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency on SpecterDefence API"
+          description: "95th percentile latency is above 1 second"
+      
+      - alert: SpecterDefencePodCrashLooping
+        expr: rate(kube_pod_container_status_restarts_total{pod=~"specterdefence-.*"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SpecterDefence pod is crash looping"
+          description: "Pod {{ $labels.pod }} is restarting frequently"
+
+# =============================================================================
+# PostgreSQL - Production Configuration
+# =============================================================================
+postgresql:
+  enabled: true
+  
+  auth:
+    existingSecret: specterdefence-db-credentials
+  
+  primary:
+    persistence:
+      enabled: true
+      storageClass: fast-ssd  # Use fast storage class
+      size: 50Gi
+    
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+    
+    # Pod Disruption Budget
+    pdb:
+      create: true
+      minAvailable: 1
+    
+    # Backup
+    backup:
+      enabled: true
+      cronjob:
+        schedule: "0 2 * * *"
+        storage:
+          size: 50Gi
+          storageClass: standard
+
+# =============================================================================
+# Redis - Production Configuration
+# =============================================================================
+redis:
+  enabled: true
+  
+  auth:
+    existingSecret: specterdefence-redis-credentials
+  
+  architecture: standalone
+  
+  master:
+    persistence:
+      enabled: true
+      storageClass: fast-ssd
+      size: 2Gi
+    
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi

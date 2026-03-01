@@ -1,0 +1,648 @@
+# Default values for specterdefence.
+# This is a YAML-formatted file.
+
+# =============================================================================
+# Global Settings
+# =============================================================================
+global:
+  # Environment: development, staging, production
+  environment: development
+  # Domain for the application
+  domain: specterdefence.local
+  # Image pull secrets for private registries
+  imagePullSecrets: []
+  # Storage class for persistent volumes
+  storageClass: ""
+
+# =============================================================================
+# API Server Configuration
+# =============================================================================
+api:
+  # Enable the API server
+  enabled: true
+  
+  # Number of replicas
+  replicaCount: 1
+  
+  # Image configuration
+  image:
+    repository: ghcr.io/bluedigiacomi/specterdefence-api
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion
+    tag: "latest"
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    annotations: {}
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  
+  # Autoscaling configuration
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Percent
+            value: 10
+            periodSeconds: 60
+      scaleUp:
+        stabilizationWindowSeconds: 0
+        policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+          - type: Pods
+            value: 4
+            periodSeconds: 15
+        selectPolicy: Max
+  
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+    maxUnavailable: ""
+  
+  # Health check configuration
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 10
+      periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+      successThreshold: 1
+    startupProbe:
+      enabled: false
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 30
+  
+  # Application configuration
+  config:
+    debug: "false"
+    host: "0.0.0.0"
+    port: "8000"
+    logLevel: "info"
+    # Database URL - if empty, will use PostgreSQL subchart
+    databaseUrl: ""
+    # API CORS origins
+    corsOrigins: "*"
+    # Request timeout in seconds
+    requestTimeout: "30"
+  
+  # Pod annotations
+  podAnnotations: {}
+  
+  # Pod labels
+  podLabels: {}
+  
+  # Node selector
+  nodeSelector: {}
+  
+  # Tolerations
+  tolerations: []
+  
+  # Affinity rules
+  affinity: {}
+  
+  # Topology spread constraints
+  topologySpreadConstraints: []
+  
+  # Security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: "OnRootMismatch"
+  
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+# =============================================================================
+# Frontend Configuration
+# =============================================================================
+frontend:
+  # Enable the frontend
+  enabled: true
+  
+  # Number of replicas
+  replicaCount: 1
+  
+  # Image configuration
+  image:
+    repository: ghcr.io/bluedigiacomi/specterdefence-frontend
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    annotations: {}
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # Autoscaling configuration
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+    maxUnavailable: ""
+  
+  # Health check configuration
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 10
+      periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+  
+  # Nginx configuration
+  nginx:
+    # Enable gzip compression
+    gzip: true
+    # Client max body size
+    clientMaxBodySize: "10m"
+    # Proxy timeout in seconds
+    proxyTimeout: "60"
+    # Additional server configuration
+    extraConfig: ""
+  
+  # Pod annotations
+  podAnnotations: {}
+  
+  # Pod labels
+  podLabels: {}
+  
+  # Node selector
+  nodeSelector: {}
+  
+  # Tolerations
+  tolerations: []
+  
+  # Affinity rules
+  affinity: {}
+  
+  # Security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 101  # nginx user
+    fsGroup: 101
+  
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+# =============================================================================
+# Ingress Configuration
+# =============================================================================
+ingress:
+  enabled: false
+  # Ingress class name (e.g., nginx, traefik, alb)
+  className: nginx
+  
+  # Additional annotations
+  annotations: {}
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  
+  # TLS configuration
+  tls:
+    enabled: false
+    secretName: specterdefence-tls
+    # Additional TLS entries
+    extra: []
+  
+  # API ingress rules
+  api:
+    # API path prefix
+    path: /api
+    pathType: Prefix
+    # Additional hosts
+    extraHosts: []
+    # Extra paths that take precedence over the default path
+    extraPaths: []
+  
+  # Frontend ingress rules
+  frontend:
+    # Frontend path
+    path: /
+    pathType: Prefix
+    # Additional hosts
+    extraHosts: []
+    # Extra paths
+    extraPaths: []
+
+# =============================================================================
+# Collector CronJob Configuration
+# =============================================================================
+collector:
+  # Enable the collector CronJob
+  enabled: true
+  
+  # Cron schedule (default: every 5 minutes)
+  schedule: "*/5 * * * *"
+  
+  # Time zone for the schedule
+  timeZone: "UTC"
+  
+  # Concurrency policy (Allow, Forbid, Replace)
+  concurrencyPolicy: Forbid
+  
+  # Job history limits
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  
+  # Starting deadline seconds
+  startingDeadlineSeconds: 300
+  
+  # TTL for finished jobs
+  ttlSecondsAfterFinished: 86400
+  
+  # Collection settings
+  lookbackMinutes: 10
+  intervalMinutes: 5
+  maxEventsPerBatch: 1000
+  
+  # Debug mode
+  debug: "false"
+  
+  # Image configuration (uses API image by default)
+  image:
+    repository: ""
+    pullPolicy: IfNotPresent
+    tag: ""
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # Pod annotations
+  podAnnotations: {}
+  
+  # Node selector
+  nodeSelector: {}
+  
+  # Tolerations
+  tolerations: []
+  
+  # Affinity rules
+  affinity: {}
+  
+  # Security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+# =============================================================================
+# Secret Management Configuration
+# =============================================================================
+secrets:
+  # Option 1: Use an existing Kubernetes Secret (recommended for production)
+  existingSecret:
+    enabled: true
+    name: specterdefence-secrets
+  
+  # Option 2: External Secrets Operator (cloud-native)
+  externalSecrets:
+    enabled: false
+    secretStore:
+      name: vault-backend
+      kind: SecretStore
+    refreshInterval: "1h"
+    data:
+      - secretKey: "SECRET_KEY"
+        remoteRef:
+          key: "specterdefence/secret-key"
+          property: "value"
+      - secretKey: "DATABASE_URL"
+        remoteRef:
+          key: "specterdefence/database"
+          property: "url"
+      - secretKey: "ENCRYPTION_KEY"
+        remoteRef:
+          key: "specterdefence/encryption"
+          property: "key"
+      - secretKey: "O365_CLIENT_SECRET"
+        remoteRef:
+          key: "specterdefence/oauth"
+          property: "client-secret"
+  
+  # Option 3: Helm-managed secrets (NOT for production)
+  helmManaged:
+    enabled: false
+    secretKey: "change-me-in-production"
+    databaseUrl: ""
+    encryptionKey: ""
+    o365ClientSecret: ""
+  
+  # Secret validation configuration
+  validation:
+    enabled: true
+    initContainer:
+      enabled: true
+      image:
+        repository: busybox
+        tag: "1.36"
+        pullPolicy: IfNotPresent
+      resources:
+        limits:
+          cpu: 100m
+          memory: 64Mi
+        requests:
+          cpu: 50m
+          memory: 32Mi
+
+# =============================================================================
+# Service Account Configuration
+# =============================================================================
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+  # Automount API credentials for the service account
+  automountServiceAccountToken: true
+
+# =============================================================================
+# Network Policy Configuration
+# =============================================================================
+networkPolicy:
+  enabled: false
+  # Ingress rules
+  ingress:
+    # Allow from specific namespaces
+    allowedNamespaces: []
+    # Allow from specific pods
+    allowedPods: []
+    # Allow from CIDR blocks
+    allowedCIDRs: []
+  # Egress rules
+  egress:
+    enabled: true
+    # Allow DNS
+    allowDNS: true
+    # Allow to specific CIDR blocks
+    allowedCIDRs: []
+    # Allow to specific namespaces
+    allowedNamespaces: []
+
+# =============================================================================
+# Pod Security Policy (deprecated in K8s 1.25+, use Pod Security Standards)
+# =============================================================================
+podSecurityStandard:
+  # Enforce pod security standard level (privileged, baseline, restricted)
+  enforce: "baseline"
+  # Audit pod security violations
+  audit: "restricted"
+  # Warn about pod security violations
+  warn: "restricted"
+
+# =============================================================================
+# Monitoring Configuration
+# =============================================================================
+monitoring:
+  # Enable Prometheus metrics
+  enabled: false
+  # ServiceMonitor configuration
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+    annotations: {}
+    # Metric relabelings
+    metricRelabelings: []
+    # Relabelings
+    relabelings: []
+  
+  # PrometheusRule for alerts
+  prometheusRule:
+    enabled: false
+    namespace: ""
+    labels: {}
+    annotations: {}
+    rules: []
+  
+  # Grafana dashboards
+  grafana:
+    enabled: false
+    dashboards:
+      configMapName: specterdefence-dashboards
+      annotations: {}
+
+# =============================================================================
+# PostgreSQL Subchart Configuration
+# =============================================================================
+postgresql:
+  # Enable PostgreSQL subchart
+  enabled: true
+  
+  # Authentication
+  auth:
+    # Use existing secret for credentials
+    existingSecret: specterdefence-db-credentials
+    # Secret keys
+    secretKeys:
+      adminPasswordKey: postgres-password
+      userPasswordKey: password
+      replicationPasswordKey: replication-password
+    # Username for SpecterDefence database
+    username: specterdefence
+    # Database name
+    database: specterdefence
+    # Enable postgres user
+    enablePostgresUser: true
+  
+  # Primary database configuration
+  primary:
+    # Persistence
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: 10Gi
+      accessModes:
+        - ReadWriteOnce
+    
+    # Resources
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    
+    # Pod annotations
+    podAnnotations: {}
+    
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 5432
+    
+    # Security context
+    podSecurityContext:
+      enabled: true
+      fsGroup: 1001
+    
+    containerSecurityContext:
+      enabled: true
+      runAsUser: 1001
+      runAsNonRoot: true
+  
+  # Backup configuration
+  backup:
+    enabled: false
+    cronjob:
+      schedule: "0 2 * * *"
+      storage:
+        size: 10Gi
+
+# =============================================================================
+# Redis Subchart Configuration
+# =============================================================================
+redis:
+  # Enable Redis subchart
+  enabled: true
+  
+  # Authentication
+  auth:
+    # Use existing secret for credentials
+    existingSecret: specterdefence-redis-credentials
+    # Secret key
+    existingSecretPasswordKey: password
+    # Enable authentication
+    enabled: true
+  
+  # Architecture: standalone or replication
+  architecture: standalone
+  
+  # Master configuration
+  master:
+    # Persistence
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: 1Gi
+      accessModes:
+        - ReadWriteOnce
+    
+    # Resources
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 6379
+  
+  # Common configuration
+  commonConfiguration: |
+    # Enable AOF persistence
+    appendonly yes
+    # AOF fsync policy
+    appendfsync everysec
+    # Max memory policy
+    maxmemory-policy allkeys-lru
+    # Enable keyspace notifications for cache invalidation
+    notify-keyspace-events Ex
+
+# =============================================================================
+# Name Overrides
+# =============================================================================
+nameOverride: ""
+fullnameOverride: ""

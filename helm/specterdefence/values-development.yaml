@@ -1,0 +1,209 @@
+# =============================================================================
+# Development Values for SpecterDefence
+# =============================================================================
+# These values override the defaults for development deployments
+
+global:
+  environment: development
+  domain: specterdefence.local
+
+# =============================================================================
+# API Server - Development Configuration
+# =============================================================================
+api:
+  replicaCount: 1
+  
+  image:
+    pullPolicy: IfNotPresent
+    tag: "dev"
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  
+  autoscaling:
+    enabled: false
+  
+  podDisruptionBudget:
+    enabled: false
+  
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    readinessProbe:
+      initialDelaySeconds: 5
+      periodSeconds: 10
+  
+  config:
+    debug: "true"
+    logLevel: "debug"
+    requestTimeout: "30"
+  
+  # No special affinity for dev
+  affinity: {}
+  topologySpreadConstraints: []
+
+# =============================================================================
+# Frontend - Development Configuration
+# =============================================================================
+frontend:
+  replicaCount: 1
+  
+  image:
+    pullPolicy: IfNotPresent
+    tag: "dev"
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  
+  autoscaling:
+    enabled: false
+  
+  podDisruptionBudget:
+    enabled: false
+  
+  nginx:
+    gzip: true
+    clientMaxBodySize: "10m"
+    proxyTimeout: "60"
+
+# =============================================================================
+# Ingress - Development Configuration
+# =============================================================================
+ingress:
+  enabled: true
+  className: nginx
+  
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  
+  tls:
+    enabled: false
+
+# =============================================================================
+# Collector - Development Configuration
+# =============================================================================
+collector:
+  enabled: true
+  schedule: "*/5 * * * *"
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  
+  maxEventsPerBatch: 1000
+  debug: "true"
+
+# =============================================================================
+# Secret Management - Development
+# =============================================================================
+secrets:
+  existingSecret:
+    enabled: true
+    name: specterdefence-secrets
+  
+  externalSecrets:
+    enabled: false
+  
+  helmManaged:
+    enabled: false
+  
+  validation:
+    enabled: true
+    initContainer:
+      enabled: false  # Skip validation in dev for faster startup
+
+# =============================================================================
+# Network Policy - Development
+# =============================================================================
+networkPolicy:
+  enabled: false
+
+# =============================================================================
+# Pod Security - Development
+# =============================================================================
+podSecurityStandard:
+  enforce: "baseline"
+  audit: "restricted"
+  warn: "restricted"
+
+# =============================================================================
+# Monitoring - Development
+# =============================================================================
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+  prometheusRule:
+    enabled: false
+
+# =============================================================================
+# PostgreSQL - Development Configuration
+# =============================================================================
+postgresql:
+  enabled: true
+  
+  auth:
+    # Use generated password in dev
+    existingSecret: ""
+    postgresPassword: "devpassword"
+    username: specterdefence
+    password: "devpassword"
+    database: specterdefence
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 5Gi
+    
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    
+    backup:
+      enabled: false
+
+# =============================================================================
+# Redis - Development Configuration
+# =============================================================================
+redis:
+  enabled: true
+  
+  auth:
+    # Use generated password in dev
+    existingSecret: ""
+    password: "devpassword"
+  
+  architecture: standalone
+  
+  master:
+    persistence:
+      enabled: false  # No persistence in dev
+    
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi

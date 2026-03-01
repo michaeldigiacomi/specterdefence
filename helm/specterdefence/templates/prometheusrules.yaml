@@ -1,0 +1,80 @@
+{{/*
+PrometheusRule for SpecterDefence alerts
+*/}}
+{{- if and .Values.monitoring.enabled .Values.monitoring.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "specterdefence.fullname" . }}
+  labels:
+    {{- include "specterdefence.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- if .Values.monitoring.prometheusRule.namespace }}
+  namespace: {{ .Values.monitoring.prometheusRule.namespace }}
+  {{- end }}
+  {{- with .Values.monitoring.prometheusRule.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  groups:
+    - name: {{ include "specterdefence.fullname" . }}
+      rules:
+        # High error rate alert
+        - alert: SpecterDefenceHighErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{service=~"{{ include "specterdefence.fullname" . }}-api",status=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{service=~"{{ include "specterdefence.fullname" . }}-api"}[5m]))
+            ) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            app: {{ include "specterdefence.name" . }}
+          annotations:
+            summary: "High error rate on {{ include "specterdefence.fullname" . }} API"
+            description: "Error rate is above 5% for more than 5 minutes"
+        
+        # High latency alert
+        - alert: SpecterDefenceHighLatency
+          expr: |
+            histogram_quantile(0.95, 
+              sum(rate(http_request_duration_seconds_bucket{service=~"{{ include "specterdefence.fullname" . }}-api"}[5m])) by (le)
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+            app: {{ include "specterdefence.name" . }}
+          annotations:
+            summary: "High latency on {{ include "specterdefence.fullname" . }} API"
+            description: "95th percentile latency is above 1 second"
+        
+        # Pod crash looping alert
+        - alert: SpecterDefencePodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{pod=~"{{ include "specterdefence.fullname" . }}-.*"}[10m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+            app: {{ include "specterdefence.name" . }}
+          annotations:
+            summary: "{{ include "specterdefence.fullname" . }} pod is crash looping"
+            description: "Pod {{ `{{ $labels.pod }}` }} is restarting frequently"
+        
+        # Collector job failure alert
+        - alert: SpecterDefenceCollectorJobFailed
+          expr: kube_job_status_failed{job_name=~"{{ include "specterdefence.fullname" . }}-collector-.*"} > 0
+          for: 0m
+          labels:
+            severity: warning
+            app: {{ include "specterdefence.name" . }}
+          annotations:
+            summary: "{{ include "specterdefence.fullname" . }} collector job failed"
+            description: "The O365 audit log collector job has failed"
+        
+        {{- with .Values.monitoring.prometheusRule.rules }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}
