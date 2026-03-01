@@ -27,6 +27,73 @@ spec:
       serviceAccountName: {{ include "specterdefence.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      
+      {{- if .Values.secrets.validation.initContainer.enabled }}
+      # Init container to validate secrets exist before app starts
+      initContainers:
+        - name: validate-secrets
+          image: "{{ .Values.secrets.validation.initContainer.image.repository }}:{{ .Values.secrets.validation.initContainer.image.tag }}"
+          imagePullPolicy: {{ .Values.secrets.validation.initContainer.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              echo "🔐 Validating SpecterDefence secrets..."
+              
+              SECRET_NAME="{{ include "specterdefence.secretName" . }}"
+              
+              # Check if secret exists
+              if kubectl get secret "$SECRET_NAME" -n "${NAMESPACE}" > /dev/null 2>&1; then
+                echo "✓ Secret $SECRET_NAME exists"
+              else
+                echo "✗ ERROR: Secret $SECRET_NAME not found in namespace ${NAMESPACE}"
+                echo ""
+                echo "Available secrets in namespace:"
+                kubectl get secrets -n "${NAMESPACE}" -l app.kubernetes.io/name=specterdefence 2>/dev/null || echo "  (none found)"
+                echo ""
+                echo "To create the secret, run:"
+                echo "  kubectl create secret generic $SECRET_NAME -n ${NAMESPACE} \\"
+                echo "    --from-literal=SECRET_KEY=your-secret-key \\"
+                echo "    --from-literal=DATABASE_URL=your-database-url \\"
+                echo "    --from-literal=ENCRYPTION_KEY=your-encryption-key"
+                exit 1
+              fi
+              
+              # Validate required keys exist
+              REQUIRED_KEYS="SECRET_KEY DATABASE_URL ENCRYPTION_KEY"
+              MISSING_KEYS=""
+              
+              for KEY in $REQUIRED_KEYS; do
+                if kubectl get secret "$SECRET_NAME" -n "${NAMESPACE}" -o jsonpath="{.data.$KEY}" | base64 -d > /dev/null 2>&1; then
+                  echo "✓ Key $KEY exists"
+                else
+                  echo "✗ Key $KEY is missing"
+                  MISSING_KEYS="$MISSING_KEYS $KEY"
+                fi
+              done
+              
+              if [ -n "$MISSING_KEYS" ]; then
+                echo ""
+                echo "ERROR: Missing required keys:$MISSING_KEYS"
+                exit 1
+              fi
+              
+              echo ""
+              echo "✅ All secrets validated successfully!"
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      {{- end }}
+      
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -58,8 +125,64 @@ spec:
               value: {{ .Values.config.host | quote }}
             - name: PORT
               value: {{ .Values.config.port | quote }}
+            
+            # Secret references
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "specterdefence.fullname" . }}-secrets
-                  key: secretKey
+                  name: {{ include "specterdefence.secretName" . }}
+                  key: SECRET_KEY
+            
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "specterdefence.secretName" . }}
+                  key: DATABASE_URL
+            
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "specterdefence.secretName" . }}
+                  key: ENCRYPTION_KEY
+            
+            # Optional: O365 client secret (if using service principal auth)
+            - name: O365_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "specterdefence.secretName" . }}
+                  key: O365_CLIENT_SECRET
+                  optional: true
+            
+            # Tenant credentials volume mount path
+            - name: TENANT_CREDENTIALS_PATH
+              value: "/app/secrets/tenant-credentials.json"
+            
+            # Encryption at rest configuration
+            - name: ENCRYPTION_KEY_PATH
+              value: "/app/secrets/encryption-key"
+          
+          volumeMounts:
+            # Mount tenant credentials secret
+            - name: tenant-credentials
+              mountPath: /app/secrets
+              readOnly: true
+      
+      volumes:
+        # Tenant credentials stored as K8s secret
+        - name: tenant-credentials
+          secret:
+            secretName: {{ include "specterdefence.fullname" . }}-tenant-credentials
+            defaultMode: 0400
+      
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

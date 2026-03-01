@@ -58,3 +58,27 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Determine the secret name to use based on configuration
+*/}}
+{{- define "specterdefence.secretName" -}}
+{{- if .Values.secrets.existingSecret.enabled }}
+{{- .Values.secrets.existingSecret.name }}
+{{- else if .Values.secrets.externalSecrets.enabled }}
+{{- include "specterdefence.fullname" . }}-secrets
+{{- else if .Values.secrets.helmManaged.enabled }}
+{{- include "specterdefence.fullname" . }}-secrets
+{{- else }}
+{{- include "specterdefence.fullname" . }}-secrets
+{{- end }}
+{{- end }}
+
+{{/*
+Validation helper - ensure at least one secret source is enabled
+*/}}
+{{- define "specterdefence.validateSecrets" -}}
+{{- if not (or .Values.secrets.existingSecret.enabled .Values.secrets.externalSecrets.enabled .Values.secrets.helmManaged.enabled) }}
+{{- fail "At least one secret source must be enabled. Set secrets.existingSecret.enabled=true, secrets.externalSecrets.enabled=true, or secrets.helmManaged.enabled=true" }}
+{{- end }}
+{{- end }}

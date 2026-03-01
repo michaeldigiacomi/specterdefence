@@ -124,9 +124,98 @@ Hooks configured:
 
 ## Kubernetes Deployment
 
+### Prerequisites
+
+- Kubernetes 1.24+
+- Helm 3.12+
+- kubectl configured for your cluster
+
+### Secret Management
+
+SpecterDefence requires sensitive configuration (database credentials, encryption keys, OAuth secrets) to be provided securely. The Helm chart supports multiple secret management strategies.
+
+#### Option 1: Existing Secret (Recommended for Production)
+
+Create secrets manually before installing:
+
+```bash
+# Generate secure values
+export SECRET_KEY=$(openssl rand -hex 32)
+export ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+
+# Create the Kubernetes secret
+kubectl create secret generic specterdefence-secrets \
+  --namespace specterdefence \
+  --from-literal=SECRET_KEY="$SECRET_KEY" \
+  --from-literal=DATABASE_URL="postgresql://user:password@postgres:5432/specterdefence" \
+  --from-literal=ENCRYPTION_KEY="$ENCRYPTION_KEY"
+
+# Deploy using the existing secret
+helm upgrade --install specterdefence ./helm \
+  --namespace specterdefence \
+  --create-namespace \
+  --set secrets.existingSecret.enabled=true \
+  --set secrets.existingSecret.name=specterdefence-secrets
+```
+
+#### Option 2: External Secrets Operator (Cloud-Native)
+
+For integration with HashiCorp Vault, AWS Secrets Manager, Azure Key Vault:
+
+```bash
+# Ensure External Secrets Operator is installed in your cluster
+# Deploy with external secrets enabled
+helm upgrade --install specterdefence ./helm \
+  --namespace specterdefence \
+  --create-namespace \
+  --set secrets.externalSecrets.enabled=true \
+  --set secrets.externalSecrets.secretStore.name=vault-backend \
+  --set secrets.externalSecrets.secretStore.kind=ClusterSecretStore
+```
+
+#### Option 3: Helm-Managed Secrets (Development Only)
+
+⚠️ **WARNING: Not recommended for production!** Secrets will be visible in Helm release values.
+
+```bash
+helm upgrade --install specterdefence ./helm \
+  --namespace specterdefence \
+  --create-namespace \
+  --set secrets.helmManaged.enabled=true \
+  --set secrets.helmManaged.secretKey="$(openssl rand -hex 32)" \
+  --set secrets.helmManaged.databaseUrl="sqlite:///./specterdefence.db" \
+  --set secrets.helmManaged.encryptionKey="$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+```
+
+### Required Secrets
+
+| Secret | Description | Required |
+|--------|-------------|----------|
+| `SECRET_KEY` | Application secret for sessions/CSRF protection | Yes |
+| `DATABASE_URL` | Database connection string | Yes |
+| `ENCRYPTION_KEY` | Fernet key for encrypting tenant credentials | Yes |
+| `O365_CLIENT_SECRET` | Microsoft Graph API client secret | Optional |
+
+### Security Documentation
+
+- [Kubernetes Security Best Practices](./docs/k8s-security.md) - Comprehensive security hardening guide
+- [Secret Rotation Guide](./docs/secret-rotation.md) - Procedures for rotating credentials
+- [Helm Chart Documentation](./helm/README.md) - Detailed Helm configuration reference
+
+### Basic Deployment
+
 ```bash
 # Deploy to Kubernetes
 helm upgrade --install specterdefence ./helm/
+```
+
+### With Ingress
+
+```bash
+helm upgrade --install specterdefence ./helm \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set 'ingress.hosts[0].host=specterdefence.example.com'
 ```
 
 ## Contributing

@@ -71,7 +71,87 @@ config:
   debug: "false"
   host: "0.0.0.0"
   port: "8000"
+  databaseUrl: ""  # Set via secrets. Leave empty to use SQLite
 
-# Secrets (use external secrets manager in production)
+# Secrets Configuration
+# SpecterDefence supports multiple secret management strategies:
+# 1. Existing Secret (recommended for production)
+# 2. External Secrets Operator (for cloud-native secret management)
+# 3. Helm-managed secrets (NOT recommended for production)
 secrets:
-  secretKey: "change-me-in-production"
+  # Option 1: Use an existing Kubernetes Secret (recommended)
+  # Create the secret manually:
+  #   kubectl create secret generic specterdefence-secrets \
+  #     --from-literal=SECRET_KEY=your-secret \
+  #     --from-literal=DATABASE_URL=your-db-url \
+  #     --from-literal=ENCRYPTION_KEY=your-encryption-key \
+  #     --from-literal=O365_CLIENT_SECRET=your-client-secret
+  existingSecret:
+    enabled: true
+    name: "specterdefence-secrets"
+
+  # Option 2: External Secrets Operator (cloud-native)
+  # Requires external-secrets.io CRDs to be installed in the cluster
+  externalSecrets:
+    enabled: false
+    secretStore:
+      name: "vault-backend"  # Name of the SecretStore or ClusterSecretStore
+      kind: "SecretStore"    # SecretStore or ClusterSecretStore
+    refreshInterval: "1h"
+    # Secrets to fetch from external store
+    data:
+      - secretKey: "SECRET_KEY"
+        remoteRef:
+          key: "specterdefence/secret-key"
+          property: "value"
+      - secretKey: "DATABASE_URL"
+        remoteRef:
+          key: "specterdefence/database"
+          property: "url"
+      - secretKey: "ENCRYPTION_KEY"
+        remoteRef:
+          key: "specterdefence/encryption"
+          property: "key"
+      - secretKey: "O365_CLIENT_SECRET"
+        remoteRef:
+          key: "specterdefence/oauth"
+          property: "client-secret"
+
+  # Option 3: Helm-managed secrets (NOT for production)
+  # Secrets will be stored in Helm release values - visible in plain text
+  helmManaged:
+    enabled: false
+    secretKey: "change-me-in-production"
+    databaseUrl: ""  # e.g., "postgresql://user:pass@host/db"
+    encryptionKey: ""  # Fernet key for tenant credential encryption
+    o365ClientSecret: ""  # Microsoft Graph API client secret
+
+  # Secret validation configuration
+  validation:
+    enabled: true
+    # Init container validates secrets before app starts
+    initContainer:
+      enabled: true
+      image:
+        repository: busybox
+        tag: "1.36"
+        pullPolicy: IfNotPresent
+
+# Tenant credentials encryption
+# Each tenant's credentials are encrypted at rest using Fernet encryption
+tenantEncryption:
+  # Key rotation strategy
+  rotation:
+    enabled: true
+    # Days between automatic rotation reminders
+    reminderDays: 90
+    # Number of previous keys to keep for decryption
+    keyHistory: 3
+
+# Security context for secret access
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  # Ensure secret volumes are readable
+  fsGroupChangePolicy: "OnRootMismatch"
