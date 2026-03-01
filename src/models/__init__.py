@@ -30,6 +30,22 @@ from src.models.alerts import (
     EventType,
     WebhookType,
 )
+from src.models.mailbox_rules import (
+    MailboxRuleModel,
+    MailboxRuleAlertModel,
+    RuleType,
+    RuleSeverity,
+    RuleStatus,
+)
+from src.models.oauth_apps import (
+    OAuthAppModel,
+    OAuthAppConsentModel,
+    OAuthAppAlertModel,
+    OAuthAppPermissionModel,
+    RiskLevel,
+    AppStatus,
+    PublisherType,
+)
 
 __all__ = [
     "TenantBase",
@@ -54,4 +70,16 @@ __all__ = [
     "SeverityLevel",
     "EventType",
     "WebhookType",
+    "MailboxRuleModel",
+    "MailboxRuleAlertModel",
+    "RuleType",
+    "RuleSeverity",
+    "RuleStatus",
+    "OAuthAppModel",
+    "OAuthAppConsentModel",
+    "OAuthAppAlertModel",
+    "OAuthAppPermissionModel",
+    "RiskLevel",
+    "AppStatus",
+    "PublisherType",
 ]
