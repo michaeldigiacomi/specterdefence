@@ -12,10 +12,13 @@ import {
   Bell,
   Settings,
   LogOut,
-  User
+  User,
+  KeyRound,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { useLogout } from '@/hooks/useAuth';
+import { ChangePasswordDialog } from './ChangePasswordDialog';
+import { useState } from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -36,6 +39,7 @@ const navItems = [
 export default function Sidebar() {
   const { sidebarOpen, toggleSidebar, theme, toggleTheme, user } = useAppStore();
   const logoutMutation = useLogout();
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const handleLogout = () => {
     logoutMutation.mutate();
@@ -114,8 +118,23 @@ export default function Sidebar() {
                 </p>
               </div>
             </div>
+            {/* Change Password Button */}
+            <button
+              onClick={() => setIsChangePasswordOpen(true)}
+              className="flex items-center gap-2 w-full mt-2 px-2 py-1.5 text-xs text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-md transition-colors"
+              title="Change Password"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Change Password</span>
+            </button>
           </div>
         )}
+
+        {/* Change Password Dialog */}
+        <ChangePasswordDialog 
+          isOpen={isChangePasswordOpen} 
+          onClose={() => setIsChangePasswordOpen(false)} 
+        />
 
         <button
           onClick={toggleTheme}

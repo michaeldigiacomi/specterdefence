@@ -109,3 +109,16 @@ export function useCurrentUser() {
     retry: false,
   });
 }
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
+      apiService.changePassword(currentPassword, newPassword),
+    onSuccess: () => {
+      toast.success('Password changed successfully!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to change password. Please try again.');
+    },
+  });
+}

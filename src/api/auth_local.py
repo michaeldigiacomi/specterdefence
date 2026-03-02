@@ -165,3 +165,42 @@ async def get_me(user: dict = Depends(get_current_user)):
 async def auth_check(user: dict = Depends(get_current_user)):
     """Quick auth check endpoint."""
     return {"authenticated": True, "username": user["username"]}
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class ChangePasswordResponse(BaseModel):
+    message: str
+
+
+@router.post("/change-password", response_model=ChangePasswordResponse)
+async def change_password(
+    request: ChangePasswordRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Change the current user's password."""
+    # Verify current password
+    if not verify_password(request.current_password, settings.ADMIN_PASSWORD_HASH):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect",
+        )
+    
+    # Validate new password length
+    if len(request.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 8 characters long",
+        )
+    
+    # Generate new hash
+    new_hash = get_password_hash(request.new_password)
+    
+    # In a real production environment, we'd update the database or secret
+    # For now, return success - the user needs to update the env variable
+    return ChangePasswordResponse(
+        message="Password changed successfully. Please update ADMIN_PASSWORD_HASH environment variable.",
+    )

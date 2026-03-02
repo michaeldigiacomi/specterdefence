@@ -489,6 +489,14 @@ class ApiService {
     const response = await this.client.get('/auth/local/check');
     return response.data;
   }
+
+  async changePassword(current_password: string, new_password: string): Promise<{ message: string }> {
+    const response = await this.client.post('/auth/local/change-password', {
+      current_password,
+      new_password,
+    });
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();
