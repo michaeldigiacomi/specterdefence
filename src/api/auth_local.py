@@ -1,9 +1,11 @@
 """Authentication module for local user authentication with JWT."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Dict, List
+from collections import defaultdict
+import time
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -15,6 +17,46 @@ router = APIRouter()
 # Use bcrypt directly to avoid passlib compatibility issues with newer bcrypt versions
 import bcrypt as bcrypt_lib
 security = HTTPBearer(auto_error=False)
+
+# Simple in-memory rate limiter for login attempts
+# Key: IP address, Value: list of timestamps
+_login_attempts: Dict[str, List[float]] = defaultdict(list)
+_MAX_ATTEMPTS = 5  # Max 5 attempts
+_WINDOW_SECONDS = 300  # Within 5 minutes
+_BLOCK_DURATION = 900  # Block for 15 minutes after exceeded
+_blocklist: Dict[str, float] = {}  # IP -> unblock timestamp
+
+
+def _check_rate_limit(ip_address: str) -> bool:
+    """Check if IP is rate limited. Returns True if allowed, False if blocked."""
+    now = time.time()
+    
+    # Check if IP is in blocklist
+    if ip_address in _blocklist:
+        if now < _blocklist[ip_address]:
+            return False  # Still blocked
+        else:
+            del _blocklist[ip_address]  # Unblock
+            _login_attempts[ip_address] = []  # Clear attempts
+    
+    # Clean old attempts outside window
+    _login_attempts[ip_address] = [
+        ts for ts in _login_attempts[ip_address]
+        if now - ts < _WINDOW_SECONDS
+    ]
+    
+    # Check if too many attempts
+    if len(_login_attempts[ip_address]) >= _MAX_ATTEMPTS:
+        # Add to blocklist
+        _blocklist[ip_address] = now + _BLOCK_DURATION
+        return False
+    
+    return True
+
+
+def _record_attempt(ip_address: str):
+    """Record a login attempt."""
+    _login_attempts[ip_address].append(time.time())
 
 
 class LoginRequest(BaseModel):
@@ -115,8 +157,22 @@ async def require_auth(user: dict = Depends(get_current_user)) -> dict:
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(request: LoginRequest):
+async def login(request: LoginRequest, req: Request):
     """Authenticate user and return JWT token."""
+    # Get client IP
+    client_ip = req.headers.get("x-forwarded-for", req.client.host).split(",")[0].strip()
+    
+    # Check rate limit
+    if not _check_rate_limit(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Please try again in 15 minutes.",
+            headers={"Retry-After": "900"},
+        )
+    
+    # Record this attempt
+    _record_attempt(client_ip)
+    
     # Verify username
     if request.username != settings.ADMIN_USERNAME:
         raise HTTPException(
@@ -133,8 +189,11 @@ async def login(request: LoginRequest):
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Create access token
-    access_token_expires = timedelta(hours=settings.JWT_EXPIRATION_HOURS)
+    # Clear failed attempts on successful login
+    _login_attempts[client_ip] = []
+    
+    # Create access token (reduced to 2 hours for security)
+    access_token_expires = timedelta(hours=2)
     access_token = create_access_token(
         data={"sub": settings.ADMIN_USERNAME}, expires_delta=access_token_expires
     )
@@ -142,7 +201,7 @@ async def login(request: LoginRequest):
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
-        expires_in=settings.JWT_EXPIRATION_HOURS * 3600
+        expires_in=2 * 3600  # 2 hours in seconds
     )
 
 
