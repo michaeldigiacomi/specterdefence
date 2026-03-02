@@ -1,21 +1,21 @@
 """Mailbox rule models for SpecterDefence."""
 
 import uuid
-import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Optional, Any, Dict, List
+from typing import Any
 
-from sqlalchemy import String, Boolean, DateTime, Text, Enum as SQLEnum, Index, ForeignKey, Integer
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
-from src.models.types import UUID, JSONB, ARRAY
+from src.models.types import ARRAY, JSONB, UUID
 
 
 def utc_now() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class RuleType(str, Enum):
@@ -48,9 +48,9 @@ class RuleStatus(str, Enum):
 
 class MailboxRuleModel(Base):
     """Mailbox rule database model for tracking and analysis."""
-    
+
     __tablename__ = "mailbox_rules"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -102,9 +102,9 @@ class MailboxRuleModel(Base):
         default=RuleSeverity.LOW,
         comment="Severity level based on analysis"
     )
-    
+
     # Rule details
-    forward_to: Mapped[Optional[str]] = mapped_column(
+    forward_to: Mapped[str | None] = mapped_column(
         String(500),
         nullable=True,
         comment="Forward destination email if applicable"
@@ -115,22 +115,22 @@ class MailboxRuleModel(Base):
         nullable=False,
         comment="Whether forwarding is to external domain"
     )
-    external_domain: Mapped[Optional[str]] = mapped_column(
+    external_domain: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="External domain if forwarding externally"
     )
-    redirect_to: Mapped[Optional[str]] = mapped_column(
+    redirect_to: Mapped[str | None] = mapped_column(
         String(500),
         nullable=True,
         comment="Redirect destination if applicable"
     )
-    auto_reply_content: Mapped[Optional[str]] = mapped_column(
+    auto_reply_content: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
         comment="Auto-reply message content if applicable"
     )
-    
+
     # Detection flags
     is_hidden_folder_redirect: Mapped[bool] = mapped_column(
         Boolean,
@@ -156,27 +156,27 @@ class MailboxRuleModel(Base):
         nullable=False,
         comment="Whether rule was created by someone other than mailbox owner"
     )
-    created_by: Mapped[Optional[str]] = mapped_column(
+    created_by: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="UPN of user who created the rule"
     )
-    
+
     # Detection reasons
-    detection_reasons: Mapped[List[str]] = mapped_column(
+    detection_reasons: Mapped[list[str]] = mapped_column(
         ARRAY(String(255)),
         default=list,
         nullable=False,
         comment="List of detection reasons"
     )
-    
+
     # Timestamps
-    rule_created_at: Mapped[Optional[datetime]] = mapped_column(
+    rule_created_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
         comment="When the rule was created in Exchange"
     )
-    rule_modified_at: Mapped[Optional[datetime]] = mapped_column(
+    rule_modified_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
         comment="When the rule was last modified"
@@ -198,15 +198,15 @@ class MailboxRuleModel(Base):
         onupdate=utc_now,
         nullable=False
     )
-    
+
     # Raw data
-    rule_data: Mapped[Dict[str, Any]] = mapped_column(
+    rule_data: Mapped[dict[str, Any]] = mapped_column(
         JSONB,
         default=dict,
         nullable=False,
         comment="Raw rule data from Graph API"
     )
-    
+
     __table_args__ = (
         # Composite index for deduplication lookups
         Index('ix_mailbox_rules_user_rule', 'user_email', 'rule_id', unique=True),
@@ -215,10 +215,10 @@ class MailboxRuleModel(Base):
         # Index for tenant-based queries with time filtering
         Index('ix_mailbox_rules_tenant_scan', 'tenant_id', 'last_scan_at'),
     )
-    
+
     def __repr__(self) -> str:
         return f"<MailboxRule(id={self.id}, user={self.user_email}, type={self.rule_type})>"
-    
+
     def generate_alert_title(self) -> str:
         """Generate alert title based on rule characteristics."""
         if self.status == RuleStatus.MALICIOUS:
@@ -226,34 +226,34 @@ class MailboxRuleModel(Base):
         elif self.status == RuleStatus.SUSPICIOUS:
             return f"Suspicious Mailbox Rule Detected: {self.rule_name}"
         return f"Mailbox Rule Alert: {self.rule_name}"
-    
+
     def generate_alert_description(self) -> str:
         """Generate detailed alert description."""
         parts = []
-        
+
         if self.forward_to_external:
             parts.append(f"Forwards emails to external address: {self.forward_to}")
-        
+
         if self.is_hidden_folder_redirect:
             parts.append("Redirects emails to hidden/deleted items folder")
-        
+
         if self.created_by_non_owner:
             parts.append(f"Created by non-owner: {self.created_by}")
-        
+
         if self.created_outside_business_hours:
             parts.append("Created outside business hours")
-        
+
         if self.detection_reasons:
             parts.append(f"Detection reasons: {', '.join(self.detection_reasons)}")
-        
+
         return "; ".join(parts) if parts else "Mailbox rule requires review"
 
 
 class MailboxRuleAlertModel(Base):
     """Alerts specifically for mailbox rule violations."""
-    
+
     __tablename__ = "mailbox_rule_alerts"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -298,15 +298,15 @@ class MailboxRuleAlertModel(Base):
         default=False,
         nullable=False
     )
-    acknowledged_by: Mapped[Optional[str]] = mapped_column(
+    acknowledged_by: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True
     )
-    acknowledged_at: Mapped[Optional[datetime]] = mapped_column(
+    acknowledged_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True
     )
-    alert_metadata: Mapped[Dict[str, Any]] = mapped_column(
+    alert_metadata: Mapped[dict[str, Any]] = mapped_column(
         JSONB,
         default=dict,
         nullable=False
@@ -316,10 +316,10 @@ class MailboxRuleAlertModel(Base):
         default=utc_now,
         nullable=False
     )
-    
+
     __table_args__ = (
         Index('ix_mailbox_rule_alerts_unack', 'tenant_id', 'is_acknowledged', 'created_at'),
     )
-    
+
     def __repr__(self) -> str:
         return f"<MailboxRuleAlert(id={self.id}, type={self.alert_type}, severity={self.severity})>"

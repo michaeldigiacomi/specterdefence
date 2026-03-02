@@ -5,12 +5,12 @@ PostgreSQL (production) and SQLite (testing).
 """
 
 import json
-from typing import Any, Type
+from typing import Any
 
-from sqlalchemy import TypeDecorator, Text, String
+from sqlalchemy import String, Text, TypeDecorator
+from sqlalchemy.dialects.postgresql import ARRAY as PGARRAY
 from sqlalchemy.dialects.postgresql import JSONB as PGJSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUIID
-from sqlalchemy.dialects.postgresql import ARRAY as PGARRAY
 
 
 class JSONB(TypeDecorator):
@@ -20,18 +20,18 @@ class JSONB(TypeDecorator):
     """
     impl = Text
     cache_ok = True
-    
+
     def load_dialect_impl(self, dialect):
         if dialect.name == 'postgresql':
             return dialect.type_descriptor(PGJSONB())
         else:
             return dialect.type_descriptor(Text())
-    
+
     def process_bind_param(self, value: Any, dialect) -> Any:
         if dialect.name != 'postgresql' and value is not None:
             return json.dumps(value)
         return value
-    
+
     def process_result_value(self, value: Any, dialect) -> Any:
         if dialect.name != 'postgresql' and value is not None:
             if isinstance(value, str):
@@ -46,17 +46,17 @@ class UUID(TypeDecorator):
     """
     impl = String(36)
     cache_ok = True
-    
+
     def __init__(self, as_uuid: bool = True, *args, **kwargs):
         self.as_uuid = as_uuid
         super().__init__(*args, **kwargs)
-    
+
     def load_dialect_impl(self, dialect):
         if dialect.name == 'postgresql':
             return dialect.type_descriptor(PGUIID(as_uuid=self.as_uuid))
         else:
             return dialect.type_descriptor(String(36))
-    
+
     def process_bind_param(self, value: Any, dialect) -> Any:
         if value is None:
             return None
@@ -65,7 +65,7 @@ class UUID(TypeDecorator):
             if hasattr(value, 'hex'):
                 return str(value)
         return value
-    
+
     def process_result_value(self, value: Any, dialect) -> Any:
         if value is None:
             return None
@@ -84,23 +84,23 @@ class ARRAY(TypeDecorator):
     """
     impl = Text
     cache_ok = True
-    
-    def __init__(self, item_type: Type = String, dimensions: int = 1, *args, **kwargs):
+
+    def __init__(self, item_type: type = String, dimensions: int = 1, *args, **kwargs):
         self.item_type = item_type
         self.dimensions = dimensions
         super().__init__(*args, **kwargs)
-    
+
     def load_dialect_impl(self, dialect):
         if dialect.name == 'postgresql':
             return dialect.type_descriptor(PGARRAY(self.item_type, dimensions=self.dimensions))
         else:
             return dialect.type_descriptor(Text())
-    
+
     def process_bind_param(self, value: Any, dialect) -> Any:
         if dialect.name != 'postgresql' and value is not None:
             return json.dumps(value)
         return value
-    
+
     def process_result_value(self, value: Any, dialect) -> Any:
         if dialect.name != 'postgresql' and value is not None:
             if isinstance(value, str):

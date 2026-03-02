@@ -1,24 +1,22 @@
 """Settings service for SpecterDefence."""
 
-import uuid
 import hashlib
 import secrets
-import json
-from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
+import uuid
+from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.models.alerts import AlertRuleModel, AlertWebhookModel
 from src.models.settings import (
-    SystemSettingsModel,
-    UserPreferencesModel,
-    DetectionThresholdsModel,
     ApiKeyModel,
     ConfigurationBackupModel,
+    DetectionThresholdsModel,
+    SystemSettingsModel,
+    UserPreferencesModel,
 )
-from src.models.alerts import AlertRuleModel, AlertWebhookModel
-from src.models.tenant import TenantResponse
 
 
 class SettingsNotFoundError(Exception):
@@ -38,7 +36,7 @@ class InvalidConfigurationError(Exception):
 
 class SettingsService:
     """Service for managing application settings."""
-    
+
     def __init__(self, db: AsyncSession):
         """Initialize the settings service.
         
@@ -46,9 +44,9 @@ class SettingsService:
             db: Database session
         """
         self.db = db
-    
+
     # ========== System Settings ==========
-    
+
     async def get_system_settings(self) -> SystemSettingsModel:
         """Get system settings (create defaults if not exists).
         
@@ -57,16 +55,16 @@ class SettingsService:
         """
         result = await self.db.execute(select(SystemSettingsModel))
         settings = result.scalar_one_or_none()
-        
+
         if not settings:
             settings = SystemSettingsModel()
             self.db.add(settings)
             await self.db.commit()
             await self.db.refresh(settings)
-        
+
         return settings
-    
-    async def update_system_settings(self, updates: Dict[str, Any]) -> SystemSettingsModel:
+
+    async def update_system_settings(self, updates: dict[str, Any]) -> SystemSettingsModel:
         """Update system settings.
         
         Args:
@@ -76,19 +74,19 @@ class SettingsService:
             Updated system settings
         """
         settings = await self.get_system_settings()
-        
+
         for field, value in updates.items():
             if hasattr(settings, field):
                 setattr(settings, field, value)
-        
-        settings.updated_at = datetime.now(timezone.utc)
+
+        settings.updated_at = datetime.now(UTC)
         await self.db.commit()
         await self.db.refresh(settings)
-        
+
         return settings
-    
+
     # ========== User Preferences ==========
-    
+
     async def get_user_preferences(self, user_email: str) -> UserPreferencesModel:
         """Get user preferences (create defaults if not exists).
         
@@ -102,19 +100,19 @@ class SettingsService:
             select(UserPreferencesModel).where(UserPreferencesModel.user_email == user_email)
         )
         prefs = result.scalar_one_or_none()
-        
+
         if not prefs:
             prefs = UserPreferencesModel(user_email=user_email)
             self.db.add(prefs)
             await self.db.commit()
             await self.db.refresh(prefs)
-        
+
         return prefs
-    
+
     async def update_user_preferences(
-        self, 
-        user_email: str, 
-        updates: Dict[str, Any]
+        self,
+        user_email: str,
+        updates: dict[str, Any]
     ) -> UserPreferencesModel:
         """Update user preferences.
         
@@ -126,22 +124,22 @@ class SettingsService:
             Updated user preferences
         """
         prefs = await self.get_user_preferences(user_email)
-        
+
         for field, value in updates.items():
             if hasattr(prefs, field):
                 setattr(prefs, field, value)
-        
-        prefs.updated_at = datetime.now(timezone.utc)
+
+        prefs.updated_at = datetime.now(UTC)
         await self.db.commit()
         await self.db.refresh(prefs)
-        
+
         return prefs
-    
+
     # ========== Detection Thresholds ==========
-    
+
     async def get_detection_thresholds(
-        self, 
-        tenant_id: Optional[str] = None
+        self,
+        tenant_id: str | None = None
     ) -> DetectionThresholdsModel:
         """Get detection thresholds for a tenant (or global defaults).
         
@@ -160,7 +158,7 @@ class SettingsService:
             thresholds = result.scalar_one_or_none()
             if thresholds:
                 return thresholds
-        
+
         # Get global defaults
         result = await self.db.execute(
             select(DetectionThresholdsModel).where(
@@ -168,19 +166,19 @@ class SettingsService:
             )
         )
         thresholds = result.scalar_one_or_none()
-        
+
         if not thresholds:
             thresholds = DetectionThresholdsModel(tenant_id=None)
             self.db.add(thresholds)
             await self.db.commit()
             await self.db.refresh(thresholds)
-        
+
         return thresholds
-    
+
     async def update_detection_thresholds(
         self,
-        updates: Dict[str, Any],
-        tenant_id: Optional[str] = None
+        updates: dict[str, Any],
+        tenant_id: str | None = None
     ) -> DetectionThresholdsModel:
         """Update detection thresholds.
         
@@ -192,27 +190,27 @@ class SettingsService:
             Updated detection thresholds
         """
         thresholds = await self.get_detection_thresholds(tenant_id)
-        
+
         for field, value in updates.items():
             if hasattr(thresholds, field):
                 setattr(thresholds, field, value)
-        
-        thresholds.updated_at = datetime.now(timezone.utc)
+
+        thresholds.updated_at = datetime.now(UTC)
         await self.db.commit()
         await self.db.refresh(thresholds)
-        
+
         return thresholds
-    
+
     # ========== API Keys ==========
-    
+
     async def create_api_key(
         self,
         name: str,
-        scopes: List[str],
-        created_by: Optional[str] = None,
-        tenant_id: Optional[str] = None,
-        expires_days: Optional[int] = None
-    ) -> Dict[str, str]:
+        scopes: list[str],
+        created_by: str | None = None,
+        tenant_id: str | None = None,
+        expires_days: int | None = None
+    ) -> dict[str, str]:
         """Create a new API key.
         
         Args:
@@ -229,12 +227,12 @@ class SettingsService:
         api_key = f"sd_{secrets.token_urlsafe(32)}"
         key_hash = hashlib.sha256(api_key.encode()).hexdigest()
         key_prefix = api_key[:8]
-        
+
         expires_at = None
         if expires_days:
             from datetime import timedelta
-            expires_at = datetime.now(timezone.utc) + timedelta(days=expires_days)
-        
+            expires_at = datetime.now(UTC) + timedelta(days=expires_days)
+
         api_key_model = ApiKeyModel(
             name=name,
             key_hash=key_hash,
@@ -245,23 +243,23 @@ class SettingsService:
             expires_at=expires_at,
             is_active=True
         )
-        
+
         self.db.add(api_key_model)
         await self.db.commit()
         await self.db.refresh(api_key_model)
-        
+
         return {
             "id": str(api_key_model.id),
             "key": api_key,  # Only shown once!
             "name": name,
             "prefix": key_prefix
         }
-    
+
     async def list_api_keys(
         self,
-        tenant_id: Optional[str] = None,
+        tenant_id: str | None = None,
         include_inactive: bool = False
-    ) -> List[ApiKeyModel]:
+    ) -> list[ApiKeyModel]:
         """List API keys.
         
         Args:
@@ -272,21 +270,21 @@ class SettingsService:
             List of API key models
         """
         query = select(ApiKeyModel)
-        
+
         if tenant_id:
             query = query.where(
                 (ApiKeyModel.tenant_id == tenant_id) | (ApiKeyModel.tenant_id.is_(None))
             )
-        
+
         if not include_inactive:
             query = query.where(ApiKeyModel.is_active.is_(True))
-        
+
         query = query.order_by(desc(ApiKeyModel.created_at))
-        
+
         result = await self.db.execute(query)
         return list(result.scalars().all())
-    
-    async def get_api_key(self, key_id: str) -> Optional[ApiKeyModel]:
+
+    async def get_api_key(self, key_id: str) -> ApiKeyModel | None:
         """Get an API key by ID.
         
         Args:
@@ -299,7 +297,7 @@ class SettingsService:
             select(ApiKeyModel).where(ApiKeyModel.id == uuid.UUID(key_id))
         )
         return result.scalar_one_or_none()
-    
+
     async def revoke_api_key(self, key_id: str) -> bool:
         """Revoke an API key.
         
@@ -312,17 +310,17 @@ class SettingsService:
         api_key = await self.get_api_key(key_id)
         if not api_key:
             return False
-        
+
         api_key.is_active = False
         await self.db.commit()
-        
+
         return True
-    
+
     async def update_api_key(
         self,
         key_id: str,
-        updates: Dict[str, Any]
-    ) -> Optional[ApiKeyModel]:
+        updates: dict[str, Any]
+    ) -> ApiKeyModel | None:
         """Update an API key.
         
         Args:
@@ -335,17 +333,17 @@ class SettingsService:
         api_key = await self.get_api_key(key_id)
         if not api_key:
             return None
-        
+
         for field, value in updates.items():
             if hasattr(api_key, field) and field not in ['key_hash', 'key_prefix']:
                 setattr(api_key, field, value)
-        
+
         await self.db.commit()
         await self.db.refresh(api_key)
-        
+
         return api_key
-    
-    async def validate_api_key(self, api_key: str) -> Optional[ApiKeyModel]:
+
+    async def validate_api_key(self, api_key: str) -> ApiKeyModel | None:
         """Validate an API key and update last used timestamp.
         
         Args:
@@ -355,7 +353,7 @@ class SettingsService:
             API key model if valid, None otherwise
         """
         key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-        
+
         result = await self.db.execute(
             select(ApiKeyModel).where(
                 (ApiKeyModel.key_hash == key_hash) &
@@ -363,29 +361,29 @@ class SettingsService:
             )
         )
         key_model = result.scalar_one_or_none()
-        
+
         if not key_model:
             return None
-        
+
         # Check expiration
-        if key_model.expires_at and key_model.expires_at < datetime.now(timezone.utc):
+        if key_model.expires_at and key_model.expires_at < datetime.now(UTC):
             return None
-        
+
         # Update last used
-        key_model.last_used_at = datetime.now(timezone.utc)
+        key_model.last_used_at = datetime.now(UTC)
         await self.db.commit()
-        
+
         return key_model
-    
+
     # ========== Configuration Backup/Restore ==========
-    
+
     async def export_configuration(
         self,
-        categories: List[str],
+        categories: list[str],
         name: str,
-        description: Optional[str] = None,
-        created_by: Optional[str] = None
-    ) -> Dict[str, Any]:
+        description: str | None = None,
+        created_by: str | None = None
+    ) -> dict[str, Any]:
         """Export configuration to JSON.
         
         Args:
@@ -398,7 +396,7 @@ class SettingsService:
             Configuration export data
         """
         config_data = {}
-        
+
         if "system" in categories:
             system = await self.get_system_settings()
             config_data["system"] = {
@@ -411,7 +409,7 @@ class SettingsService:
                 "max_export_rows": system.max_export_rows,
                 "log_level": system.log_level,
             }
-        
+
         if "detection" in categories:
             detection = await self.get_detection_thresholds()
             config_data["detection"] = {
@@ -430,7 +428,7 @@ class SettingsService:
                 "multiple_failures_window_minutes": detection.multiple_failures_window_minutes,
                 "risk_score_base_multiplier": detection.risk_score_base_multiplier,
             }
-        
+
         if "alert_rules" in categories:
             result = await self.db.execute(select(AlertRuleModel))
             rules = result.scalars().all()
@@ -445,7 +443,7 @@ class SettingsService:
                 }
                 for r in rules
             ]
-        
+
         if "webhooks" in categories:
             result = await self.db.execute(
                 select(AlertWebhookModel).where(AlertWebhookModel.is_active.is_(True))
@@ -460,7 +458,7 @@ class SettingsService:
                 }
                 for w in webhooks
             ]
-        
+
         # Save backup record
         backup = ConfigurationBackupModel(
             name=name,
@@ -472,7 +470,7 @@ class SettingsService:
         self.db.add(backup)
         await self.db.commit()
         await self.db.refresh(backup)
-        
+
         return {
             "id": str(backup.id),
             "name": name,
@@ -481,12 +479,12 @@ class SettingsService:
             "created_at": backup.created_at.isoformat(),
             "config": config_data
         }
-    
+
     async def import_configuration(
         self,
-        config_data: Dict[str, Any],
+        config_data: dict[str, Any],
         overwrite: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Import configuration from JSON.
         
         Args:
@@ -497,30 +495,30 @@ class SettingsService:
             Import results summary
         """
         results = {"imported": [], "errors": []}
-        
+
         try:
             if "system" in config_data and overwrite:
                 await self.update_system_settings(config_data["system"])
                 results["imported"].append("system")
-            
+
             if "detection" in config_data:
                 await self.update_detection_thresholds(config_data["detection"])
                 results["imported"].append("detection")
-            
+
             if "alert_rules" in config_data:
                 for rule_data in config_data["alert_rules"]:
                     rule = AlertRuleModel(**rule_data)
                     self.db.add(rule)
                 results["imported"].append("alert_rules")
-            
+
             await self.db.commit()
-            
+
         except Exception as e:
             results["errors"].append(str(e))
-        
+
         return results
-    
-    async def list_configuration_backups(self) -> List[ConfigurationBackupModel]:
+
+    async def list_configuration_backups(self) -> list[ConfigurationBackupModel]:
         """List all configuration backups.
         
         Returns:
@@ -530,8 +528,8 @@ class SettingsService:
             select(ConfigurationBackupModel).order_by(desc(ConfigurationBackupModel.created_at))
         )
         return list(result.scalars().all())
-    
-    async def get_configuration_backup(self, backup_id: str) -> Optional[ConfigurationBackupModel]:
+
+    async def get_configuration_backup(self, backup_id: str) -> ConfigurationBackupModel | None:
         """Get a specific configuration backup.
         
         Args:
@@ -546,7 +544,7 @@ class SettingsService:
             )
         )
         return result.scalar_one_or_none()
-    
+
     async def delete_configuration_backup(self, backup_id: str) -> bool:
         """Delete a configuration backup.
         
@@ -559,8 +557,8 @@ class SettingsService:
         backup = await self.get_configuration_backup(backup_id)
         if not backup:
             return False
-        
+
         await self.db.delete(backup)
         await self.db.commit()
-        
+
         return True

@@ -1,7 +1,7 @@
 """Test main application."""
 
-import pytest
 from fastapi.testclient import TestClient
+
 from src.main import app
 
 client = TestClient(app)
@@ -20,7 +20,7 @@ def test_root_endpoint():
     """Test root endpoint - serves SPA if built, otherwise API info."""
     response = client.get("/")
     assert response.status_code == 200
-    
+
     # If frontend is built, root serves HTML (SPA)
     # Otherwise, it serves JSON API info
     content_type = response.headers.get("content-type", "")

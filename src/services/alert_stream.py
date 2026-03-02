@@ -2,22 +2,22 @@
 
 import asyncio
 import logging
-from typing import Dict, List, Optional, Any, Callable, Set
-from datetime import datetime, timezone, timedelta
-from uuid import UUID
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from enum import Enum
+from typing import Any
+from uuid import UUID
 
+from sqlalchemy import and_, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, and_, or_
 
 from src.models.alerts import (
-    AlertHistoryModel, 
-    SeverityLevel, 
-    EventType,
+    EVENT_TYPE_NAMES,
     SEVERITY_COLORS,
     SEVERITY_EMOJIS,
-    EVENT_TYPE_NAMES,
+    AlertHistoryModel,
+    SeverityLevel,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,15 +38,15 @@ class StreamAlert:
     event_type: str
     title: str
     message: str
-    user_email: Optional[str] = None
-    tenant_id: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    user_email: str | None = None
+    tenant_id: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     status: AlertStatus = AlertStatus.NEW
-    acknowledged_by: Optional[str] = None
-    acknowledged_at: Optional[datetime] = None
-    
-    def to_dict(self) -> Dict[str, Any]:
+    acknowledged_by: str | None = None
+    acknowledged_at: datetime | None = None
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "id": self.id,
@@ -69,7 +69,7 @@ class StreamAlert:
 
 class AlertStreamService:
     """Service for managing alert streaming."""
-    
+
     def __init__(self, db: AsyncSession):
         """Initialize the alert stream service.
         
@@ -78,17 +78,17 @@ class AlertStreamService:
         """
         self.db = db
         self._alert_queue: asyncio.Queue[StreamAlert] = asyncio.Queue()
-        self._recent_alerts: List[StreamAlert] = []
+        self._recent_alerts: list[StreamAlert] = []
         self._max_recent = 100
-        self._callbacks: List[Callable[[StreamAlert], None]] = []
-    
+        self._callbacks: list[Callable[[StreamAlert], None]] = []
+
     async def get_recent_alerts(
         self,
         limit: int = 50,
-        severity: Optional[List[SeverityLevel]] = None,
-        event_types: Optional[List[str]] = None,
-        tenant_id: Optional[str] = None,
-    ) -> List[StreamAlert]:
+        severity: list[SeverityLevel] | None = None,
+        event_types: list[str] | None = None,
+        tenant_id: str | None = None,
+    ) -> list[StreamAlert]:
         """Get recent alerts from the database.
         
         Args:
@@ -101,7 +101,7 @@ class AlertStreamService:
             List of recent alerts
         """
         query = select(AlertHistoryModel).order_by(desc(AlertHistoryModel.sent_at)).limit(limit)
-        
+
         filters = []
         if severity:
             filters.append(AlertHistoryModel.severity.in_(severity))
@@ -109,13 +109,13 @@ class AlertStreamService:
             filters.append(AlertHistoryModel.event_type.in_(event_types))
         if tenant_id:
             filters.append(AlertHistoryModel.tenant_id == tenant_id)
-        
+
         if filters:
             query = query.where(and_(*filters))
-        
+
         result = await self.db.execute(query)
         alerts = result.scalars().all()
-        
+
         return [
             StreamAlert(
                 id=str(alert.id),
@@ -130,7 +130,7 @@ class AlertStreamService:
             )
             for alert in alerts
         ]
-    
+
     async def publish_alert(self, alert: StreamAlert) -> None:
         """Publish a new alert to the stream.
         
@@ -139,21 +139,21 @@ class AlertStreamService:
         """
         # Add to queue
         await self._alert_queue.put(alert)
-        
+
         # Add to recent alerts
         self._recent_alerts.insert(0, alert)
         if len(self._recent_alerts) > self._max_recent:
             self._recent_alerts.pop()
-        
+
         # Notify callbacks
         for callback in self._callbacks:
             try:
                 callback(alert)
             except Exception as e:
                 logger.error(f"Error in alert callback: {e}")
-        
+
         logger.info(f"Alert published: {alert.id} - {alert.title}")
-    
+
     def register_callback(self, callback: Callable[[StreamAlert], None]) -> None:
         """Register a callback for new alerts.
         
@@ -161,7 +161,7 @@ class AlertStreamService:
             callback: Function to call when new alert arrives
         """
         self._callbacks.append(callback)
-    
+
     def unregister_callback(self, callback: Callable[[StreamAlert], None]) -> None:
         """Unregister a callback.
         
@@ -170,8 +170,8 @@ class AlertStreamService:
         """
         if callback in self._callbacks:
             self._callbacks.remove(callback)
-    
-    async def get_alert_by_id(self, alert_id: str) -> Optional[StreamAlert]:
+
+    async def get_alert_by_id(self, alert_id: str) -> StreamAlert | None:
         """Get a specific alert by ID.
         
         Args:
@@ -184,21 +184,20 @@ class AlertStreamService:
         for alert in self._recent_alerts:
             if alert.id == alert_id:
                 return alert
-        
+
         # Query database
-        from uuid import UUID
         try:
             uuid_id = UUID(alert_id)
         except ValueError:
             return None
-        
+
         query = select(AlertHistoryModel).where(AlertHistoryModel.id == uuid_id)
         result = await self.db.execute(query)
         db_alert = result.scalar_one_or_none()
-        
+
         if not db_alert:
             return None
-        
+
         return StreamAlert(
             id=str(db_alert.id),
             severity=db_alert.severity,
@@ -210,7 +209,7 @@ class AlertStreamService:
             metadata=db_alert.alert_metadata,
             timestamp=db_alert.sent_at,
         )
-    
+
     async def acknowledge_alert(
         self,
         alert_id: str,
@@ -228,14 +227,14 @@ class AlertStreamService:
         alert = await self.get_alert_by_id(alert_id)
         if not alert:
             return False
-        
+
         alert.status = AlertStatus.ACKNOWLEDGED
         alert.acknowledged_by = acknowledged_by
-        alert.acknowledged_at = datetime.now(timezone.utc)
-        
+        alert.acknowledged_at = datetime.now(UTC)
+
         logger.info(f"Alert {alert_id} acknowledged by {acknowledged_by}")
         return True
-    
+
     async def dismiss_alert(self, alert_id: str, dismissed_by: str) -> bool:
         """Mark an alert as dismissed.
         
@@ -249,18 +248,18 @@ class AlertStreamService:
         alert = await self.get_alert_by_id(alert_id)
         if not alert:
             return False
-        
+
         alert.status = AlertStatus.DISMISSED
         alert.acknowledged_by = dismissed_by
-        alert.acknowledged_at = datetime.now(timezone.utc)
-        
+        alert.acknowledged_at = datetime.now(UTC)
+
         logger.info(f"Alert {alert_id} dismissed by {dismissed_by}")
         return True
 
 
 class AlertStreamManager:
     """Manages client subscriptions and alert distribution."""
-    
+
     def __init__(
         self,
         stream_service: AlertStreamService,
@@ -274,19 +273,19 @@ class AlertStreamManager:
         """
         self.stream_service = stream_service
         self.connection_manager = connection_manager
-        self._client_filters: Dict[str, Dict] = {}
+        self._client_filters: dict[str, dict] = {}
         self._running = False
-        self._task: Optional[asyncio.Task] = None
-    
+        self._task: asyncio.Task | None = None
+
     async def start(self) -> None:
         """Start the alert distribution loop."""
         if self._running:
             return
-        
+
         self._running = True
         self._task = asyncio.create_task(self._distribution_loop())
         logger.info("Alert stream manager started")
-    
+
     async def stop(self) -> None:
         """Stop the alert distribution loop."""
         self._running = False
@@ -297,8 +296,8 @@ class AlertStreamManager:
             except asyncio.CancelledError:
                 pass
         logger.info("Alert stream manager stopped")
-    
-    async def subscribe_client(self, client_id: str, filters: Dict) -> None:
+
+    async def subscribe_client(self, client_id: str, filters: dict) -> None:
         """Subscribe a client to the alert stream.
         
         Args:
@@ -306,7 +305,7 @@ class AlertStreamManager:
             filters: Filter configuration
         """
         self._client_filters[client_id] = filters
-        
+
         # Send recent alerts as initial batch
         recent = await self.stream_service.get_recent_alerts(
             limit=20,
@@ -314,14 +313,14 @@ class AlertStreamManager:
             event_types=filters.get("event_types"),
             tenant_id=filters.get("tenant_id"),
         )
-        
+
         # Send initial batch
         if recent:
             await self.connection_manager.send_personal_message({
                 "type": "initial_alerts",
                 "alerts": [alert.to_dict() for alert in recent],
             }, client_id)
-    
+
     async def unsubscribe_client(self, client_id: str) -> None:
         """Unsubscribe a client from the alert stream.
         
@@ -329,8 +328,8 @@ class AlertStreamManager:
             client_id: Client identifier
         """
         self._client_filters.pop(client_id, None)
-    
-    async def update_subscription(self, client_id: str, filters: Dict) -> None:
+
+    async def update_subscription(self, client_id: str, filters: dict) -> None:
         """Update a client's subscription filters.
         
         Args:
@@ -338,13 +337,13 @@ class AlertStreamManager:
             filters: New filter configuration
         """
         self._client_filters[client_id] = filters
-        
+
         # Send updated filter confirmation
         await self.connection_manager.send_personal_message({
             "type": "filters_updated",
             "filters": filters,
         }, client_id)
-    
+
     async def acknowledge_alert(self, alert_id: str, client_id: str) -> bool:
         """Acknowledge an alert.
         
@@ -356,7 +355,7 @@ class AlertStreamManager:
             True if successful
         """
         success = await self.stream_service.acknowledge_alert(alert_id, client_id)
-        
+
         if success:
             # Broadcast to all clients
             await self.connection_manager.broadcast({
@@ -364,9 +363,9 @@ class AlertStreamManager:
                 "alert_id": alert_id,
                 "acknowledged_by": client_id,
             })
-        
+
         return success
-    
+
     async def dismiss_alert(self, alert_id: str, client_id: str) -> bool:
         """Dismiss an alert.
         
@@ -378,7 +377,7 @@ class AlertStreamManager:
             True if successful
         """
         success = await self.stream_service.dismiss_alert(alert_id, client_id)
-        
+
         if success:
             # Broadcast to all clients
             await self.connection_manager.broadcast({
@@ -386,9 +385,9 @@ class AlertStreamManager:
                 "alert_id": alert_id,
                 "dismissed_by": client_id,
             })
-        
+
         return success
-    
+
     async def _distribution_loop(self) -> None:
         """Main loop for distributing alerts to clients."""
         while self._running:
@@ -401,7 +400,7 @@ class AlertStreamManager:
                 break
             except Exception as e:
                 logger.error(f"Error in distribution loop: {e}")
-    
+
     async def broadcast_alert(self, alert: StreamAlert) -> int:
         """Broadcast an alert to all connected clients.
         
@@ -415,5 +414,5 @@ class AlertStreamManager:
             "type": "new_alert",
             "alert": alert.to_dict(),
         }
-        
+
         return await self.connection_manager.broadcast(message)

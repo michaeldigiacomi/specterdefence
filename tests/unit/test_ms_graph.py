@@ -1,15 +1,13 @@
 """Unit tests for MS Graph client."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, Mock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
-from msal import ConfidentialClientApplication
+import pytest
 
 from src.clients.ms_graph import (
-    MSGraphClient,
-    MSGraphAuthError,
     MSGraphAPIError,
+    MSGraphAuthError,
+    MSGraphClient,
     validate_tenant_credentials,
 )
 
@@ -28,7 +26,7 @@ class TestMSGraphClient:
         """Create a test client with mocked MSAL."""
         mock_app = MagicMock()
         mock_msal_app.return_value = mock_app
-        
+
         return MSGraphClient(
             tenant_id="test-tenant-id",
             client_id="test-client-id",
@@ -44,9 +42,9 @@ class TestMSGraphClient:
             "access_token": "test-access-token",
             "expires_in": 3600
         }
-        
+
         token = await client.get_access_token()
-        
+
         assert token == "test-access-token"
         mock_app.acquire_token_silent.assert_called_once()
         mock_app.acquire_token_for_client.assert_called_once()
@@ -59,9 +57,9 @@ class TestMSGraphClient:
             "access_token": "cached-token",
             "expires_in": 3600
         }
-        
+
         token = await client.get_access_token()
-        
+
         assert token == "cached-token"
         mock_app.acquire_token_for_client.assert_not_called()
 
@@ -74,10 +72,10 @@ class TestMSGraphClient:
             "error": "invalid_client",
             "error_description": "Client authentication failed"
         }
-        
+
         with pytest.raises(MSGraphAuthError) as exc_info:
             await client.get_access_token()
-        
+
         assert "Client authentication failed" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -85,7 +83,7 @@ class TestMSGraphClient:
         """Test successful credential validation."""
         with patch.object(client, "get_access_token", new_callable=AsyncMock) as mock_token:
             mock_token.return_value = "test-token"
-            
+
             with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
                 mock_response = MagicMock()
                 mock_response.status_code = 200
@@ -99,9 +97,9 @@ class TestMSGraphClient:
                     }]
                 }
                 mock_get.return_value = mock_response
-                
+
                 result = await client.validate_credentials()
-                
+
                 assert result["valid"] is True
                 assert result["display_name"] == "Test Organization"
                 assert result["tenant_id"] == "test-tenant-id"
@@ -112,16 +110,16 @@ class TestMSGraphClient:
         """Test credential validation with 401 response."""
         with patch.object(client, "get_access_token", new_callable=AsyncMock) as mock_token:
             mock_token.return_value = "test-token"
-            
+
             with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
                 mock_response = MagicMock()
                 mock_response.status_code = 401
                 mock_response.text = "Unauthorized"
                 mock_get.return_value = mock_response
-                
+
                 with pytest.raises(MSGraphAuthError) as exc_info:
                     await client.validate_credentials()
-                
+
                 assert "Invalid credentials" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -129,16 +127,16 @@ class TestMSGraphClient:
         """Test credential validation with API error."""
         with patch.object(client, "get_access_token", new_callable=AsyncMock) as mock_token:
             mock_token.return_value = "test-token"
-            
+
             with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
                 mock_response = MagicMock()
                 mock_response.status_code = 500
                 mock_response.text = "Internal Server Error"
                 mock_get.return_value = mock_response
-                
+
                 with pytest.raises(MSGraphAPIError) as exc_info:
                     await client.validate_credentials()
-                
+
                 assert "API error: 500" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -146,15 +144,15 @@ class TestMSGraphClient:
         """Test credential validation with empty response."""
         with patch.object(client, "get_access_token", new_callable=AsyncMock) as mock_token:
             mock_token.return_value = "test-token"
-            
+
             with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
                 mock_response = MagicMock()
                 mock_response.status_code = 200
                 mock_response.json.return_value = {"value": []}
                 mock_get.return_value = mock_response
-                
+
                 result = await client.validate_credentials()
-                
+
                 assert result["valid"] is True
                 assert result["display_name"] == ""
                 assert result["tenant_id"] == ""
@@ -164,7 +162,7 @@ class TestMSGraphClient:
         """Test getting tenant information."""
         with patch.object(client, "get_access_token", new_callable=AsyncMock) as mock_token:
             mock_token.return_value = "test-token"
-            
+
             with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
                 mock_response = MagicMock()
                 mock_response.status_code = 200
@@ -176,9 +174,9 @@ class TestMSGraphClient:
                     }]
                 }
                 mock_get.return_value = mock_response
-                
+
                 result = await client.get_tenant_info()
-                
+
                 assert result["displayName"] == "Test Org"
                 assert result["id"] == "tenant-id"
 
@@ -196,13 +194,13 @@ class TestValidateTenantCredentials:
                 "display_name": "Test Org"
             })
             mock_client_class.return_value = mock_client
-            
+
             result = await validate_tenant_credentials(
                 tenant_id="test-tenant",
                 client_id="test-client",
                 client_secret="test-secret"
             )
-            
+
             assert result["valid"] is True
             assert result["display_name"] == "Test Org"
             mock_client_class.assert_called_once_with(

@@ -1,23 +1,19 @@
 """OAuth applications API endpoints for SpecterDefence."""
 
-from typing import List, Optional
-from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status as http_status, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import status as http_status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
-from src.services.oauth_apps import OAuthAppsService
 from src.models.oauth_apps import (
-    OAuthAppModel,
-    OAuthAppAlertModel,
-    OAuthAppConsentModel,
-    OAuthAppPermissionModel,
-    RiskLevel,
     AppStatus,
+    OAuthAppModel,
     PublisherType,
+    RiskLevel,
 )
-from pydantic import BaseModel, Field
+from src.services.oauth_apps import OAuthAppsService
 
 router = APIRouter()
 
@@ -32,9 +28,9 @@ class OAuthAppResponse(BaseModel):
     tenant_id: str
     app_id: str
     display_name: str
-    description: Optional[str]
-    publisher_name: Optional[str]
-    publisher_id: Optional[str]
+    description: str | None
+    publisher_name: str | None
+    publisher_id: str | None
     publisher_type: str
     is_microsoft_publisher: bool
     is_verified_publisher: bool
@@ -42,7 +38,7 @@ class OAuthAppResponse(BaseModel):
     status: str
     risk_score: int
     permission_count: int
-    high_risk_permissions: List[str]
+    high_risk_permissions: list[str]
     has_mail_permissions: bool
     has_user_read_all: bool
     has_group_read_all: bool
@@ -52,20 +48,20 @@ class OAuthAppResponse(BaseModel):
     consent_count: int
     admin_consented: bool
     is_new_app: bool
-    detection_reasons: List[str]
-    app_created_at: Optional[str]
+    detection_reasons: list[str]
+    app_created_at: str | None
     first_seen_at: str
     last_scan_at: str
     created_at: str
     updated_at: str
-    
+
     class Config:
         from_attributes = True
 
 
 class OAuthAppListResponse(BaseModel):
     """Response model for listing OAuth apps."""
-    items: List[OAuthAppResponse]
+    items: list[OAuthAppResponse]
     total: int
     limit: int
     offset: int
@@ -77,15 +73,15 @@ class OAuthAppPermissionResponse(BaseModel):
     permission_id: str
     permission_type: str
     permission_value: str
-    display_name: Optional[str]
-    description: Optional[str]
+    display_name: str | None
+    description: str | None
     is_high_risk: bool
-    risk_category: Optional[str]
+    risk_category: str | None
     is_admin_consent_required: bool
     consent_state: str
     created_at: str
     updated_at: str
-    
+
     class Config:
         from_attributes = True
 
@@ -95,15 +91,15 @@ class OAuthAppConsentResponse(BaseModel):
     id: str
     user_id: str
     user_email: str
-    user_display_name: Optional[str]
+    user_display_name: str | None
     consent_type: str
     scope: str
     consent_state: str
-    consented_at: Optional[str]
-    expires_at: Optional[str]
+    consented_at: str | None
+    expires_at: str | None
     created_at: str
     updated_at: str
-    
+
     class Config:
         from_attributes = True
 
@@ -118,17 +114,17 @@ class OAuthAppAlertResponse(BaseModel):
     title: str
     description: str
     is_acknowledged: bool
-    acknowledged_by: Optional[str]
-    acknowledged_at: Optional[str]
+    acknowledged_by: str | None
+    acknowledged_at: str | None
     created_at: str
-    
+
     class Config:
         from_attributes = True
 
 
 class OAuthAppAlertListResponse(BaseModel):
     """Response model for listing OAuth app alerts."""
-    items: List[OAuthAppAlertResponse]
+    items: list[OAuthAppAlertResponse]
     total: int
     limit: int
     offset: int
@@ -136,7 +132,7 @@ class OAuthAppAlertListResponse(BaseModel):
 
 class ScanRequest(BaseModel):
     """Request model for triggering an OAuth app scan."""
-    tenant_id: Optional[str] = Field(
+    tenant_id: str | None = Field(
         None,
         description="Specific tenant to scan (if not provided, scans all tenants)"
     )
@@ -149,7 +145,7 @@ class ScanRequest(BaseModel):
 class ScanResponse(BaseModel):
     """Response model for scan operation."""
     success: bool
-    tenant_id: Optional[str]
+    tenant_id: str | None
     results: dict
     message: str
 
@@ -166,7 +162,7 @@ class RevokeAppResponse(BaseModel):
     """Response model for revoke operation."""
     success: bool
     message: str
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class AcknowledgeAlertRequest(BaseModel):
@@ -177,7 +173,7 @@ class AcknowledgeAlertRequest(BaseModel):
 class AcknowledgeAlertResponse(BaseModel):
     """Response model for acknowledging an alert."""
     success: bool
-    alert: Optional[OAuthAppAlertResponse]
+    alert: OAuthAppAlertResponse | None
     message: str
 
 
@@ -195,8 +191,8 @@ class OAuthAppsSummary(BaseModel):
 class AppPermissionsResponse(BaseModel):
     """Response model for app permissions."""
     app: OAuthAppResponse
-    permissions: List[OAuthAppPermissionResponse]
-    consents: List[OAuthAppConsentResponse]
+    permissions: list[OAuthAppPermissionResponse]
+    consents: list[OAuthAppConsentResponse]
 
 
 # =============================================================================
@@ -259,10 +255,10 @@ def _format_app_response(app: OAuthAppModel) -> OAuthAppResponse:
     description="List OAuth applications across all tenants with optional filtering."
 )
 async def list_oauth_apps(
-    tenant_id: Optional[str] = None,
-    status: Optional[str] = None,
-    risk_level: Optional[str] = None,
-    publisher_type: Optional[str] = None,
+    tenant_id: str | None = None,
+    status: str | None = None,
+    risk_level: str | None = None,
+    publisher_type: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     service: OAuthAppsService = Depends(get_oauth_apps_service)
@@ -285,7 +281,7 @@ async def list_oauth_apps(
     status_enum = None
     risk_enum = None
     publisher_enum = None
-    
+
     if status:
         try:
             status_enum = AppStatus(status.lower())
@@ -294,7 +290,7 @@ async def list_oauth_apps(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid status: {status}"
             )
-    
+
     if risk_level:
         try:
             risk_enum = RiskLevel(risk_level.upper())
@@ -303,7 +299,7 @@ async def list_oauth_apps(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid risk level: {risk_level}"
             )
-    
+
     if publisher_type:
         try:
             publisher_enum = PublisherType(publisher_type.lower())
@@ -312,7 +308,7 @@ async def list_oauth_apps(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid publisher type: {publisher_type}"
             )
-    
+
     result = await service.get_apps(
         tenant_id=tenant_id,
         status=status_enum,
@@ -321,7 +317,7 @@ async def list_oauth_apps(
         limit=limit,
         offset=offset
     )
-    
+
     return OAuthAppListResponse(
         items=[_format_app_response(app) for app in result["items"]],
         total=result["total"],
@@ -358,7 +354,7 @@ async def get_oauth_app(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"OAuth app with ID {app_id} not found"
         )
-    
+
     return _format_app_response(app)
 
 
@@ -390,10 +386,10 @@ async def get_app_permissions(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"OAuth app with ID {app_id} not found"
         )
-    
+
     permissions = await service.get_app_permissions_detail(app_id)
     consents = await service.get_app_consents(app_id)
-    
+
     return AppPermissionsResponse(
         app=_format_app_response(app),
         permissions=[
@@ -454,7 +450,7 @@ async def revoke_oauth_app(
         Revoke result
     """
     result = await service.revoke_app(app_id, request.revoke_type)
-    
+
     if result["success"]:
         return RevokeAppResponse(
             success=True,
@@ -479,8 +475,8 @@ async def revoke_oauth_app(
 )
 async def get_tenant_oauth_apps(
     tenant_id: str,
-    status: Optional[str] = None,
-    risk_level: Optional[str] = None,
+    status: str | None = None,
+    risk_level: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     service: OAuthAppsService = Depends(get_oauth_apps_service)
@@ -501,7 +497,7 @@ async def get_tenant_oauth_apps(
     # Convert string enums
     status_enum = None
     risk_enum = None
-    
+
     if status:
         try:
             status_enum = AppStatus(status.lower())
@@ -510,7 +506,7 @@ async def get_tenant_oauth_apps(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid status: {status}"
             )
-    
+
     if risk_level:
         try:
             risk_enum = RiskLevel(risk_level.upper())
@@ -519,7 +515,7 @@ async def get_tenant_oauth_apps(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid risk level: {risk_level}"
             )
-    
+
     result = await service.get_apps(
         tenant_id=tenant_id,
         status=status_enum,
@@ -527,7 +523,7 @@ async def get_tenant_oauth_apps(
         limit=limit,
         offset=offset
     )
-    
+
     return OAuthAppListResponse(
         items=[_format_app_response(app) for app in result["items"]],
         total=result["total"],
@@ -538,7 +534,7 @@ async def get_tenant_oauth_apps(
 
 @router.get(
     "/tenants/{tenant_id}/suspicious",
-    response_model=List[OAuthAppResponse],
+    response_model=list[OAuthAppResponse],
     summary="Get suspicious apps",
     description="Get suspicious and malicious OAuth apps for a tenant."
 )
@@ -546,7 +542,7 @@ async def get_suspicious_apps(
     tenant_id: str,
     limit: int = Query(default=100, ge=1, le=500),
     service: OAuthAppsService = Depends(get_oauth_apps_service)
-) -> List[OAuthAppResponse]:
+) -> list[OAuthAppResponse]:
     """Get suspicious and malicious OAuth apps.
     
     Args:
@@ -558,13 +554,13 @@ async def get_suspicious_apps(
         List of suspicious/malicious apps
     """
     apps = await service.get_suspicious_apps(tenant_id=tenant_id, limit=limit)
-    
+
     return [_format_app_response(app) for app in apps]
 
 
 @router.get(
     "/tenants/{tenant_id}/high-risk",
-    response_model=List[OAuthAppResponse],
+    response_model=list[OAuthAppResponse],
     summary="Get high-risk apps",
     description="Get high-risk and critical OAuth apps for a tenant."
 )
@@ -572,7 +568,7 @@ async def get_high_risk_apps(
     tenant_id: str,
     limit: int = Query(default=100, ge=1, le=500),
     service: OAuthAppsService = Depends(get_oauth_apps_service)
-) -> List[OAuthAppResponse]:
+) -> list[OAuthAppResponse]:
     """Get high-risk and critical OAuth apps.
     
     Args:
@@ -584,7 +580,7 @@ async def get_high_risk_apps(
         List of high-risk apps
     """
     apps = await service.get_high_risk_apps(tenant_id=tenant_id, limit=limit)
-    
+
     return [_format_app_response(app) for app in apps]
 
 
@@ -608,7 +604,7 @@ async def get_oauth_apps_summary(
         Summary of OAuth apps
     """
     summary = await service.get_apps_summary(tenant_id=tenant_id)
-    
+
     return OAuthAppsSummary(
         total_apps=summary["total_apps"],
         by_risk_level=summary["by_risk_level"],
@@ -652,13 +648,13 @@ async def scan_oauth_apps(
             status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="tenant_id is required"
         )
-    
+
     try:
         results = await service.scan_tenant_oauth_apps(
             tenant_id=request.tenant_id,
             trigger_alerts=request.trigger_alerts
         )
-        
+
         return ScanResponse(
             success=True,
             tenant_id=request.tenant_id,
@@ -689,9 +685,9 @@ async def scan_oauth_apps(
     description="List OAuth app alerts with optional filtering."
 )
 async def list_oauth_app_alerts(
-    tenant_id: Optional[str] = None,
-    acknowledged: Optional[bool] = None,
-    severity: Optional[str] = None,
+    tenant_id: str | None = None,
+    acknowledged: bool | None = None,
+    severity: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     service: OAuthAppsService = Depends(get_oauth_apps_service)
@@ -718,7 +714,7 @@ async def list_oauth_app_alerts(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid severity: {severity}"
             )
-    
+
     result = await service.get_alerts(
         tenant_id=tenant_id,
         acknowledged=acknowledged,
@@ -726,7 +722,7 @@ async def list_oauth_app_alerts(
         limit=limit,
         offset=offset
     )
-    
+
     return OAuthAppAlertListResponse(
         items=[
             OAuthAppAlertResponse(
@@ -775,13 +771,13 @@ async def acknowledge_alert(
         HTTPException: If alert not found
     """
     alert = await service.acknowledge_alert(alert_id, request.acknowledged_by)
-    
+
     if not alert:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Alert with ID {alert_id} not found"
         )
-    
+
     return AcknowledgeAlertResponse(
         success=True,
         alert=OAuthAppAlertResponse(

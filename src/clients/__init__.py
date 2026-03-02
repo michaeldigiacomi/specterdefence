@@ -1,9 +1,9 @@
 """Clients package for SpecterDefence."""
 
 from src.clients.ms_graph import (
-    MSGraphClient,
-    MSGraphAuthError,
     MSGraphAPIError,
+    MSGraphAuthError,
+    MSGraphClient,
     validate_tenant_credentials,
 )
 

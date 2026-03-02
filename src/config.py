@@ -1,9 +1,10 @@
 """Application configuration."""
 
 import secrets
-from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from pydantic import Field, field_validator
-from typing import List
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
@@ -29,7 +30,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # CORS - Restrictive by default
-    CORS_ORIGINS: List[str] = Field(
+    CORS_ORIGINS: list[str] = Field(
         default_factory=list,
         description="Allowed CORS origins - empty means same-origin only"
     )
@@ -74,8 +75,8 @@ class Settings(BaseSettings):
         ]
         if v in weak_values:
             raise ValueError(
-                f"SECRET_KEY is using a weak/default value. "
-                f"Generate a secure key with: python -c \"import secrets; print(secrets.token_hex(32))\""
+                "SECRET_KEY is using a weak/default value. "
+                "Generate a secure key with: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
         if len(v) < 32:
             raise ValueError("SECRET_KEY must be at least 32 characters long")
@@ -95,8 +96,8 @@ class Settings(BaseSettings):
         ]
         if v in weak_values:
             raise ValueError(
-                f"JWT_SECRET_KEY is using a weak/default value. "
-                f"Generate a secure key with: python -c \"import secrets; print(secrets.token_hex(32))\""
+                "JWT_SECRET_KEY is using a weak/default value. "
+                "Generate a secure key with: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
         if len(v) < 32:
             raise ValueError("JWT_SECRET_KEY must be at least 32 characters long")
@@ -110,7 +111,7 @@ class Settings(BaseSettings):
         import os
         if os.getenv('TESTING') == 'true' or os.getenv('PYTEST_CURRENT_TEST'):
             return v
-        
+
         # This is the hash for "admin123" - commonly attacked
         default_hashes = [
             "$2b$12$qaI.IhS84lIGdfXRFU8aZOhLqJqsZbhJt1UFx8rWSjzlHynm53.kK",
@@ -124,7 +125,7 @@ class Settings(BaseSettings):
 
     @field_validator('CORS_ORIGINS')
     @classmethod
-    def validate_cors_origins(cls, v: List[str]) -> List[str]:
+    def validate_cors_origins(cls, v: list[str]) -> list[str]:
         """Validate CORS origins."""
         import os
         if os.getenv('TESTING') == 'true' or os.getenv('PYTEST_CURRENT_TEST'):

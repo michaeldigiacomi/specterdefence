@@ -1,22 +1,22 @@
 """Alert engine with deduplication for SpecterDefence."""
 
 import logging
-from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select, and_, desc
+from sqlalchemy import and_, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.alerts.discord import DiscordWebhookClient, DiscordWebhookError
+from src.alerts.rules import AlertRuleService
 from src.models.alerts import (
     AlertHistoryModel,
     AlertRuleModel,
     AlertWebhookModel,
-    SeverityLevel,
     EventType,
+    SeverityLevel,
 )
-from src.alerts.discord import DiscordWebhookClient, DiscordWebhookError
-from src.alerts.rules import AlertRuleService
 from src.services.encryption import encryption_service
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class AlertEngine:
     """Alert processing engine with deduplication."""
-    
+
     def __init__(self, db: AsyncSession):
         """Initialize the alert engine.
         
@@ -33,18 +33,18 @@ class AlertEngine:
         """
         self.db = db
         self.rule_service = AlertRuleService(db)
-        self._discord_clients: Dict[UUID, DiscordWebhookClient] = {}
-    
+        self._discord_clients: dict[UUID, DiscordWebhookClient] = {}
+
     async def process_event(
         self,
         event_type: EventType,
         severity: SeverityLevel,
         title: str,
         description: str,
-        user_email: Optional[str] = None,
-        tenant_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, Any]]:
+        user_email: str | None = None,
+        tenant_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         """Process a security event and send alerts.
         
         This method:
@@ -67,30 +67,30 @@ class AlertEngine:
         """
         results = []
         metadata = metadata or {}
-        
+
         # Find matching rules
         matching_rules = await self.rule_service.find_matching_rules(
             event_type=event_type.value,
             severity=severity,
             tenant_id=tenant_id,
         )
-        
+
         if not matching_rules:
             logger.debug(f"No matching rules for event: {event_type.value}")
             return results
-        
+
         logger.info(f"Found {len(matching_rules)} matching rules for {event_type.value}")
-        
+
         # Get active webhooks for this tenant (including global webhooks)
         webhooks = await self.rule_service.list_webhooks(
             tenant_id=tenant_id,
             include_inactive=False,
         )
-        
+
         if not webhooks:
             logger.warning(f"No active webhooks found for tenant: {tenant_id}")
             return results
-        
+
         # Generate deduplication hash
         dedup_hash = AlertHistoryModel.generate_dedup_hash(
             event_type=event_type.value,
@@ -98,7 +98,7 @@ class AlertEngine:
             tenant_id=tenant_id,
             metadata=metadata,
         )
-        
+
         # Process each rule
         for rule in matching_rules:
             # Check deduplication for this rule
@@ -107,7 +107,7 @@ class AlertEngine:
                 rule=rule,
                 tenant_id=tenant_id,
             )
-            
+
             if is_duplicate:
                 logger.info(f"Skipping duplicate alert for rule {rule.id}")
                 results.append({
@@ -117,7 +117,7 @@ class AlertEngine:
                     "webhook_id": None,
                 })
                 continue
-            
+
             # Send alert to all webhooks
             for webhook in webhooks:
                 result = await self._send_alert(
@@ -133,14 +133,14 @@ class AlertEngine:
                     dedup_hash=dedup_hash,
                 )
                 results.append(result)
-        
+
         return results
-    
+
     async def _check_duplicate(
         self,
         dedup_hash: str,
         rule: AlertRuleModel,
-        tenant_id: Optional[str],
+        tenant_id: str | None,
     ) -> bool:
         """Check if an alert is a duplicate within the cooldown period.
         
@@ -153,7 +153,7 @@ class AlertEngine:
             True if this is a duplicate alert, False otherwise
         """
         cooldown_until = datetime.utcnow() - timedelta(minutes=rule.cooldown_minutes)
-        
+
         query = select(AlertHistoryModel).where(
             and_(
                 AlertHistoryModel.dedup_hash == dedup_hash,
@@ -161,7 +161,7 @@ class AlertEngine:
                 AlertHistoryModel.rule_id == rule.id,
             )
         )
-        
+
         # Also match tenant for proper scoping
         if tenant_id:
             query = query.where(
@@ -170,12 +170,12 @@ class AlertEngine:
                     AlertHistoryModel.tenant_id.is_(None)
                 )
             )
-        
+
         result = await self.db.execute(query)
         existing = result.scalar_one_or_none()
-        
+
         return existing is not None
-    
+
     async def _send_alert(
         self,
         webhook: AlertWebhookModel,
@@ -184,11 +184,11 @@ class AlertEngine:
         severity: SeverityLevel,
         title: str,
         description: str,
-        user_email: Optional[str],
-        tenant_id: Optional[str],
-        metadata: Dict[str, Any],
+        user_email: str | None,
+        tenant_id: str | None,
+        metadata: dict[str, Any],
         dedup_hash: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Send an alert to a webhook and record history.
         
         Args:
@@ -212,11 +212,11 @@ class AlertEngine:
             "webhook_name": webhook.name,
             "status": "pending",
         }
-        
+
         try:
             # Get or create Discord client
             client = await self._get_discord_client(webhook)
-            
+
             # Send the alert
             await client.send_alert(
                 title=title,
@@ -226,7 +226,7 @@ class AlertEngine:
                 user_email=user_email,
                 metadata=metadata,
             )
-            
+
             # Record successful alert
             await self._record_alert(
                 rule=rule,
@@ -240,10 +240,10 @@ class AlertEngine:
                 metadata=metadata,
                 dedup_hash=dedup_hash,
             )
-            
+
             result["status"] = "sent"
             logger.info(f"Alert sent successfully to webhook {webhook.id}")
-            
+
         except DiscordWebhookError as e:
             logger.error(f"Failed to send alert to webhook {webhook.id}: {e}")
             result["status"] = "failed"
@@ -252,9 +252,9 @@ class AlertEngine:
             logger.error(f"Unexpected error sending alert: {e}")
             result["status"] = "error"
             result["error"] = str(e)
-        
+
         return result
-    
+
     async def _get_discord_client(self, webhook: AlertWebhookModel) -> DiscordWebhookClient:
         """Get or create a Discord client for a webhook.
         
@@ -267,9 +267,9 @@ class AlertEngine:
         if webhook.id not in self._discord_clients:
             decrypted_url = encryption_service.decrypt(webhook.webhook_url)
             self._discord_clients[webhook.id] = DiscordWebhookClient(decrypted_url)
-        
+
         return self._discord_clients[webhook.id]
-    
+
     async def _record_alert(
         self,
         rule: AlertRuleModel,
@@ -278,9 +278,9 @@ class AlertEngine:
         severity: SeverityLevel,
         title: str,
         description: str,
-        user_email: Optional[str],
-        tenant_id: Optional[str],
-        metadata: Dict[str, Any],
+        user_email: str | None,
+        tenant_id: str | None,
+        metadata: dict[str, Any],
         dedup_hash: str,
     ) -> AlertHistoryModel:
         """Record an alert in the history.
@@ -312,22 +312,22 @@ class AlertEngine:
             alert_metadata=metadata,
             dedup_hash=dedup_hash,
         )
-        
+
         self.db.add(history)
         await self.db.commit()
         await self.db.refresh(history)
-        
+
         return history
-    
+
     async def get_alert_history(
         self,
-        tenant_id: Optional[str] = None,
-        event_type: Optional[str] = None,
-        severity: Optional[SeverityLevel] = None,
-        user_email: Optional[str] = None,
+        tenant_id: str | None = None,
+        event_type: str | None = None,
+        severity: SeverityLevel | None = None,
+        user_email: str | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[AlertHistoryModel]:
+    ) -> list[AlertHistoryModel]:
         """Get alert history with optional filtering.
         
         Args:
@@ -342,7 +342,7 @@ class AlertEngine:
             List of alert history records
         """
         query = select(AlertHistoryModel)
-        
+
         # Apply filters
         if tenant_id:
             query = query.where(
@@ -351,25 +351,25 @@ class AlertEngine:
                     AlertHistoryModel.tenant_id.is_(None)
                 )
             )
-        
+
         if event_type:
             query = query.where(AlertHistoryModel.event_type == event_type)
-        
+
         if severity:
             query = query.where(AlertHistoryModel.severity == severity)
-        
+
         if user_email:
             query = query.where(AlertHistoryModel.user_email == user_email)
-        
+
         # Order by sent_at descending (newest first)
         query = query.order_by(desc(AlertHistoryModel.sent_at))
-        
+
         # Apply pagination
         query = query.limit(limit).offset(offset)
-        
+
         result = await self.db.execute(query)
         return list(result.scalars().all())
-    
+
     async def close(self) -> None:
         """Close all webhook clients."""
         for client in self._discord_clients.values():

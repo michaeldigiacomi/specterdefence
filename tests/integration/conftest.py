@@ -6,35 +6,32 @@ are not available (e.g., in environments without Docker).
 
 import asyncio
 import uuid
-from datetime import datetime, timezone
-from typing import AsyncGenerator, Generator
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
+from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
-from fastapi.testclient import TestClient
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from src.database import Base, get_db
 from src.main import app
-from src.models.db import TenantModel
-from src.models.tenant import TenantCreate, TenantResponse
 from src.models.alerts import (
-    SeverityLevel,
-    EventType,
-    AlertWebhookModel,
     AlertRuleModel,
+    AlertWebhookModel,
+    EventType,
+    SeverityLevel,
     WebhookType,
 )
-from src.models.audit_log import AuditLogModel, LogType, CollectionStateModel
 from src.models.analytics import (
+    AnomalyDetectionConfig,
     LoginAnalyticsModel,
     UserLoginHistoryModel,
-    AnomalyDetectionConfig,
 )
+from src.models.audit_log import AuditLogModel, CollectionStateModel, LogType
+from src.models.db import TenantModel
 from src.services.encryption import encryption_service
-
 
 # =============================================================================
 # SQLite Database Fixtures (for environments without Docker)
@@ -47,22 +44,22 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 def db_engine():
     """Create a test database engine using SQLite (session-scoped)."""
     engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
-    
+
     # Create tables
     async def init_tables():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-    
+
     asyncio.run(init_tables())
-    
+
     yield engine
-    
+
     # Cleanup
     async def drop_tables():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
         await engine.dispose()
-    
+
     asyncio.run(drop_tables())
 
 
@@ -73,7 +70,7 @@ async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
     async with db_engine.connect() as conn:
         # Begin a transaction
         trans = await conn.begin()
-        
+
         # Create a session bound to the connection
         async_session = async_sessionmaker(
             conn,
@@ -81,10 +78,10 @@ async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
             expire_on_commit=False,
             autoflush=False,
         )
-        
+
         async with async_session() as session:
             yield session
-        
+
         # Rollback the transaction after the test
         await trans.rollback()
 
@@ -94,14 +91,14 @@ async def test_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, N
     """Create an async test client with database override."""
     async def override_get_db():
         yield db_session
-    
+
     # Override the dependency
     app.dependency_overrides[get_db] = override_get_db
-    
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
-    
+
     # Clean up override
     app.dependency_overrides.clear()
 
@@ -131,8 +128,8 @@ async def test_tenant(db_session: AsyncSession) -> TenantModel:
         client_id="87654321-4321-4321-4321-210987654321",
         client_secret=encryption_service.encrypt("test-secret-12345"),
         is_active=True,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     db_session.add(tenant)
     await db_session.commit()
@@ -152,16 +149,16 @@ async def test_tenants(db_session: AsyncSession) -> list[TenantModel]:
             client_id=f"{i+10:08d}-{i+10:04d}-{i+10:04d}-{i+10:04d}-{i+10:012d}",
             client_secret=encryption_service.encrypt(f"test-secret-{i}"),
             is_active=True,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         db_session.add(tenant)
         tenants.append(tenant)
-    
+
     await db_session.commit()
     for tenant in tenants:
         await db_session.refresh(tenant)
-    
+
     return tenants
 
 
@@ -305,11 +302,11 @@ async def test_audit_logs(db_session: AsyncSession, test_tenant: TenantModel) ->
         )
         db_session.add(log)
         logs.append(log)
-    
+
     await db_session.commit()
     for log in logs:
         await db_session.refresh(log)
-    
+
     return logs
 
 
@@ -318,7 +315,7 @@ async def test_collection_state(db_session: AsyncSession, test_tenant: TenantMod
     """Create a test collection state for a tenant."""
     state = CollectionStateModel(
         tenant_id=test_tenant.id,
-        last_collection_time=datetime.now(timezone.utc),
+        last_collection_time=datetime.now(UTC),
         total_logs_collected=100,
     )
     db_session.add(state)
@@ -335,7 +332,7 @@ async def test_collection_state(db_session: AsyncSession, test_tenant: TenantMod
 async def test_login_analytics(db_session: AsyncSession, test_tenant: TenantModel) -> list[LoginAnalyticsModel]:
     """Create test login analytics records."""
     records = []
-    
+
     # Create a successful login from US
     record1 = LoginAnalyticsModel(
         id=uuid.uuid4(),
@@ -348,14 +345,14 @@ async def test_login_analytics(db_session: AsyncSession, test_tenant: TenantMode
         region="NY",
         latitude=40.7128,
         longitude=-74.0060,
-        login_time=datetime(2026, 3, 1, 10, 0, 0, tzinfo=timezone.utc),
+        login_time=datetime(2026, 3, 1, 10, 0, 0, tzinfo=UTC),
         is_success=True,
         anomaly_flags=[],
         risk_score=0,
     )
     db_session.add(record1)
     records.append(record1)
-    
+
     # Create an impossible travel login from Japan (30 min later)
     record2 = LoginAnalyticsModel(
         id=uuid.uuid4(),
@@ -367,18 +364,18 @@ async def test_login_analytics(db_session: AsyncSession, test_tenant: TenantMode
         city="Tokyo",
         latitude=35.6762,
         longitude=139.6503,
-        login_time=datetime(2026, 3, 1, 10, 30, 0, tzinfo=timezone.utc),
+        login_time=datetime(2026, 3, 1, 10, 30, 0, tzinfo=UTC),
         is_success=True,
         anomaly_flags=["impossible_travel"],
         risk_score=95,
     )
     db_session.add(record2)
     records.append(record2)
-    
+
     await db_session.commit()
     for record in records:
         await db_session.refresh(record)
-    
+
     return records
 
 
@@ -390,7 +387,7 @@ async def test_user_login_history(db_session: AsyncSession, test_tenant: TenantM
         tenant_id=test_tenant.id,
         known_countries=["US"],
         known_ips=["192.168.1.1"],
-        last_login_time=datetime(2026, 3, 1, 10, 0, 0, tzinfo=timezone.utc),
+        last_login_time=datetime(2026, 3, 1, 10, 0, 0, tzinfo=UTC),
         last_login_country="US",
         last_login_ip="192.168.1.1",
         last_latitude=40.7128,

@@ -2,10 +2,10 @@
 
 from src.services.encryption import EncryptionService, encryption_service
 from src.services.tenant import (
-    TenantService,
     TenantAlreadyExistsError,
-    TenantValidationError,
     TenantNotFoundError,
+    TenantService,
+    TenantValidationError,
 )
 
 __all__ = [

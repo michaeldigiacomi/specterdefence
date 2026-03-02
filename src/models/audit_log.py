@@ -1,24 +1,24 @@
 """Audit log database models for SpecterDefence."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import TYPE_CHECKING
-from typing import Optional, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import String, Boolean, DateTime, Text, Enum as SQLEnum, Index
+from sqlalchemy import Boolean, DateTime, Index, String, Text
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     from src.models.analytics import LoginAnalyticsModel
 
 from src.database import Base
-from src.models.types import UUID, JSONB
+from src.models.types import JSONB, UUID
 
 
 def utc_now() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class LogType(str, Enum):
@@ -51,7 +51,7 @@ class AuditLogModel(Base):
         nullable=False,
         comment="Type of audit log"
     )
-    raw_data: Mapped[Dict[str, Any]] = mapped_column(
+    raw_data: Mapped[dict[str, Any]] = mapped_column(
         JSONB,
         nullable=False,
         comment="Full O365 response as JSONB"
@@ -62,7 +62,7 @@ class AuditLogModel(Base):
         nullable=False,
         comment="Whether the log has been processed"
     )
-    o365_created_at: Mapped[Optional[datetime]] = mapped_column(
+    o365_created_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
         index=True,
@@ -74,9 +74,9 @@ class AuditLogModel(Base):
         nullable=False,
         comment="When this record was created in our database"
     )
-    
+
     # Relationships
-    login_analytics: Mapped[List["LoginAnalyticsModel"]] = relationship(
+    login_analytics: Mapped[list["LoginAnalyticsModel"]] = relationship(
         "LoginAnalyticsModel",
         back_populates="audit_log"
     )
@@ -104,27 +104,27 @@ class CollectionStateModel(Base):
         nullable=False,
         comment="Internal tenant UUID (PK and FK to tenants)"
     )
-    last_collection_time: Mapped[Optional[datetime]] = mapped_column(
+    last_collection_time: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
         comment="Last successful collection timestamp"
     )
-    next_page_token: Mapped[Optional[str]] = mapped_column(
+    next_page_token: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
         comment="Pagination token for resuming interrupted collection"
     )
-    last_success_at: Mapped[Optional[datetime]] = mapped_column(
+    last_success_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
         comment="Timestamp of last successful collection run"
     )
-    last_error: Mapped[Optional[str]] = mapped_column(
+    last_error: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
         comment="Last error message if collection failed"
     )
-    last_error_at: Mapped[Optional[datetime]] = mapped_column(
+    last_error_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
         comment="When the last error occurred"
@@ -177,7 +177,7 @@ class ContentSubscriptionModel(Base):
         default=utc_now,
         nullable=False
     )
-    webhook_url: Mapped[Optional[str]] = mapped_column(
+    webhook_url: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
         comment="Webhook URL if using push notifications"

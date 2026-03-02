@@ -1,36 +1,37 @@
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from contextlib import asynccontextmanager
 import os
+from contextlib import asynccontextmanager
 
-from src.config import settings
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+
 from src.api import router
+from src.config import settings
 from src.database import init_db
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to all responses."""
-    
+
     async def dispatch(self, request, call_next):
         response = await call_next(request)
-        
+
         # Prevent MIME type sniffing
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        
+
         # Prevent clickjacking
         response.headers['X-Frame-Options'] = 'DENY'
-        
+
         # XSS Protection (legacy but still useful)
         response.headers['X-XSS-Protection'] = '1; mode=block'
-        
+
         # HSTS (only in production)
         if not settings.DEBUG:
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
-        
+
         # Content Security Policy
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
@@ -43,10 +44,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "base-uri 'self'; "
             "form-action 'self';"
         )
-        
+
         # Referrer Policy
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-        
+
         # Permissions Policy
         response.headers['Permissions-Policy'] = (
             'geolocation=(), '
@@ -58,7 +59,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             'gyroscope=(), '
             'speaker=()'
         )
-        
+
         return response
 
 
@@ -91,12 +92,11 @@ if settings.CORS_ORIGINS:
     )
 
 # Trusted host middleware in production (skip in testing)
-import os
 if not settings.DEBUG and os.getenv('TESTING') != 'true':
     app.add_middleware(
-        TrustedHostMiddleware, 
+        TrustedHostMiddleware,
         allowed_hosts=[
-            "specterdefence.digitaladrenalin.net", 
+            "specterdefence.digitaladrenalin.net",
             "*.digitaladrenalin.net",
             "localhost",
             "127.0.0.1",
@@ -128,20 +128,20 @@ if os.path.exists(static_dir):
     assets_dir = os.path.join(static_dir, "assets")
     if os.path.exists(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
-    
+
     # Serve other static files (icons, manifest, etc.)
     @app.get("/logo.svg")
     async def serve_logo():
         return FileResponse(os.path.join(static_dir, "logo.svg"))
-    
+
     @app.get("/manifest.json")
     async def serve_manifest():
         return FileResponse(os.path.join(static_dir, "manifest.json"))
-    
+
     @app.get("/service-worker.js")
     async def serve_service_worker():
         return FileResponse(os.path.join(static_dir, "service-worker.js"))
-    
+
     # Serve icons
     @app.get("/icons/{icon_name}")
     async def serve_icon(icon_name: str):
@@ -149,12 +149,12 @@ if os.path.exists(static_dir):
         if os.path.exists(icon_path):
             return FileResponse(icon_path)
         raise HTTPException(status_code=404, detail="Icon not found")
-    
+
     # Root path serves index.html
     @app.get("/")
     async def serve_index():
         return FileResponse(os.path.join(static_dir, "index.html"))
-    
+
     # All other non-API paths serve index.html for SPA routing
     # This must be registered AFTER all other routes
     @app.get("/{path:path}")
@@ -166,12 +166,12 @@ if os.path.exists(static_dir):
         # Skip API routes - they should have been handled above
         if path.startswith("api/") or path == "docs" or path == "openapi.json" or path == "health":
             raise HTTPException(status_code=404, detail="Not found")
-        
+
         # Check if it's a static file request
         file_path = os.path.join(static_dir, path)
         if os.path.exists(file_path) and os.path.isfile(file_path):
             return FileResponse(file_path)
-        
+
         # Otherwise serve index.html for SPA routing
         return FileResponse(os.path.join(static_dir, "index.html"))
 

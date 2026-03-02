@@ -20,23 +20,29 @@ mock_encryption.encrypt.return_value = "encrypted-value"
 mock_encryption.decrypt.return_value = "decrypted-secret"
 sys.modules["src.services.encryption"] = mock_encryption
 
-import pytest
-import asyncio
-from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock, call
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
+
 import httpx
+import pytest
 
 # Patch MSAL before importing
 with patch("src.collector.o365_feed.msal.ConfidentialClientApplication"):
     from src.collector.o365_feed import (
-        O365ManagementClient,
-        O365ManagementAuthError,
+        CONTENT_TYPES,
         O365ManagementAPIError,
+        O365ManagementAuthError,
+        O365ManagementClient,
         RateLimitError,
         map_content_type_to_log_type,
-        MANAGEMENT_API_BASE,
-        CONTENT_TYPES,
     )
+
+
+# Cleanup: Remove the mock to avoid affecting other tests
+def teardown_module():
+    """Remove the mock to avoid affecting other tests."""
+    if "src.services.encryption" in sys.modules:
+        del sys.modules["src.services.encryption"]
 
 
 # =============================================================================
@@ -161,7 +167,7 @@ class TestO365Authentication:
         """Test client-side token caching."""
         # Set cached token
         o365_client._access_token = "client-cached-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         token = await o365_client._get_access_token()
 
@@ -173,7 +179,7 @@ class TestO365Authentication:
         """Test automatic token refresh when token is near expiration."""
         # Set token that expires soon (less than 5 minutes buffer)
         o365_client._access_token = "expiring-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(minutes=3)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(minutes=3)
 
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -225,7 +231,7 @@ class TestO365APIRequests:
     async def test_make_request_success(self, o365_client, mock_token_response):
         """Test successful API request."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -247,7 +253,7 @@ class TestO365APIRequests:
     async def test_make_request_with_params(self, o365_client, mock_token_response):
         """Test API request with query parameters."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -281,7 +287,7 @@ class TestO365ErrorHandling:
     async def test_http_401_unauthorized(self, o365_client, mock_msal_app):
         """Test handling of HTTP 401 Unauthorized with token refresh."""
         o365_client._access_token = "old-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         auth_error_response = MagicMock()
         auth_error_response.status_code = 401
@@ -316,7 +322,7 @@ class TestO365ErrorHandling:
     async def test_http_403_forbidden(self, o365_client, mock_token_response):
         """Test handling of HTTP 403 Forbidden."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_response = MagicMock()
@@ -337,7 +343,7 @@ class TestO365ErrorHandling:
     async def test_http_429_rate_limited_with_retry_after(self, o365_client, mock_token_response):
         """Test handling of HTTP 429 with Retry-After header."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         rate_limit_response = MagicMock()
         rate_limit_response.status_code = 429
@@ -364,7 +370,7 @@ class TestO365ErrorHandling:
     async def test_http_429_rate_limited_without_retry_after(self, o365_client, mock_token_response):
         """Test handling of HTTP 429 without Retry-After header (exponential backoff)."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         rate_limit_response = MagicMock()
         rate_limit_response.status_code = 429
@@ -392,7 +398,7 @@ class TestO365ErrorHandling:
     async def test_http_429_rate_limited_exhausted(self, o365_client, mock_token_response):
         """Test rate limit exhaustion after max retries."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         rate_limit_response = MagicMock()
         rate_limit_response.status_code = 429
@@ -415,7 +421,7 @@ class TestO365ErrorHandling:
     async def test_http_500_server_error(self, o365_client, mock_token_response):
         """Test handling of HTTP 500 Server Error."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_response = MagicMock()
@@ -440,7 +446,7 @@ class TestO365ErrorHandling:
     async def test_network_timeout(self, o365_client, mock_token_response):
         """Test handling of network timeout with retry."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         success_response = MagicMock()
         success_response.status_code = 200
@@ -465,7 +471,7 @@ class TestO365ErrorHandling:
     async def test_connection_error_with_retry(self, o365_client, mock_token_response):
         """Test handling of connection error with retry."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         success_response = MagicMock()
         success_response.status_code = 200
@@ -490,7 +496,7 @@ class TestO365ErrorHandling:
     async def test_connection_error_exhausted(self, o365_client, mock_token_response):
         """Test connection error after max retries exhausted."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
@@ -586,8 +592,8 @@ class TestO365ContentBlobs:
     @pytest.mark.asyncio
     async def test_get_content_blobs_with_time_range(self, o365_client):
         """Test getting content blobs with time range."""
-        start_time = datetime(2026, 3, 1, 0, 0, 0, tzinfo=timezone.utc)
-        end_time = datetime(2026, 3, 1, 12, 0, 0, tzinfo=timezone.utc)
+        start_time = datetime(2026, 3, 1, 0, 0, 0, tzinfo=UTC)
+        end_time = datetime(2026, 3, 1, 12, 0, 0, tzinfo=UTC)
 
         with patch.object(o365_client, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
@@ -618,7 +624,7 @@ class TestO365ContentBlobs:
     async def test_get_content_blobs_pagination(self, o365_client, mock_token_response):
         """Test getting content blobs with pagination."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         next_page_uri = "https://manage.office.com/api/v1.0/next-page"
 
@@ -752,7 +758,7 @@ class TestO365Pagination:
     async def test_next_link_following(self, o365_client, mock_token_response):
         """Test following next page URI."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         next_page_uri = "https://manage.office.com/api/v1.0/tenant/activity/feed/subscriptions/content?$skip=100"
 
@@ -970,7 +976,7 @@ class TestO365RateLimiting:
     async def test_exponential_backoff_calculation(self, o365_client, mock_token_response):
         """Test exponential backoff calculation."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         rate_limit_response = MagicMock()
         rate_limit_response.status_code = 429
@@ -1004,7 +1010,7 @@ class TestO365RateLimiting:
     async def test_retry_after_header_parsing(self, o365_client, mock_token_response):
         """Test parsing of Retry-After header values."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         rate_limit_response = MagicMock()
         rate_limit_response.status_code = 429
@@ -1030,7 +1036,7 @@ class TestO365RateLimiting:
     async def test_max_retries_exceeded(self, o365_client, mock_token_response):
         """Test that max retries are properly enforced."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         rate_limit_response = MagicMock()
         rate_limit_response.status_code = 429
@@ -1053,7 +1059,7 @@ class TestO365RateLimiting:
     async def test_successful_retry_after_rate_limit(self, o365_client, mock_token_response):
         """Test successful request after rate limit recovery."""
         o365_client._access_token = "test-token"
-        o365_client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
         rate_limit_response = MagicMock()
         rate_limit_response.status_code = 429

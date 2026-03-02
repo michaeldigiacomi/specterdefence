@@ -1,21 +1,20 @@
 """Unit tests for O365 Management Activity API client."""
 
 import json
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from datetime import datetime, timezone, timedelta
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-import httpx
 
 # Need to patch MSAL before importing
 with patch("src.collector.o365_feed.msal.ConfidentialClientApplication"):
     from src.collector.o365_feed import (
-        O365ManagementClient,
-        O365ManagementAuthError,
+        CONTENT_TYPES,
         O365ManagementAPIError,
+        O365ManagementAuthError,
+        O365ManagementClient,
         RateLimitError,
         map_content_type_to_log_type,
-        MANAGEMENT_API_BASE,
-        CONTENT_TYPES,
     )
 
 
@@ -62,7 +61,7 @@ class TestO365ManagementClient:
         """Test successful token acquisition."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
-        
+
         token = await client._get_access_token()
         assert token == "test-token-123"
         assert client._access_token == "test-token-123"
@@ -71,8 +70,8 @@ class TestO365ManagementClient:
     async def test_get_access_token_cached(self, client, mock_msal_app):
         """Test token caching."""
         client._access_token = "cached-token"
-        client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
-        
+        client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
+
         token = await client._get_access_token()
         assert token == "cached-token"
         mock_msal_app.acquire_token_silent.assert_not_called()
@@ -82,7 +81,7 @@ class TestO365ManagementClient:
         """Test token acquisition failure."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = {"error_description": "Invalid credentials"}
-        
+
         with pytest.raises(O365ManagementAuthError):
             await client._get_access_token()
 
@@ -90,19 +89,19 @@ class TestO365ManagementClient:
     async def test_make_request_success(self, client, mock_token_response):
         """Test successful API request."""
         client._access_token = "test-token"
-        client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
-        
+        client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
+
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"data": "test"}
         mock_response.raise_for_status = Mock()
-        
+
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.request = AsyncMock(return_value=mock_response)
-            
+
             result = await client._make_request("GET", "test/endpoint")
             assert result == {"data": "test"}
 
@@ -110,25 +109,25 @@ class TestO365ManagementClient:
     async def test_make_request_rate_limit_with_retry_after(self, client):
         """Test rate limit handling with Retry-After header."""
         client._access_token = "test-token"
-        client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
-        
+        client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
+
         rate_limit_response = Mock()
         rate_limit_response.status_code = 429
         rate_limit_response.headers = {"Retry-After": "1"}
-        
+
         success_response = Mock()
         success_response.status_code = 200
         success_response.json.return_value = {"data": "success"}
         success_response.raise_for_status = Mock()
-        
+
         responses = [rate_limit_response, success_response]
-        
+
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.request = AsyncMock(side_effect=responses)
-            
+
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 result = await client._make_request("GET", "test/endpoint")
                 assert result == {"data": "success"}
@@ -137,18 +136,18 @@ class TestO365ManagementClient:
     async def test_make_request_rate_limit_exhausted(self, client):
         """Test rate limit exhaustion after max retries."""
         client._access_token = "test-token"
-        client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
-        
+        client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
+
         rate_limit_response = Mock()
         rate_limit_response.status_code = 429
         rate_limit_response.headers = {}
-        
+
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.request = AsyncMock(return_value=rate_limit_response)
-            
+
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 with pytest.raises(RateLimitError):
                     await client._make_request("GET", "test/endpoint")
@@ -157,16 +156,16 @@ class TestO365ManagementClient:
     async def test_make_request_401_retry(self, client, mock_msal_app):
         """Test 401 retry with fresh token."""
         client._access_token = "old-token"
-        client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
-        
+        client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
+
         auth_error_response = Mock()
         auth_error_response.status_code = 401
         auth_error_response.text = "Unauthorized"
-        
+
         # Mock token acquisition to return a valid token after 401
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = {"access_token": "new-token", "expires_in": 3600}
-        
+
         call_count = 0
         def track_token_during_request(*args, **kwargs):
             nonlocal call_count
@@ -175,16 +174,16 @@ class TestO365ManagementClient:
                 # First call should have old token
                 assert client._access_token == "old-token"
             return auth_error_response
-        
+
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.request = AsyncMock(side_effect=track_token_during_request)
-            
+
             with pytest.raises(O365ManagementAuthError):
                 await client._make_request("GET", "test/endpoint")
-            
+
             # Should be called twice (original + 1 retry)
             assert mock_client.request.call_count == 2
 
@@ -193,9 +192,9 @@ class TestO365ManagementClient:
         """Test starting a subscription."""
         with patch.object(client, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {"status": "enabled"}
-            
+
             result = await client.start_subscription("Audit.General")
-            
+
             mock_request.assert_called_once_with(
                 "POST",
                 "activity/feed/subscriptions/start",
@@ -210,9 +209,9 @@ class TestO365ManagementClient:
             mock_request.return_value = [
                 {"contentType": "Audit.General", "status": "enabled"}
             ]
-            
+
             result = await client.list_subscriptions()
-            
+
             mock_request.assert_called_once_with("GET", "activity/feed/subscriptions/list")
             assert len(result) == 1
             assert result[0]["contentType"] == "Audit.General"
@@ -220,21 +219,21 @@ class TestO365ManagementClient:
     @pytest.mark.asyncio
     async def test_get_content_blobs(self, client):
         """Test getting content blobs."""
-        start_time = datetime.now(timezone.utc) - timedelta(hours=1)
-        end_time = datetime.now(timezone.utc)
-        
+        start_time = datetime.now(UTC) - timedelta(hours=1)
+        end_time = datetime.now(UTC)
+
         with patch.object(client, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "contentUri": ["https://blob1.json", "https://blob2.json"],
                 "nextPageUri": None
             }
-            
+
             result = await client.get_content_blobs(
                 "Audit.General",
                 start_time=start_time,
                 end_time=end_time
             )
-            
+
             mock_request.assert_called_once()
             call_args = mock_request.call_args
             assert call_args[0][0] == "GET"
@@ -252,27 +251,27 @@ class TestO365ManagementClient:
     async def test_get_content_blobs_with_next_page(self, client):
         """Test getting content blobs with pagination."""
         next_page_uri = "https://manage.office.com/api/v1.0/next-page"
-        
+
         # Mock _get_access_token
         client._access_token = "test-token"
-        client._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
-        
+        client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
+
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"contentUri": ["https://blob3.json"], "nextPageUri": None}
         mock_response.raise_for_status = Mock()
-        
+
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_response)
-            
+
             result = await client.get_content_blobs(
                 "Audit.General",
                 next_page_uri=next_page_uri
             )
-            
+
             mock_client.get.assert_called_once()
             call_args = mock_client.get.call_args
             assert call_args[0][0] == next_page_uri
@@ -284,15 +283,15 @@ class TestO365ManagementClient:
         mock_response.status_code = 200
         mock_response.text = json.dumps({"id": "event1", "type": "test"}) + "\n" + json.dumps({"id": "event2", "type": "test"})
         mock_response.raise_for_status = Mock()
-        
+
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_response)
-            
+
             result = await client.download_content("https://blob.json")
-            
+
             assert len(result) == 2
             assert result[0]["id"] == "event1"
             assert result[1]["id"] == "event2"
@@ -304,15 +303,15 @@ class TestO365ManagementClient:
         mock_response.status_code = 200
         mock_response.text = ""
         mock_response.raise_for_status = Mock()
-        
+
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_response)
-            
+
             result = await client.download_content("https://blob.json")
-            
+
             assert result == []
 
     @pytest.mark.asyncio
@@ -329,7 +328,7 @@ class TestO365ManagementClient:
                 "nextPageUri": None
             }
         ]
-        
+
         with patch.object(client, "get_content_blobs", new_callable=AsyncMock) as mock_blobs:
             with patch.object(client, "download_content", new_callable=AsyncMock) as mock_download:
                 with patch("asyncio.sleep", new_callable=AsyncMock):
@@ -338,11 +337,11 @@ class TestO365ManagementClient:
                         [{"id": "event1"}],
                         [{"id": "event2"}]
                     ]
-                    
+
                     batches = []
                     async for batch in client.collect_logs("Audit.General"):
                         batches.append(batch)
-                    
+
                     assert len(batches) == 2
                     assert batches[0][0]["id"] == "event1"
                     assert batches[1][0]["id"] == "event2"
@@ -352,7 +351,7 @@ class TestO365ManagementClient:
         """Test log collection with rate limit."""
         with patch.object(client, "get_content_blobs", new_callable=AsyncMock) as mock_blobs:
             mock_blobs.side_effect = RateLimitError("Rate limited")
-            
+
             with pytest.raises(RateLimitError):
                 async for _ in client.collect_logs("Audit.General"):
                     pass
@@ -362,9 +361,9 @@ class TestO365ManagementClient:
         """Test ensuring subscriptions are active."""
         with patch.object(client, "start_subscription", new_callable=AsyncMock) as mock_start:
             mock_start.return_value = {"status": "enabled"}
-            
+
             result = await client.ensure_subscriptions()
-            
+
             assert len(result) == len(CONTENT_TYPES)
             assert mock_start.call_count == len(CONTENT_TYPES)
 
@@ -375,10 +374,10 @@ class TestO365ManagementClient:
             # Simulate "already enabled" error
             error = O365ManagementAPIError("subscription already enabled")
             mock_start.side_effect = error
-            
+
             # Should handle this gracefully
             result = await client.ensure_subscriptions()
-            
+
             # Should still return the content types since they're already subscribed
             assert len(result) == len(CONTENT_TYPES)
 

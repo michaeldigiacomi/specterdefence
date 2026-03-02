@@ -1,20 +1,14 @@
 """Unit tests for tenant service."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
-import uuid
-
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.services.tenant import TenantService, TenantAlreadyExistsError, TenantValidationError
-from src.services.encryption import EncryptionService
-from src.models.tenant import TenantCreate, TenantUpdate
-from src.models.db import TenantModel
 from src.database import Base
-
+from src.models.tenant import TenantCreate, TenantUpdate
+from src.services.tenant import TenantAlreadyExistsError, TenantService, TenantValidationError
 
 # Create in-memory test database
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -25,14 +19,14 @@ async def db_session():
     """Create a test database session."""
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
     async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    
+
     # Create tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     async with async_session() as session:
         yield session
-    
+
     # Cleanup
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -61,16 +55,16 @@ class TestTenantService:
                 "tenant_id": "12345678-1234-1234-1234-123456789012",
                 "verified_domains": [{"name": "test.com"}]
             }
-            
+
             tenant_data = TenantCreate(
                 name="Test Tenant",
                 tenant_id="12345678-1234-1234-1234-123456789012",
                 client_id="87654321-4321-4321-4321-210987654321",
                 client_secret="test-secret-123"
             )
-            
+
             result = await tenant_service.create_tenant(tenant_data)
-            
+
             assert result["tenant"] is not None
             assert result["validation"] is not None
             assert result["tenant"].name == "Test Tenant"
@@ -88,9 +82,9 @@ class TestTenantService:
             client_id="22222222-2222-2222-2222-222222222222",
             client_secret="test-secret-456"
         )
-        
+
         result = await tenant_service.create_tenant(tenant_data, validate=False)
-        
+
         assert result["tenant"] is not None
         assert result["validation"] is None
         assert result["tenant"].name == "Test Tenant No Validate"
@@ -104,10 +98,10 @@ class TestTenantService:
             client_id="44444444-4444-4444-4444-444444444444",
             client_secret="test-secret-789"
         )
-        
+
         # Create first tenant
         await tenant_service.create_tenant(tenant_data, validate=False)
-        
+
         # Try to create second with same tenant_id
         with pytest.raises(TenantAlreadyExistsError):
             await tenant_service.create_tenant(tenant_data, validate=False)
@@ -123,14 +117,14 @@ class TestTenantService:
                 "valid": False,
                 "error": "Invalid credentials"
             }
-            
+
             tenant_data = TenantCreate(
                 name="Invalid Tenant",
                 tenant_id="55555555-5555-5555-5555-555555555555",
                 client_id="66666666-6666-6666-6666-666666666666",
                 client_secret="invalid-secret"
             )
-            
+
             with pytest.raises(TenantValidationError):
                 await tenant_service.create_tenant(tenant_data, validate=True)
 
@@ -150,12 +144,12 @@ class TestTenantService:
             client_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
             client_secret="secret2"
         )
-        
+
         await tenant_service.create_tenant(tenant1, validate=False)
         await tenant_service.create_tenant(tenant2, validate=False)
-        
+
         tenants = await tenant_service.list_tenants()
-        
+
         assert len(tenants) == 2
         assert all(t.is_active for t in tenants)
 
@@ -169,14 +163,14 @@ class TestTenantService:
             client_id="cccccccc-cccc-cccc-cccc-cccccccccccc",
             client_secret="secret"
         )
-        
+
         result = await tenant_service.create_tenant(tenant_data, validate=False)
         await tenant_service.delete_tenant(result["tenant"].id)
-        
+
         # Without include_inactive
         active_only = await tenant_service.list_tenants(include_inactive=False)
         assert len(active_only) == 0
-        
+
         # With include_inactive
         all_tenants = await tenant_service.list_tenants(include_inactive=True)
         assert len(all_tenants) == 1
@@ -191,14 +185,14 @@ class TestTenantService:
             client_id="eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
             client_secret="secret"
         )
-        
+
         created = await tenant_service.create_tenant(tenant_data, validate=False)
-        
+
         # Get by internal ID
         fetched = await tenant_service.get_tenant(created["tenant"].id)
         assert fetched is not None
         assert fetched.name == "Get Test Tenant"
-        
+
         # Get by MS tenant ID
         fetched_by_ms_id = await tenant_service.get_tenant_by_ms_id(tenant_data.tenant_id)
         assert fetched_by_ms_id is not None
@@ -209,7 +203,7 @@ class TestTenantService:
         """Test getting non-existent tenant returns None."""
         fetched = await tenant_service.get_tenant("non-existent-id")
         assert fetched is None
-        
+
         fetched_by_ms_id = await tenant_service.get_tenant_by_ms_id("non-existent-tenant-id")
         assert fetched_by_ms_id is None
 
@@ -222,20 +216,20 @@ class TestTenantService:
             client_id="11111111-2222-3333-4444-555555555555",
             client_secret="secret"
         )
-        
+
         created = await tenant_service.create_tenant(tenant_data, validate=False)
-        
+
         # Update name
         update = TenantUpdate(name="Updated Name")
         updated = await tenant_service.update_tenant(created["tenant"].id, update)
-        
+
         assert updated is not None
         assert updated.name == "Updated Name"
-        
+
         # Update active status
         update = TenantUpdate(is_active=False)
         updated = await tenant_service.update_tenant(created["tenant"].id, update)
-        
+
         assert updated is not None
         assert updated.is_active is False
 
@@ -255,13 +249,13 @@ class TestTenantService:
             client_id="77777777-8888-9999-aaaa-bbbbbbbbbbbb",
             client_secret="secret"
         )
-        
+
         created = await tenant_service.create_tenant(tenant_data, validate=False)
-        
+
         # Soft delete
         deleted = await tenant_service.delete_tenant(created["tenant"].id)
         assert deleted is True
-        
+
         # Verify tenant is marked inactive
         tenant = await tenant_service.get_tenant(created["tenant"].id)
         assert tenant is not None
@@ -276,13 +270,13 @@ class TestTenantService:
             client_id="88888888-9999-aaaa-bbbb-cccccccccccc",
             client_secret="secret"
         )
-        
+
         created = await tenant_service.create_tenant(tenant_data, validate=False)
-        
+
         # Hard delete
         deleted = await tenant_service.hard_delete_tenant(created["tenant"].id)
         assert deleted is True
-        
+
         # Verify tenant is gone
         tenant = await tenant_service.get_tenant(created["tenant"].id)
         assert tenant is None
@@ -292,7 +286,7 @@ class TestTenantService:
         """Test deleting non-existent tenant returns False."""
         result = await tenant_service.delete_tenant("non-existent-id")
         assert result is False
-        
+
         result = await tenant_service.hard_delete_tenant("non-existent-id")
         assert result is False
 
@@ -306,12 +300,12 @@ class TestTenantService:
             client_id="99999999-aaaa-bbbb-cccc-dddddddddddd",
             client_secret=secret
         )
-        
+
         created = await tenant_service.create_tenant(tenant_data, validate=False)
-        
+
         # Get raw tenant from DB
         tenant = await tenant_service.get_tenant(created["tenant"].id)
-        
+
         # Verify secret is encrypted in DB (not plaintext)
         assert tenant.client_secret != secret
         # Base64 encoded Fernet token - should be valid base64
@@ -320,7 +314,7 @@ class TestTenantService:
             base64.urlsafe_b64decode(tenant.client_secret)
         except Exception:
             pytest.fail("client_secret should be valid base64")
-        
+
         # Verify we can decrypt it
         decrypted = tenant_service.get_decrypted_secret(tenant)
         assert decrypted == secret
@@ -337,13 +331,13 @@ class TestTenantService:
                 "tenant_id": "55555555-6666-7777-8888-999999999999",
                 "verified_domains": []
             }
-            
+
             result = await tenant_service.validate_tenant(
                 tenant_id="55555555-6666-7777-8888-999999999999",
                 client_id="test-client-id",
                 client_secret="test-secret"
             )
-            
+
             assert result.valid is True
             assert result.display_name == "Validated Org"
             mock_validate.assert_called_once()
@@ -359,13 +353,13 @@ class TestTenantService:
                 "error": "Invalid credentials",
                 "error_type": "auth_error"
             }
-            
+
             result = await tenant_service.validate_tenant(
                 tenant_id="test-tenant-id",
                 client_id="test-client-id",
                 client_secret="test-secret"
             )
-            
+
             assert result.valid is False
             assert "Invalid credentials" in result.error
             assert result.error_code == "auth_error"

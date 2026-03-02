@@ -1,7 +1,6 @@
 """Dashboard data models for SpecterDefence."""
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -24,7 +23,7 @@ class LoginActivityPoint(BaseModel):
 
 class LoginActivityTimeline(BaseModel):
     """Login activity timeline data."""
-    data: List[LoginActivityPoint]
+    data: list[LoginActivityPoint]
     time_range: TimeRange
     total_successful: int
     total_failed: int
@@ -44,9 +43,9 @@ class GeoLocationPoint(BaseModel):
 
 class GeoHeatmapData(BaseModel):
     """Geographic heatmap data."""
-    locations: List[GeoLocationPoint]
+    locations: list[GeoLocationPoint]
     total_countries: int
-    top_country: Optional[str] = None
+    top_country: str | None = None
     top_country_count: int = 0
 
 
@@ -54,15 +53,15 @@ class AnomalyTrendPoint(BaseModel):
     """Single point in anomaly trend."""
     date: datetime
     count: int
-    types: Dict[str, int] = Field(default_factory=dict, description="Count by anomaly type")
+    types: dict[str, int] = Field(default_factory=dict, description="Count by anomaly type")
 
 
 class AnomalyTrendData(BaseModel):
     """Anomaly trend data over time."""
-    data: List[AnomalyTrendPoint]
+    data: list[AnomalyTrendPoint]
     time_range: TimeRange
     total_anomalies: int
-    top_type: Optional[str] = None
+    top_type: str | None = None
     change_percent: float
 
 
@@ -72,14 +71,14 @@ class TopRiskUser(BaseModel):
     tenant_id: str
     risk_score: int
     anomaly_count: int
-    last_anomaly_time: Optional[datetime] = None
-    top_anomaly_types: List[str] = Field(default_factory=list)
+    last_anomaly_time: datetime | None = None
+    top_anomaly_types: list[str] = Field(default_factory=list)
     country_count: int = 0
 
 
 class TopRiskUsersData(BaseModel):
     """Top risk users list."""
-    users: List[TopRiskUser]
+    users: list[TopRiskUser]
     total_users: int
     avg_risk_score: float
 
@@ -96,11 +95,11 @@ class AlertVolumePoint(BaseModel):
 
 class AlertVolumeData(BaseModel):
     """Alert volume data by severity."""
-    data: List[AlertVolumePoint]
+    data: list[AlertVolumePoint]
     time_range: TimeRange
-    total_by_severity: Dict[str, int]
+    total_by_severity: dict[str, int]
     peak_volume: int
-    peak_time: Optional[datetime] = None
+    peak_time: datetime | None = None
 
 
 class AnomalyTypeBreakdown(BaseModel):
@@ -121,7 +120,7 @@ class DashboardSummary(BaseModel):
     active_tenants: int
     avg_risk_score: float
     login_success_rate: float
-    top_threats: List[str] = Field(default_factory=list)
+    top_threats: list[str] = Field(default_factory=list)
 
 
 class DashboardDataResponse(BaseModel):
@@ -132,7 +131,7 @@ class DashboardDataResponse(BaseModel):
     anomaly_trend: AnomalyTrendData
     top_risk_users: TopRiskUsersData
     alert_volume: AlertVolumeData
-    anomaly_breakdown: List[AnomalyTypeBreakdown]
+    anomaly_breakdown: list[AnomalyTypeBreakdown]
     generated_at: datetime
     time_range: TimeRange
 
@@ -141,7 +140,7 @@ class ExportRequest(BaseModel):
     """Export dashboard data request."""
     time_range: TimeRange = TimeRange.DAY_30
     format: str = Field(default="pdf", pattern="^(pdf|png|csv|json)$")
-    charts: List[str] = Field(
+    charts: list[str] = Field(
         default_factory=lambda: ["all"],
         description="Charts to export: all, timeline, heatmap, anomalies, alerts, users"
     )

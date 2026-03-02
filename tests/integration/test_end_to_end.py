@@ -5,22 +5,26 @@ to anomaly detection and alerting.
 """
 
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from sqlalchemy import select, and_
+from sqlalchemy import and_, select
 
-from src.models.db import TenantModel
-from src.models.audit_log import AuditLogModel, LogType, CollectionStateModel
-from src.models.analytics import LoginAnalyticsModel, UserLoginHistoryModel
-from src.models.alerts import AlertHistoryModel, AlertWebhookModel, AlertRuleModel, EventType, SeverityLevel, WebhookType
-from src.analytics.logins import LoginAnalyticsService
-from src.analytics.anomalies import AnomalyDetector, Location
 from src.alerts.engine import AlertEngine
+from src.analytics.anomalies import AnomalyDetector, Location
+from src.analytics.logins import LoginAnalyticsService
 from src.collector.main import TenantCollector
-from src.services.encryption import encryption_service
-
+from src.models.alerts import (
+    AlertHistoryModel,
+    AlertRuleModel,
+    AlertWebhookModel,
+    EventType,
+    SeverityLevel,
+)
+from src.models.analytics import LoginAnalyticsModel, UserLoginHistoryModel
+from src.models.audit_log import AuditLogModel, CollectionStateModel, LogType
+from src.models.db import TenantModel
 
 pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 
@@ -46,7 +50,7 @@ class TestEndToEndSecurityEvents:
                 "Status": {"ErrorCode": 0, "FailureReason": None},
             },
             processed=False,
-            o365_created_at=datetime(2026, 3, 1, 10, 0, 0, tzinfo=timezone.utc),
+            o365_created_at=datetime(2026, 3, 1, 10, 0, 0, tzinfo=UTC),
         )
         db_session.add(audit_log)
         await db_session.commit()
@@ -69,7 +73,7 @@ class TestEndToEndSecurityEvents:
                 user_email="john.doe@test.com",
                 tenant_id=test_tenant.id,
                 ip_address="192.168.1.100",
-                login_time=datetime(2026, 3, 1, 10, 0, 0, tzinfo=timezone.utc),
+                login_time=datetime(2026, 3, 1, 10, 0, 0, tzinfo=UTC),
                 is_success=True,
                 audit_log_id=audit_log.id,
             )
@@ -126,7 +130,7 @@ class TestEndToEndSecurityEvents:
             mock_geo.return_value = mock_location
 
             # Only 30 minutes later - impossible travel!
-            login_time = datetime(2026, 3, 1, 10, 30, 0, tzinfo=timezone.utc)
+            login_time = datetime(2026, 3, 1, 10, 30, 0, tzinfo=UTC)
 
             login_record = await service.process_login_event(
                 user_email="john.doe@test.com",
@@ -179,7 +183,7 @@ class TestEndToEndSecurityEvents:
                     longitude=-74.0,
                 )
 
-                login_time = datetime(2026, 3, 1, 10, i, 0, tzinfo=timezone.utc)
+                login_time = datetime(2026, 3, 1, 10, i, 0, tzinfo=UTC)
 
                 await service.process_login_event(
                     user_email="victim@test.com",
@@ -209,7 +213,7 @@ class TestEndToEndSecurityEvents:
                 user_email="victim@test.com",
                 tenant_id=test_tenant.id,
                 ip_address="192.168.100.99",
-                login_time=datetime(2026, 3, 1, 10, 10, 0, tzinfo=timezone.utc),
+                login_time=datetime(2026, 3, 1, 10, 10, 0, tzinfo=UTC),
                 is_success=False,
                 failure_reason="InvalidPassword",
             )
@@ -241,7 +245,7 @@ class TestEndToEndSecurityEvents:
                 longitude=2.3522,
             )
 
-            login_time = datetime(2026, 3, 2, 10, 0, 0, tzinfo=timezone.utc)  # Next day
+            login_time = datetime(2026, 3, 2, 10, 0, 0, tzinfo=UTC)  # Next day
 
             login_record = await service.process_login_event(
                 user_email="john.doe@test.com",
@@ -284,7 +288,7 @@ class TestAlertingFlow:
             city="Moscow",
             latitude=55.7558,
             longitude=37.6173,
-            login_time=datetime(2026, 3, 1, 12, 0, 0, tzinfo=timezone.utc),
+            login_time=datetime(2026, 3, 1, 12, 0, 0, tzinfo=UTC),
             is_success=True,
             anomaly_flags=["impossible_travel"],
             risk_score=95,
@@ -514,7 +518,7 @@ class TestCronJobExecution:
             # Fix: Ensure collection state has timezone-aware datetime
             state = await collector.get_collection_state()
             if state.last_collection_time and state.last_collection_time.tzinfo is None:
-                state.last_collection_time = state.last_collection_time.replace(tzinfo=timezone.utc)
+                state.last_collection_time = state.last_collection_time.replace(tzinfo=UTC)
 
             result = await collector.collect_all()
 
@@ -597,11 +601,11 @@ class TestAnomalyDetectorIntegration:
 
         # NYC coordinates
         prev_location = Location(latitude=40.7128, longitude=-74.0060, city="New York", country="US")
-        prev_time = datetime(2026, 3, 1, 10, 0, 0, tzinfo=timezone.utc)
+        prev_time = datetime(2026, 3, 1, 10, 0, 0, tzinfo=UTC)
 
         # Tokyo coordinates
         curr_location = Location(latitude=35.6762, longitude=139.6503, city="Tokyo", country="JP")
-        curr_time = datetime(2026, 3, 1, 10, 30, 0, tzinfo=timezone.utc)  # 30 min later
+        curr_time = datetime(2026, 3, 1, 10, 30, 0, tzinfo=UTC)  # 30 min later
 
         result = detector.detect_impossible_travel(
             prev_location=prev_location,
@@ -624,11 +628,11 @@ class TestAnomalyDetectorIntegration:
 
         # NYC
         prev_location = Location(latitude=40.7128, longitude=-74.0060, city="New York", country="US")
-        prev_time = datetime(2026, 3, 1, 10, 0, 0, tzinfo=timezone.utc)
+        prev_time = datetime(2026, 3, 1, 10, 0, 0, tzinfo=UTC)
 
         # Washington DC (reasonable travel time)
         curr_location = Location(latitude=38.9072, longitude=-77.0369, city="Washington DC", country="US")
-        curr_time = datetime(2026, 3, 1, 14, 0, 0, tzinfo=timezone.utc)  # 4 hours later
+        curr_time = datetime(2026, 3, 1, 14, 0, 0, tzinfo=UTC)  # 4 hours later
 
         result = detector.detect_impossible_travel(
             prev_location=prev_location,
@@ -688,7 +692,7 @@ class TestSecurityEventScenarios:
         # Skip if previous login time has no timezone info (causes comparison issues)
         if test_user_login_history.last_login_time and test_user_login_history.last_login_time.tzinfo is None:
             pytest.skip("Previous login time lacks timezone info - known issue with SQLite")
-        
+
         from src.analytics.geo_ip import GeoIPClient
         geo_client = GeoIPClient()
         service = LoginAnalyticsService(db_session, geo_ip_client=geo_client)
@@ -708,7 +712,7 @@ class TestSecurityEventScenarios:
                 user_email="victim@company.com",
                 tenant_id=test_tenant.id,
                 ip_address="192.168.1.50",
-                login_time=datetime(2026, 3, 1, 9, 0, 0, tzinfo=timezone.utc),
+                login_time=datetime(2026, 3, 1, 9, 0, 0, tzinfo=UTC),
                 is_success=True,
             )
 
@@ -727,7 +731,7 @@ class TestSecurityEventScenarios:
                 user_email="victim@company.com",
                 tenant_id=test_tenant.id,
                 ip_address="185.220.101.50",
-                login_time=datetime(2026, 3, 1, 9, 5, 0, tzinfo=timezone.utc),
+                login_time=datetime(2026, 3, 1, 9, 5, 0, tzinfo=UTC),
                 is_success=True,
             )
 
@@ -764,7 +768,7 @@ class TestSecurityEventScenarios:
                     user_email="target@victim.com",
                     tenant_id=test_tenant.id,
                     ip_address=ip,
-                    login_time=datetime(2026, 3, 1, 15, i, 0, tzinfo=timezone.utc),
+                    login_time=datetime(2026, 3, 1, 15, i, 0, tzinfo=UTC),
                     is_success=False,
                     failure_reason="InvalidUserNameOrPassword",
                 )

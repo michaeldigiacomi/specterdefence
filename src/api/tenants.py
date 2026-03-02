@@ -1,22 +1,23 @@
 """Tenant API endpoints."""
 
-from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, Depends, Query
+from datetime import UTC
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
-from src.services.tenant import (
-    TenantService,
-    TenantAlreadyExistsError,
-    TenantValidationError,
-    TenantNotFoundError,
-)
 from src.models.tenant import (
     TenantCreate,
-    TenantUpdate,
-    TenantResponse,
     TenantCreateResponse,
     TenantHealthCheckResponse,
+    TenantResponse,
+    TenantUpdate,
+)
+from src.services.tenant import (
+    TenantAlreadyExistsError,
+    TenantNotFoundError,
+    TenantService,
+    TenantValidationError,
 )
 
 router = APIRouter()
@@ -29,14 +30,14 @@ async def get_tenant_service(db: AsyncSession = Depends(get_db)) -> TenantServic
 
 @router.get(
     "/",
-    response_model=List[TenantResponse],
+    response_model=list[TenantResponse],
     summary="List all tenants",
     description="Retrieve a list of all registered tenants. Optionally include inactive tenants."
 )
 async def list_tenants(
     include_inactive: bool = False,
     service: TenantService = Depends(get_tenant_service)
-) -> List[TenantResponse]:
+) -> list[TenantResponse]:
     """List all registered tenants.
     
     Args:
@@ -76,7 +77,7 @@ async def create_tenant(
     """
     try:
         result = await service.create_tenant(tenant, validate=validate)
-        
+
         return TenantCreateResponse(
             success=True,
             tenant=result["tenant"],
@@ -189,7 +190,7 @@ async def delete_tenant(
         deleted = await service.hard_delete_tenant(tenant_id)
     else:
         deleted = await service.delete_tenant(tenant_id)
-        
+
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -224,17 +225,17 @@ async def validate_tenant_credentials(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tenant with ID {tenant_id} not found"
         )
-    
+
     # Get decrypted secret with audit logging
     client_secret = service.get_decrypted_secret(tenant, user_id="api_validate_endpoint")
-    
+
     # Validate credentials
     validation = await service.validate_tenant(
         tenant_id=tenant.tenant_id,
         client_id=tenant.client_id,
         client_secret=client_secret
     )
-    
+
     return validation
 
 
@@ -256,7 +257,7 @@ async def validate_tenant_credentials(
 )
 async def health_check_tenant(
     tenant_id: str,
-    permissions: Optional[List[str]] = Query(
+    permissions: list[str] | None = Query(
         None,
         description="Optional list of permissions to verify (default: AuditLog.Read.All)"
     ),
@@ -309,12 +310,12 @@ async def health_check_tenant(
 
 @router.post(
     "/health-check/all",
-    response_model=List[TenantHealthCheckResponse],
+    response_model=list[TenantHealthCheckResponse],
     summary="Test all tenant connections",
     description="Perform health checks on all active tenants."
 )
 async def health_check_all_tenants(
-    permissions: Optional[List[str]] = Query(
+    permissions: list[str] | None = Query(
         None,
         description="Optional list of permissions to verify (default: AuditLog.Read.All)"
     ),
@@ -325,7 +326,7 @@ async def health_check_all_tenants(
         description="Request timeout in seconds (5-120)"
     ),
     service: TenantService = Depends(get_tenant_service)
-) -> List[TenantHealthCheckResponse]:
+) -> list[TenantHealthCheckResponse]:
     """Perform health checks on all active tenants.
     
     Args:
@@ -338,7 +339,7 @@ async def health_check_all_tenants(
     """
     tenants = await service.list_tenants(include_inactive=False)
     results = []
-    
+
     for tenant_response in tenants:
         try:
             result = await service.health_check_tenant(
@@ -350,12 +351,13 @@ async def health_check_all_tenants(
             results.append(result)
         except Exception as e:
             # Include error result for this tenant
-            from datetime import datetime, timezone
+            from datetime import datetime
+
             from src.models.tenant import (
-                TenantHealthCheckConnectivity,
                 TenantHealthCheckAuth,
-                TenantHealthCheckPermissions,
+                TenantHealthCheckConnectivity,
                 TenantHealthCheckInfo,
+                TenantHealthCheckPermissions,
             )
             results.append(TenantHealthCheckResponse(
                 tenant_id=tenant_response.id,
@@ -367,8 +369,8 @@ async def health_check_all_tenants(
                 authentication=TenantHealthCheckAuth(success=False, error=str(e)),
                 permissions=TenantHealthCheckPermissions(success=False),
                 tenant_info=TenantHealthCheckInfo(),
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 message=f"Health check failed: {str(e)}"
             ))
-    
+
     return results

@@ -1,39 +1,39 @@
 """Mailbox rule monitoring service for SpecterDefence."""
 
 import logging
-from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Any
 
+from sqlalchemy import and_, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, desc
 
-from src.clients.ms_graph import MSGraphClient
+from src.alerts.engine import AlertEngine
 from src.clients.mailbox_rules import MailboxRuleClient
+from src.clients.ms_graph import MSGraphClient
+from src.models.alerts import EventType, SeverityLevel
+from src.models.db import TenantModel
 from src.models.mailbox_rules import (
-    MailboxRuleModel,
     MailboxRuleAlertModel,
-    RuleType,
+    MailboxRuleModel,
     RuleSeverity,
     RuleStatus,
+    RuleType,
 )
-from src.models.alerts import SeverityLevel, EventType
-from src.models.db import TenantModel
 from src.services.encryption import encryption_service
-from src.alerts.engine import AlertEngine
 
 logger = logging.getLogger(__name__)
 
 
 class MailboxRuleService:
     """Service for monitoring and managing mailbox rules."""
-    
+
     # Event types for mailbox rule alerts
     EVENT_TYPE_FORWARDING_EXTERNAL = "mailbox_forwarding_external"
     EVENT_TYPE_REDIRECT_HIDDEN = "mailbox_redirect_hidden"
     EVENT_TYPE_SUSPICIOUS_AUTO_REPLY = "mailbox_suspicious_auto_reply"
     EVENT_TYPE_RULE_CREATED_NON_OWNER = "mailbox_rule_non_owner"
     EVENT_TYPE_RULE_OUTSIDE_HOURS = "mailbox_rule_outside_hours"
-    
+
     def __init__(self, db_session: AsyncSession) -> None:
         """Initialize the service.
         
@@ -41,12 +41,12 @@ class MailboxRuleService:
             db_session: Async database session
         """
         self.db = db_session
-    
+
     async def scan_tenant_mailbox_rules(
         self,
         tenant_id: str,
         trigger_alerts: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Scan all mailbox rules for a tenant.
         
         Args:
@@ -60,24 +60,24 @@ class MailboxRuleService:
         tenant = await self._get_tenant(tenant_id)
         if not tenant:
             raise ValueError(f"Tenant {tenant_id} not found")
-        
+
         # Decrypt credentials
         client_secret = encryption_service.decrypt(tenant.client_secret)
-        
+
         # Create Graph client
         graph_client = MSGraphClient(
             tenant_id=tenant.tenant_id,
             client_id=tenant.client_id,
             client_secret=client_secret
         )
-        
+
         # Create mailbox rule client
         rule_client = MailboxRuleClient(graph_client)
-        
+
         # Fetch all rules
         logger.info(f"Scanning mailbox rules for tenant {tenant.name}")
         rules = await rule_client.get_mailbox_rules_for_tenant()
-        
+
         results = {
             "total_rules": len(rules),
             "new_rules": 0,
@@ -86,7 +86,7 @@ class MailboxRuleService:
             "malicious_rules": 0,
             "alerts_triggered": 0,
         }
-        
+
         # Process each rule
         for rule_data in rules:
             try:
@@ -96,33 +96,33 @@ class MailboxRuleService:
                     rule_client=rule_client,
                     trigger_alerts=trigger_alerts
                 )
-                
+
                 if rule_result.get("is_new"):
                     results["new_rules"] += 1
                 elif rule_result.get("is_updated"):
                     results["updated_rules"] += 1
-                
+
                 if rule_result.get("status") == RuleStatus.SUSPICIOUS:
                     results["suspicious_rules"] += 1
                 elif rule_result.get("status") == RuleStatus.MALICIOUS:
                     results["malicious_rules"] += 1
-                
+
                 if rule_result.get("alert_triggered"):
                     results["alerts_triggered"] += 1
-                    
+
             except Exception as e:
                 logger.error(f"Error processing rule: {e}")
                 continue
-        
+
         return results
-    
+
     async def _process_rule(
         self,
         tenant_id: str,
-        rule_data: Dict[str, Any],
+        rule_data: dict[str, Any],
         rule_client: MailboxRuleClient,
         trigger_alerts: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Process a single mailbox rule.
         
         Args:
@@ -136,17 +136,17 @@ class MailboxRuleService:
         """
         user_email = rule_data.get("_user_email", "")
         rule_id = rule_data.get("id", "")
-        
+
         # Analyze the rule
         analysis = rule_client.analyze_rule(rule_data)
-        
+
         # Check if rule already exists
         existing_rule = await self._get_existing_rule(tenant_id, user_email, rule_id)
-        
+
         is_new = False
         is_updated = False
         alert_triggered = False
-        
+
         if existing_rule:
             # Update existing rule
             await self._update_rule(existing_rule, rule_data, analysis)
@@ -156,25 +156,25 @@ class MailboxRuleService:
             # Create new rule
             rule_model = await self._create_rule(tenant_id, user_email, rule_data, analysis)
             is_new = True
-        
+
         # Trigger alerts if needed
         if trigger_alerts and rule_model.status in [RuleStatus.SUSPICIOUS, RuleStatus.MALICIOUS]:
             await self._trigger_alert(rule_model)
             alert_triggered = True
-        
+
         return {
             "is_new": is_new,
             "is_updated": is_updated,
             "status": rule_model.status,
             "alert_triggered": alert_triggered,
         }
-    
+
     async def _get_existing_rule(
         self,
         tenant_id: str,
         user_email: str,
         rule_id: str
-    ) -> Optional[MailboxRuleModel]:
+    ) -> MailboxRuleModel | None:
         """Get existing rule from database.
         
         Args:
@@ -195,13 +195,13 @@ class MailboxRuleService:
             )
         )
         return result.scalar_one_or_none()
-    
+
     async def _create_rule(
         self,
         tenant_id: str,
         user_email: str,
-        rule_data: Dict[str, Any],
-        analysis: Dict[str, Any]
+        rule_data: dict[str, Any],
+        analysis: dict[str, Any]
     ) -> MailboxRuleModel:
         """Create a new mailbox rule record.
         
@@ -217,7 +217,7 @@ class MailboxRuleService:
         # Parse dates
         rule_created_at = None
         rule_modified_at = None
-        
+
         if rule_data.get("createdDateTime"):
             try:
                 rule_created_at = datetime.fromisoformat(
@@ -225,7 +225,7 @@ class MailboxRuleService:
                 )
             except (ValueError, AttributeError):
                 pass
-        
+
         if rule_data.get("lastModifiedDateTime"):
             try:
                 rule_modified_at = datetime.fromisoformat(
@@ -233,7 +233,7 @@ class MailboxRuleService:
                 )
             except (ValueError, AttributeError):
                 pass
-        
+
         rule = MailboxRuleModel(
             tenant_id=tenant_id,
             user_email=user_email,
@@ -257,18 +257,18 @@ class MailboxRuleService:
             rule_modified_at=rule_modified_at,
             rule_data=rule_data,
         )
-        
+
         self.db.add(rule)
         await self.db.commit()
         await self.db.refresh(rule)
-        
+
         return rule
-    
+
     async def _update_rule(
         self,
         rule: MailboxRuleModel,
-        rule_data: Dict[str, Any],
-        analysis: Dict[str, Any]
+        rule_data: dict[str, Any],
+        analysis: dict[str, Any]
     ) -> None:
         """Update an existing mailbox rule record.
         
@@ -292,9 +292,9 @@ class MailboxRuleService:
         rule.detection_reasons = analysis.get("detection_reasons", rule.detection_reasons)
         rule.rule_data = rule_data
         rule.last_scan_at = datetime.utcnow()
-        
+
         await self.db.commit()
-    
+
     async def _trigger_alert(self, rule: MailboxRuleModel) -> None:
         """Trigger an alert for a suspicious/malicious rule.
         
@@ -320,16 +320,16 @@ class MailboxRuleService:
                     "detection_reasons": rule.detection_reasons,
                 }
             )
-            
+
             self.db.add(alert)
             await self.db.commit()
-            
+
             # Also trigger through alert engine for webhook notifications
             engine = AlertEngine(self.db)
             try:
                 event_type = self._map_to_event_type(rule)
                 severity = self._map_to_severity_level(rule.severity)
-                
+
                 await engine.process_event(
                     event_type=event_type,
                     severity=severity,
@@ -341,10 +341,10 @@ class MailboxRuleService:
                 )
             finally:
                 await engine.close()
-                
+
         except Exception as e:
             logger.error(f"Error triggering alert for rule {rule.id}: {e}")
-    
+
     def _get_alert_type(self, rule: MailboxRuleModel) -> str:
         """Determine alert type based on rule characteristics.
         
@@ -365,7 +365,7 @@ class MailboxRuleService:
         elif rule.created_outside_business_hours:
             return self.EVENT_TYPE_RULE_OUTSIDE_HOURS
         return "mailbox_rule_generic"
-    
+
     def _map_to_event_type(self, rule: MailboxRuleModel) -> EventType:
         """Map rule to event type for alert engine.
         
@@ -378,7 +378,7 @@ class MailboxRuleService:
         # For now, map all mailbox rule events to ADMIN_ACTION
         # Could extend EventType enum in the future
         return EventType.ADMIN_ACTION
-    
+
     def _map_to_severity_level(self, severity: RuleSeverity) -> SeverityLevel:
         """Map rule severity to alert severity level.
         
@@ -395,8 +395,8 @@ class MailboxRuleService:
             RuleSeverity.CRITICAL: SeverityLevel.CRITICAL,
         }
         return mapping.get(severity, SeverityLevel.MEDIUM)
-    
-    async def _get_tenant(self, tenant_id: str) -> Optional[TenantModel]:
+
+    async def _get_tenant(self, tenant_id: str) -> TenantModel | None:
         """Get tenant by internal ID.
         
         Args:
@@ -409,17 +409,17 @@ class MailboxRuleService:
             select(TenantModel).where(TenantModel.id == tenant_id)
         )
         return result.scalar_one_or_none()
-    
+
     async def get_rules(
         self,
-        tenant_id: Optional[str] = None,
-        user_email: Optional[str] = None,
-        status: Optional[RuleStatus] = None,
-        severity: Optional[RuleSeverity] = None,
-        rule_type: Optional[RuleType] = None,
+        tenant_id: str | None = None,
+        user_email: str | None = None,
+        status: RuleStatus | None = None,
+        severity: RuleSeverity | None = None,
+        rule_type: RuleType | None = None,
         limit: int = 100,
         offset: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get mailbox rules with filtering.
         
         Args:
@@ -435,7 +435,7 @@ class MailboxRuleService:
             Dictionary with items and total count
         """
         query = select(MailboxRuleModel)
-        
+
         # Apply filters
         if tenant_id:
             query = query.where(MailboxRuleModel.tenant_id == tenant_id)
@@ -447,27 +447,27 @@ class MailboxRuleService:
             query = query.where(MailboxRuleModel.severity == severity)
         if rule_type:
             query = query.where(MailboxRuleModel.rule_type == rule_type)
-        
+
         # Get total count
         count_query = select(MailboxRuleModel.id).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
         total = len(count_result.scalars().all())
-        
+
         # Apply pagination and ordering
         query = query.order_by(desc(MailboxRuleModel.created_at))
         query = query.offset(offset).limit(limit)
-        
+
         result = await self.db.execute(query)
         items = result.scalars().all()
-        
+
         return {
             "items": list(items),
             "total": total,
             "limit": limit,
             "offset": offset,
         }
-    
-    async def get_rule_by_id(self, rule_id: str) -> Optional[MailboxRuleModel]:
+
+    async def get_rule_by_id(self, rule_id: str) -> MailboxRuleModel | None:
         """Get a specific mailbox rule by ID.
         
         Args:
@@ -480,12 +480,12 @@ class MailboxRuleService:
             select(MailboxRuleModel).where(MailboxRuleModel.id == rule_id)
         )
         return result.scalar_one_or_none()
-    
+
     async def get_suspicious_rules(
         self,
-        tenant_id: Optional[str] = None,
+        tenant_id: str | None = None,
         limit: int = 100
-    ) -> List[MailboxRuleModel]:
+    ) -> list[MailboxRuleModel]:
         """Get suspicious and malicious rules.
         
         Args:
@@ -498,24 +498,24 @@ class MailboxRuleService:
         query = select(MailboxRuleModel).where(
             MailboxRuleModel.status.in_([RuleStatus.SUSPICIOUS, RuleStatus.MALICIOUS])
         )
-        
+
         if tenant_id:
             query = query.where(MailboxRuleModel.tenant_id == tenant_id)
-        
+
         query = query.order_by(desc(MailboxRuleModel.severity))
         query = query.limit(limit)
-        
+
         result = await self.db.execute(query)
         return list(result.scalars().all())
-    
+
     async def get_alerts(
         self,
-        tenant_id: Optional[str] = None,
-        acknowledged: Optional[bool] = None,
-        severity: Optional[RuleSeverity] = None,
+        tenant_id: str | None = None,
+        acknowledged: bool | None = None,
+        severity: RuleSeverity | None = None,
         limit: int = 100,
         offset: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get mailbox rule alerts.
         
         Args:
@@ -529,38 +529,38 @@ class MailboxRuleService:
             Dictionary with items and total count
         """
         query = select(MailboxRuleAlertModel)
-        
+
         if tenant_id:
             query = query.where(MailboxRuleAlertModel.tenant_id == tenant_id)
         if acknowledged is not None:
             query = query.where(MailboxRuleAlertModel.is_acknowledged == acknowledged)
         if severity:
             query = query.where(MailboxRuleAlertModel.severity == severity)
-        
+
         # Get total count
         count_query = select(MailboxRuleAlertModel.id).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
         total = len(count_result.scalars().all())
-        
+
         # Apply pagination and ordering
         query = query.order_by(desc(MailboxRuleAlertModel.created_at))
         query = query.offset(offset).limit(limit)
-        
+
         result = await self.db.execute(query)
         items = result.scalars().all()
-        
+
         return {
             "items": list(items),
             "total": total,
             "limit": limit,
             "offset": offset,
         }
-    
+
     async def acknowledge_alert(
         self,
         alert_id: str,
         acknowledged_by: str
-    ) -> Optional[MailboxRuleAlertModel]:
+    ) -> MailboxRuleAlertModel | None:
         """Acknowledge a mailbox rule alert.
         
         Args:
@@ -574,15 +574,15 @@ class MailboxRuleService:
             select(MailboxRuleAlertModel).where(MailboxRuleAlertModel.id == alert_id)
         )
         alert = result.scalar_one_or_none()
-        
+
         if not alert:
             return None
-        
+
         alert.is_acknowledged = True
         alert.acknowledged_by = acknowledged_by
         alert.acknowledged_at = datetime.utcnow()
-        
+
         await self.db.commit()
         await self.db.refresh(alert)
-        
+
         return alert

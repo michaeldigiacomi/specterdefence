@@ -1,71 +1,68 @@
 """Unit tests for dashboard service."""
 
-import pytest
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
-from unittest.mock import MagicMock, AsyncMock, patch
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
 
-from src.services.dashboard import DashboardService
+from src.models.alerts import SeverityLevel
+from src.models.analytics import LoginAnalyticsModel
 from src.models.dashboard import (
     TimeRange,
-    LoginActivityPoint,
-    GeoLocationPoint,
-    AnomalyTrendPoint,
-    TopRiskUser,
-    AlertVolumePoint,
-    AnomalyTypeBreakdown,
-    DashboardSummary,
 )
-from src.models.analytics import LoginAnalyticsModel, UserLoginHistoryModel
-from src.models.alerts import AlertHistoryModel, SeverityLevel
-from src.models.db import TenantModel
+from src.services.dashboard import DashboardService
+
+
+@pytest.fixture
+def frozen_time():
+    """Return a fixed datetime for testing."""
+    return datetime(2026, 3, 2, 12, 0, 0)
 
 
 class TestDashboardServiceTimeRanges:
     """Test cases for time range calculations."""
-    
+
     @pytest.fixture
     def mock_db(self):
         """Create a mock database session."""
         return AsyncMock(spec=AsyncSession)
-    
+
     @pytest.fixture
     def service(self, mock_db):
         """Create a dashboard service instance."""
         return DashboardService(mock_db)
-    
+
     def test_get_time_range_7d(self, service):
         """Test 7-day time range calculation."""
         start, end, prev_start = service._get_time_range(TimeRange.DAY_7)
-        
+
         assert (end - start).days == 7
         assert (start - prev_start).days == 7
-    
+
     def test_get_time_range_30d(self, service):
         """Test 30-day time range calculation."""
         start, end, prev_start = service._get_time_range(TimeRange.DAY_30)
-        
+
         assert (end - start).days == 30
         assert (start - prev_start).days == 30
-    
+
     def test_get_time_range_90d(self, service):
         """Test 90-day time range calculation."""
         start, end, prev_start = service._get_time_range(TimeRange.DAY_90)
-        
+
         assert (end - start).days == 90
         assert (start - prev_start).days == 90
-    
+
     def test_get_interval_7d(self, service):
         """Test interval for 7-day range."""
         assert service._get_interval(TimeRange.DAY_7) == "hour"
-    
+
     def test_get_interval_30d(self, service):
         """Test interval for 30-day range."""
         assert service._get_interval(TimeRange.DAY_30) == "day"
-    
+
     def test_get_interval_90d(self, service):
         """Test interval for 90-day range."""
         assert service._get_interval(TimeRange.DAY_90) == "week"
@@ -73,76 +70,76 @@ class TestDashboardServiceTimeRanges:
 
 class TestDashboardServiceLoginTimeline:
     """Test cases for login timeline aggregation."""
-    
+
     @pytest.fixture
     def mock_db(self):
         """Create a mock database session."""
         session = AsyncMock(spec=AsyncSession)
         return session
-    
+
     @pytest.fixture
     def service(self, mock_db):
         """Create a dashboard service instance."""
         return DashboardService(mock_db)
-    
+
     @pytest.mark.asyncio
     async def test_get_login_activity_timeline_success(self, service, mock_db):
         """Test successful login timeline aggregation."""
         now = datetime.utcnow()
-        
+
         # Create mock logins
         mock_login1 = MagicMock(spec=LoginAnalyticsModel)
         mock_login1.login_time = now - timedelta(hours=1)
         mock_login1.is_success = True
         mock_login1.user_email = "user1@example.com"
-        
+
         mock_login2 = MagicMock(spec=LoginAnalyticsModel)
         mock_login2.login_time = now
         mock_login2.is_success = False
         mock_login2.user_email = "user2@example.com"
-        
+
         # Mock the execute results
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = [mock_login1, mock_login2]
         mock_db.execute.return_value = mock_result
-        
+
         result = await service.get_login_activity_timeline(TimeRange.DAY_7)
-        
+
         assert isinstance(result.data, list)
         assert result.time_range == TimeRange.DAY_7
         mock_db.execute.assert_called()
-    
+
     @pytest.mark.asyncio
     async def test_get_login_activity_timeline_with_tenant(self, service, mock_db):
         """Test login timeline with tenant filter."""
         tenant_id = str(uuid4())
-        
+
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = []
         mock_db.execute.return_value = mock_result
-        
+
         result = await service.get_login_activity_timeline(
             TimeRange.DAY_30,
             tenant_id=tenant_id
         )
-        
+
         assert result.total_successful == 0
         assert result.total_failed == 0
 
 
 class TestDashboardServiceGeoHeatmap:
     """Test cases for geo heatmap aggregation."""
-    
+
     @pytest.fixture
     def mock_db(self):
         """Create a mock database session."""
         return AsyncMock(spec=AsyncSession)
-    
+
     @pytest.fixture
     def service(self, mock_db):
         """Create a dashboard service instance."""
         return DashboardService(mock_db)
-    
+
     @pytest.mark.asyncio
     async def test_get_geo_heatmap_data_success(self, service, mock_db):
         """Test successful geo heatmap aggregation."""
@@ -155,31 +152,31 @@ class TestDashboardServiceGeoHeatmap:
         mock_row.login_count = 100
         mock_row.user_count = 20
         mock_row.avg_risk = 25.5
-        
+
         mock_result = MagicMock()
         mock_result.all.return_value = [mock_row]
         mock_db.execute.return_value = mock_result
-        
+
         result = await service.get_geo_heatmap_data(TimeRange.DAY_30)
-        
+
         assert len(result.locations) == 1
         assert result.locations[0].country_code == "US"
         assert result.total_countries == 1
         assert result.top_country == "United States"
-    
+
     @pytest.mark.asyncio
     async def test_get_geo_heatmap_data_empty(self, service, mock_db):
         """Test geo heatmap with no data."""
         mock_result = MagicMock()
         mock_result.all.return_value = []
         mock_db.execute.return_value = mock_result
-        
+
         result = await service.get_geo_heatmap_data(TimeRange.DAY_7)
-        
+
         assert len(result.locations) == 0
         assert result.total_countries == 0
         assert result.top_country is None
-    
+
     @pytest.mark.asyncio
     async def test_get_geo_heatmap_multiple_countries(self, service, mock_db):
         """Test geo heatmap with multiple countries."""
@@ -212,13 +209,13 @@ class TestDashboardServiceGeoHeatmap:
                 avg_risk=28.0
             )
         ]
-        
+
         mock_result = MagicMock()
         mock_result.all.return_value = mock_rows
         mock_db.execute.return_value = mock_result
-        
+
         result = await service.get_geo_heatmap_data(TimeRange.DAY_30)
-        
+
         assert len(result.locations) == 3
         assert result.total_countries == 3
         assert result.top_country == "United States"
@@ -227,100 +224,104 @@ class TestDashboardServiceGeoHeatmap:
 
 class TestDashboardServiceAnomalyTrend:
     """Test cases for anomaly trend aggregation."""
-    
+
     @pytest.fixture
     def mock_db(self):
         """Create a mock database session."""
         return AsyncMock(spec=AsyncSession)
-    
+
     @pytest.fixture
     def service(self, mock_db):
         """Create a dashboard service instance."""
         return DashboardService(mock_db)
-    
+
     @pytest.mark.asyncio
-    async def test_get_anomaly_trend_success(self, service, mock_db):
+    async def test_get_anomaly_trend_success(self, service, mock_db, frozen_time):
         """Test successful anomaly trend aggregation."""
-        now = datetime.utcnow()
-        
-        mock_login = MagicMock(spec=LoginAnalyticsModel)
-        mock_login.login_time = now
-        mock_login.anomaly_flags = ["impossible_travel", "new_country"]
-        mock_login.user_email = "user@example.com"
-        mock_login.tenant_id = "tenant-1"
-        
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [mock_login]
-        mock_db.execute.return_value = mock_result
-        
-        result = await service.get_anomaly_trend(TimeRange.DAY_7)
-        
-        assert isinstance(result.data, list)
-        assert result.total_anomalies >= 1
-        assert result.time_range == TimeRange.DAY_7
-    
+        with patch('src.services.dashboard.datetime') as mock_datetime:
+            mock_datetime.utcnow.return_value = frozen_time
+            mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+
+            mock_login = MagicMock(spec=LoginAnalyticsModel)
+            mock_login.login_time = frozen_time
+            mock_login.anomaly_flags = ["impossible_travel", "new_country"]
+            mock_login.user_email = "user@example.com"
+            mock_login.tenant_id = "tenant-1"
+
+            mock_result = MagicMock()
+            mock_result.scalars.return_value.all.return_value = [mock_login]
+            mock_db.execute.return_value = mock_result
+
+            result = await service.get_anomaly_trend(TimeRange.DAY_7)
+
+            assert isinstance(result.data, list)
+            assert result.total_anomalies >= 1
+            assert result.time_range == TimeRange.DAY_7
+
     @pytest.mark.asyncio
-    async def test_get_anomaly_trend_top_type(self, service, mock_db):
+    async def test_get_anomaly_trend_top_type(self, service, mock_db, frozen_time):
         """Test anomaly trend correctly identifies top type."""
-        now = datetime.utcnow()
-        
-        # Create multiple logins with different anomaly types
-        mock_logins = [
-            MagicMock(
-                login_time=now - timedelta(hours=i),
-                anomaly_flags=["impossible_travel"],
-                user_email=f"user{i}@example.com",
-                tenant_id="tenant-1"
-            )
-            for i in range(5)
-        ] + [
-            MagicMock(
-                login_time=now - timedelta(hours=i),
-                anomaly_flags=["new_country"],
-                user_email=f"user{i+5}@example.com",
-                tenant_id="tenant-1"
-            )
-            for i in range(2)
-        ]
-        
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = mock_logins
-        mock_db.execute.return_value = mock_result
-        
-        result = await service.get_anomaly_trend(TimeRange.DAY_7)
-        
-        assert result.top_type == "impossible_travel"
-        assert result.total_anomalies == 7
+        with patch('src.services.dashboard.datetime') as mock_datetime:
+            mock_datetime.utcnow.return_value = frozen_time
+            mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+
+            # Create multiple logins with different anomaly types
+            mock_logins = [
+                MagicMock(
+                    login_time=frozen_time - timedelta(hours=i),
+                    anomaly_flags=["impossible_travel"],
+                    user_email=f"user{i}@example.com",
+                    tenant_id="tenant-1"
+                )
+                for i in range(5)
+            ] + [
+                MagicMock(
+                    login_time=frozen_time - timedelta(hours=i),
+                    anomaly_flags=["new_country"],
+                    user_email=f"user{i+5}@example.com",
+                    tenant_id="tenant-1"
+                )
+                for i in range(2)
+            ]
+
+            mock_result = MagicMock()
+            mock_result.scalars.return_value.all.return_value = mock_logins
+            mock_db.execute.return_value = mock_result
+
+            result = await service.get_anomaly_trend(TimeRange.DAY_7)
+
+            assert result.top_type == "impossible_travel"
+            assert result.total_anomalies == 7
 
 
 class TestDashboardServiceTopRiskUsers:
     """Test cases for top risk users aggregation."""
-    
+
     @pytest.fixture
     def mock_db(self):
         """Create a mock database session."""
         return AsyncMock(spec=AsyncSession)
-    
+
     @pytest.fixture
     def service(self, mock_db):
         """Create a dashboard service instance."""
         return DashboardService(mock_db)
-    
+
     @pytest.mark.asyncio
     async def test_get_top_risk_users_success(self, service, mock_db):
         """Test successful top risk users retrieval."""
         now = datetime.utcnow()
-        
+
         mock_row = MagicMock()
         mock_row.user_email = "highrisk@example.com"
         mock_row.tenant_id = "tenant-1"
         mock_row.max_risk = 95
         mock_row.anomaly_count = 15
         mock_row.last_anomaly = now
-        
+
         mock_result = MagicMock()
         mock_result.all.return_value = [mock_row]
-        
+
         # Mock the different queries
         async def mock_execute(query):
             if "distinct" in str(query).lower():
@@ -336,15 +337,15 @@ class TestDashboardServiceTopRiskUsers:
             else:
                 # Main query
                 return mock_result
-        
+
         mock_db.execute.side_effect = mock_execute
-        
+
         result = await service.get_top_risk_users(limit=10)
-        
+
         assert len(result.users) == 1
         assert result.users[0].user_email == "highrisk@example.com"
         assert result.users[0].risk_score == 95
-    
+
     @pytest.mark.asyncio
     async def test_get_top_risk_users_sorted_by_risk(self, service, mock_db):
         """Test that users are sorted by risk score."""
@@ -371,10 +372,10 @@ class TestDashboardServiceTopRiskUsers:
                 last_anomaly=datetime.utcnow()
             )
         ]
-        
+
         mock_result = MagicMock()
         mock_result.all.return_value = mock_rows
-        
+
         async def mock_execute(query):
             if "distinct" in str(query).lower():
                 types_result = MagicMock()
@@ -386,11 +387,11 @@ class TestDashboardServiceTopRiskUsers:
                 return country_result
             else:
                 return mock_result
-        
+
         mock_db.execute.side_effect = mock_execute
-        
+
         result = await service.get_top_risk_users(limit=10)
-        
+
         assert len(result.users) == 3
         assert result.users[0].risk_score == 95  # Highest first
         assert result.users[1].risk_score == 70
@@ -400,86 +401,86 @@ class TestDashboardServiceTopRiskUsers:
 
 class TestDashboardServiceAlertVolume:
     """Test cases for alert volume aggregation."""
-    
+
     @pytest.fixture
     def mock_db(self):
         """Create a mock database session."""
         return AsyncMock(spec=AsyncSession)
-    
+
     @pytest.fixture
     def service(self, mock_db):
         """Create a dashboard service instance."""
         return DashboardService(mock_db)
-    
+
     @pytest.mark.asyncio
     async def test_get_alert_volume_success(self, service, mock_db):
         """Test successful alert volume aggregation."""
         now = datetime.utcnow()
-        
+
         mock_alert = MagicMock()
         mock_alert.sent_at = now
         mock_alert.severity = SeverityLevel.HIGH
-        
+
         mock_result = MagicMock()
         mock_result.all.return_value = [mock_alert]
         mock_db.execute.return_value = mock_result
-        
+
         result = await service.get_alert_volume(TimeRange.DAY_7)
-        
+
         assert isinstance(result.data, list)
         assert result.total_by_severity["HIGH"] >= 1
         assert result.time_range == TimeRange.DAY_7
-    
+
     @pytest.mark.asyncio
     async def test_get_alert_volume_peak_detection(self, service, mock_db):
         """Test that peak volume is correctly identified."""
         now = datetime.utcnow()
-        
+
         mock_alerts = [
             MagicMock(sent_at=now - timedelta(days=2), severity=SeverityLevel.CRITICAL),
             MagicMock(sent_at=now - timedelta(days=2), severity=SeverityLevel.HIGH),
             MagicMock(sent_at=now - timedelta(days=2), severity=SeverityLevel.HIGH),
             MagicMock(sent_at=now - timedelta(days=1), severity=SeverityLevel.MEDIUM),
         ]
-        
+
         mock_result = MagicMock()
         mock_result.all.return_value = mock_alerts
         mock_db.execute.return_value = mock_result
-        
+
         result = await service.get_alert_volume(TimeRange.DAY_7)
-        
+
         assert result.peak_volume == 3  # 2 days ago had 3 alerts
 
 
 class TestDashboardServiceAnomalyBreakdown:
     """Test cases for anomaly breakdown aggregation."""
-    
+
     @pytest.fixture
     def mock_db(self):
         """Create a mock database session."""
         return AsyncMock(spec=AsyncSession)
-    
+
     @pytest.fixture
     def service(self, mock_db):
         """Create a dashboard service instance."""
         return DashboardService(mock_db)
-    
+
     @pytest.mark.asyncio
     async def test_get_anomaly_breakdown_success(self, service, mock_db):
         """Test successful anomaly breakdown aggregation."""
         mock_row = MagicMock()
         mock_row.anomaly_flags = ["impossible_travel", "new_country"]
         mock_row.risk_score = 75
-        
+
         mock_result = MagicMock()
         mock_result.all.return_value = [mock_row]
         mock_db.execute.return_value = mock_result
-        
+
         result = await service.get_anomaly_breakdown(TimeRange.DAY_30)
-        
+
         assert isinstance(result, list)
         assert len(result) >= 1
-    
+
     @pytest.mark.asyncio
     async def test_get_anomaly_breakdown_percentages(self, service, mock_db):
         """Test that percentages are calculated correctly."""
@@ -490,25 +491,25 @@ class TestDashboardServiceAnomalyBreakdown:
             MagicMock(anomaly_flags=["new_country"], risk_score=70),
             MagicMock(anomaly_flags=["new_country"], risk_score=50),
         ]
-        
+
         mock_result = MagicMock()
         mock_result.all.return_value = mock_rows
         mock_db.execute.return_value = mock_result
-        
+
         result = await service.get_anomaly_breakdown(TimeRange.DAY_30)
-        
+
         # Should have 2 types: impossible_travel and new_country
         assert len(result) == 2
-        
+
         # Find the types
         impossible_travel = next((r for r in result if r.type == "impossible_travel"), None)
         new_country = next((r for r in result if r.type == "new_country"), None)
-        
+
         assert impossible_travel is not None
         assert impossible_travel.count == 2
         assert impossible_travel.percentage == 40.0
         assert impossible_travel.avg_risk_score == 85.0
-        
+
         assert new_country is not None
         assert new_country.count == 3
         assert new_country.percentage == 60.0
@@ -517,22 +518,22 @@ class TestDashboardServiceAnomalyBreakdown:
 
 class TestDashboardServiceSummary:
     """Test cases for dashboard summary statistics."""
-    
+
     @pytest.fixture
     def mock_db(self):
         """Create a mock database session."""
         return AsyncMock(spec=AsyncSession)
-    
+
     @pytest.fixture
     def service(self, mock_db):
         """Create a dashboard service instance."""
         return DashboardService(mock_db)
-    
+
     @pytest.mark.asyncio
     async def test_get_summary_stats_success(self, service, mock_db):
         """Test successful summary stats retrieval."""
         now = datetime.utcnow()
-        
+
         # Mock logins
         mock_logins = [
             MagicMock(
@@ -548,23 +549,23 @@ class TestDashboardServiceSummary:
                 anomaly_flags=["failed_login"]
             ),
         ]
-        
+
         # Mock alerts
         mock_alerts = [
             MagicMock(sent_at=now),
             MagicMock(sent_at=now),
         ]
-        
+
         # Mock tenants
         mock_tenants = [
             MagicMock(is_active=True),
             MagicMock(is_active=False),
             MagicMock(is_active=True),
         ]
-        
+
         async def mock_execute(query):
             mock_result = MagicMock()
-            
+
             if "anomaly_flags" in str(query):
                 mock_result.scalars.return_value.all.return_value = [mock_logins[1]]
             elif "alert_history" in str(query).lower():
@@ -575,85 +576,85 @@ class TestDashboardServiceSummary:
                 mock_result.scalar.return_value = 37.5
             else:
                 mock_result.scalars.return_value.all.return_value = mock_logins
-            
+
             return mock_result
-        
+
         mock_db.execute.side_effect = mock_execute
-        
+
         result = await service.get_summary_stats()
-        
+
         assert result.total_logins_24h == 2
         assert result.failed_logins_24h == 1
         assert result.active_users_24h == 2
         assert result.alerts_today == 2
         assert result.active_tenants == 2
         assert result.login_success_rate == 50.0
-    
+
     @pytest.mark.asyncio
     async def test_get_summary_stats_with_tenant(self, service, mock_db):
         """Test summary stats with tenant filter."""
         tenant_id = str(uuid4())
-        
+
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = []
         mock_db.execute.return_value = mock_result
-        
+
         result = await service.get_summary_stats(tenant_id=tenant_id)
-        
+
         assert result.total_logins_24h == 0
         assert result.active_tenants == 0
 
 
 class TestDashboardServiceFillGaps:
     """Test cases for timeline gap filling."""
-    
+
     @pytest.fixture
     def mock_db(self):
         """Create a mock database session."""
         return AsyncMock(spec=AsyncSession)
-    
+
     @pytest.fixture
     def service(self, mock_db):
         """Create a dashboard service instance."""
         return DashboardService(mock_db)
-    
+
     def test_fill_timeline_gaps_hourly(self, service):
         """Test filling hourly gaps in timeline."""
         start = datetime(2024, 1, 1, 0, 0, 0)
         end = datetime(2024, 1, 1, 3, 0, 0)
-        
+
         data = [
             (datetime(2024, 1, 1, 0, 0, 0), {"success": 10, "failed": 1}),
             (datetime(2024, 1, 1, 2, 0, 0), {"success": 20, "failed": 2}),
         ]
-        
+
         result = service._fill_timeline_gaps(data, start, end, "hour")
-        
+
         assert len(result) == 4  # 00:00, 01:00, 02:00, 03:00
         assert result[0][1]["success"] == 10
         assert result[1][1]["success"] == 0  # Filled gap
         assert result[2][1]["success"] == 20
         assert result[3][1]["success"] == 0  # Filled gap
-    
+
     def test_fill_timeline_gaps_daily(self, service):
         """Test filling daily gaps in timeline."""
         start = datetime(2024, 1, 1)
         end = datetime(2024, 1, 5)
-        
+
         data = [
             (datetime(2024, 1, 1), {"success": 100, "failed": 10}),
             (datetime(2024, 1, 3), {"success": 150, "failed": 15}),
         ]
-        
+
         result = service._fill_timeline_gaps(data, start, end, "day")
-        
+
         assert len(result) == 5
         assert result[0][1]["success"] == 100
         assert result[1][1]["success"] == 0  # Jan 2
         assert result[2][1]["success"] == 150
         assert result[3][1]["success"] == 0  # Jan 4
         assert result[4][1]["success"] == 0  # Jan 5
-    
+
     def test_fill_timeline_gaps_empty(self, service):
         """Test filling gaps with empty data."""
         result = service._fill_timeline_gaps(
@@ -662,5 +663,5 @@ class TestDashboardServiceFillGaps:
             datetime(2024, 1, 2),
             "day"
         )
-        
+
         assert result == []

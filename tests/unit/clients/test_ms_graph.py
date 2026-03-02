@@ -14,24 +14,34 @@ import json
 import sys
 from unittest.mock import MagicMock, Mock, patch
 
+import httpx
+import pytest
+
 # Mock encryption service before any imports
 mock_encryption = MagicMock()
 mock_encryption.encrypt.return_value = "encrypted-value"
 mock_encryption.decrypt.return_value = "decrypted-secret"
 sys.modules["src.services.encryption"] = mock_encryption
 
-import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, call
-import httpx
+from unittest.mock import AsyncMock
 
 from src.clients.ms_graph import (
-    MSGraphClient,
-    MSGraphAuthError,
     MSGraphAPIError,
+    MSGraphAuthError,
+    MSGraphClient,
     validate_tenant_credentials,
 )
 
+
+# Cleanup: Restore the real encryption module after all tests in this module
+def setup_module():
+    """Setup module-level mock."""
+    pass  # Mock is set above
+
+def teardown_module():
+    """Remove the mock to avoid affecting other tests."""
+    if "src.services.encryption" in sys.modules:
+        del sys.modules["src.services.encryption"]
 
 # =============================================================================
 # Fixtures
@@ -713,7 +723,7 @@ class TestValidateTenantCredentials:
             assert result["valid"] is True
             assert result["display_name"] == "Test Org"
             mock_client_class.assert_called_once_with(
-                "test-tenant", "test-client", "test-secret"
+                "test-tenant", "test-client", "test-secret", timeout=30.0
             )
 
     @pytest.mark.asyncio

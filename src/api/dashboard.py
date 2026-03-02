@@ -1,27 +1,25 @@
 """Dashboard API endpoints for security visualizations."""
 
 from datetime import datetime
-from typing import Optional, List
-from io import BytesIO
 
-from fastapi import APIRouter, Depends, Query, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
-from src.services.dashboard import DashboardService
 from src.models.dashboard import (
-    TimeRange,
-    LoginActivityTimeline,
-    GeoHeatmapData,
-    AnomalyTrendData,
-    TopRiskUsersData,
     AlertVolumeData,
+    AnomalyTrendData,
     AnomalyTypeBreakdown,
-    DashboardSummary,
     DashboardDataResponse,
+    DashboardSummary,
     ExportRequest,
     ExportResponse,
+    GeoHeatmapData,
+    LoginActivityTimeline,
+    TimeRange,
+    TopRiskUsersData,
 )
+from src.services.dashboard import DashboardService
 
 router = APIRouter()
 
@@ -44,7 +42,7 @@ async def get_dashboard_service(
     description="Get summary statistics for the dashboard."
 )
 async def get_dashboard_summary(
-    tenant_id: Optional[str] = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
     service: DashboardService = Depends(get_dashboard_service)
 ) -> DashboardSummary:
     """Get dashboard summary statistics."""
@@ -65,7 +63,7 @@ async def get_dashboard_summary(
 )
 async def get_login_timeline(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: Optional[str] = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
     service: DashboardService = Depends(get_dashboard_service)
 ) -> LoginActivityTimeline:
     """Get login activity timeline chart data."""
@@ -89,7 +87,7 @@ async def get_login_timeline(
 )
 async def get_geo_heatmap(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: Optional[str] = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
     service: DashboardService = Depends(get_dashboard_service)
 ) -> GeoHeatmapData:
     """Get geographic heatmap data."""
@@ -113,7 +111,7 @@ async def get_geo_heatmap(
 )
 async def get_anomaly_trend(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: Optional[str] = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
     service: DashboardService = Depends(get_dashboard_service)
 ) -> AnomalyTrendData:
     """Get anomaly trend chart data."""
@@ -137,7 +135,7 @@ async def get_anomaly_trend(
 )
 async def get_top_risk_users(
     limit: int = Query(10, ge=1, le=50, description="Number of users to return"),
-    tenant_id: Optional[str] = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
     service: DashboardService = Depends(get_dashboard_service)
 ) -> TopRiskUsersData:
     """Get top risk users list."""
@@ -161,7 +159,7 @@ async def get_top_risk_users(
 )
 async def get_alert_volume(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: Optional[str] = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
     service: DashboardService = Depends(get_dashboard_service)
 ) -> AlertVolumeData:
     """Get alert volume chart data."""
@@ -179,15 +177,15 @@ async def get_alert_volume(
 
 @router.get(
     "/anomaly-breakdown",
-    response_model=List[AnomalyTypeBreakdown],
+    response_model=list[AnomalyTypeBreakdown],
     summary="Get anomaly type breakdown",
     description="Get breakdown of anomalies by type with percentages."
 )
 async def get_anomaly_breakdown(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: Optional[str] = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
     service: DashboardService = Depends(get_dashboard_service)
-) -> List[AnomalyTypeBreakdown]:
+) -> list[AnomalyTypeBreakdown]:
     """Get anomaly type breakdown."""
     try:
         return await service.get_anomaly_breakdown(
@@ -209,7 +207,7 @@ async def get_anomaly_breakdown(
 )
 async def get_full_dashboard(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: Optional[str] = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
     service: DashboardService = Depends(get_dashboard_service)
 ) -> DashboardDataResponse:
     """Get complete dashboard data."""
@@ -234,7 +232,7 @@ async def get_full_dashboard(
         anomaly_breakdown = await service.get_anomaly_breakdown(
             time_range=time_range, tenant_id=tenant_id
         )
-        
+
         return DashboardDataResponse(
             summary=summary,
             login_timeline=login_timeline,
@@ -261,7 +259,7 @@ async def get_full_dashboard(
 )
 async def export_dashboard(
     request: ExportRequest,
-    tenant_id: Optional[str] = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
     service: DashboardService = Depends(get_dashboard_service)
 ) -> ExportResponse:
     """Export dashboard data."""
@@ -269,7 +267,7 @@ async def export_dashboard(
         # For now, return a mock response
         # Full export implementation would generate actual files
         from datetime import timedelta
-        
+
         return ExportResponse(
             download_url=f"/api/v1/dashboard/export/download/{request.format}",
             filename=f"dashboard-export-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.{request.format}",
@@ -299,23 +297,23 @@ async def download_export(
             # Create CSV data
             import csv
             import io
-            
+
             output = io.StringIO()
             writer = csv.writer(output)
-            
+
             # Write headers
             writer.writerow([
                 "Timestamp", "Metric", "Value", "Details"
             ])
-            
+
             # Write sample data (in real implementation, would use actual data)
             writer.writerow([datetime.utcnow().isoformat(), "Total Logins", "100", "24h"])
             writer.writerow([datetime.utcnow().isoformat(), "Failed Logins", "5", "24h"])
             writer.writerow([datetime.utcnow().isoformat(), "Anomalies", "3", "24h"])
-            
+
             csv_data = output.getvalue()
             output.close()
-            
+
             return Response(
                 content=csv_data,
                 media_type="text/csv",
@@ -323,16 +321,16 @@ async def download_export(
                     "Content-Disposition": f"attachment; filename=dashboard-export-{datetime.utcnow().strftime('%Y%m%d')}.csv"
                 }
             )
-        
+
         elif format == "json":
             import json
-            
+
             data = {
                 "exported_at": datetime.utcnow().isoformat(),
                 "format": format,
                 "data": {}  # Would contain actual dashboard data
             }
-            
+
             return Response(
                 content=json.dumps(data, indent=2),
                 media_type="application/json",
@@ -340,13 +338,13 @@ async def download_export(
                     "Content-Disposition": f"attachment; filename=dashboard-export-{datetime.utcnow().strftime('%Y%m%d')}.json"
                 }
             )
-        
+
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Unsupported export format: {format}. Use 'csv' or 'json'."
             )
-            
+
     except HTTPException:
         raise
     except Exception as e:

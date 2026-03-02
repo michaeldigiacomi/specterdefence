@@ -1,38 +1,37 @@
 """Unit tests for dashboard API endpoints."""
 
-import pytest
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock
 from uuid import uuid4
-from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi import HTTPException
-
-from src.models.dashboard import (
-    TimeRange,
-    LoginActivityTimeline,
-    GeoHeatmapData,
-    AnomalyTrendData,
-    TopRiskUsersData,
-    AlertVolumeData,
-    AnomalyTypeBreakdown,
-    DashboardSummary,
-    DashboardDataResponse,
-)
-from src.services.dashboard import DashboardService
 
 # Import endpoint functions with aliases to avoid pytest collection issues
 import src.api.dashboard as dashboard_api
+from src.models.dashboard import (
+    AlertVolumeData,
+    AnomalyTrendData,
+    AnomalyTypeBreakdown,
+    DashboardDataResponse,
+    DashboardSummary,
+    GeoHeatmapData,
+    LoginActivityTimeline,
+    TimeRange,
+    TopRiskUsersData,
+)
+from src.services.dashboard import DashboardService
 
 
 class TestDashboardSummaryEndpoint:
     """Test cases for dashboard summary endpoint."""
-    
+
     @pytest.fixture
     def mock_service(self):
         """Create a mock dashboard service."""
         service = AsyncMock(spec=DashboardService)
         return service
-    
+
     @pytest.mark.asyncio
     async def test_get_dashboard_summary_success(self, mock_service):
         """Test successful dashboard summary retrieval."""
@@ -48,18 +47,18 @@ class TestDashboardSummaryEndpoint:
             top_threats=["impossible_travel", "new_country"]
         )
         mock_service.get_summary_stats.return_value = mock_summary
-        
+
         result = await dashboard_api.get_dashboard_summary(
             tenant_id=None,
             service=mock_service
         )
-        
+
         assert result.total_logins_24h == 1000
         assert result.failed_logins_24h == 50
         assert result.anomalies_today == 10
         assert result.top_threats == ["impossible_travel", "new_country"]
         mock_service.get_summary_stats.assert_called_once_with(tenant_id=None)
-    
+
     @pytest.mark.asyncio
     async def test_get_dashboard_summary_with_tenant(self, mock_service):
         """Test dashboard summary with tenant filter."""
@@ -76,44 +75,44 @@ class TestDashboardSummaryEndpoint:
             top_threats=[]
         )
         mock_service.get_summary_stats.return_value = mock_summary
-        
+
         result = await dashboard_api.get_dashboard_summary(
             tenant_id=tenant_id,
             service=mock_service
         )
-        
+
         assert result.total_logins_24h == 500
         mock_service.get_summary_stats.assert_called_once_with(tenant_id=tenant_id)
-    
+
     @pytest.mark.asyncio
     async def test_get_dashboard_summary_error(self, mock_service):
         """Test dashboard summary with service error."""
         mock_service.get_summary_stats.side_effect = Exception("Database error")
-        
+
         with pytest.raises(HTTPException) as exc_info:
             await dashboard_api.get_dashboard_summary(
                 tenant_id=None,
                 service=mock_service
             )
-        
+
         assert exc_info.value.status_code == 500
         assert "Error fetching dashboard summary" in exc_info.value.detail
 
 
 class TestLoginTimelineEndpoint:
     """Test cases for login timeline endpoint."""
-    
+
     @pytest.fixture
     def mock_service(self):
         """Create a mock dashboard service."""
         service = AsyncMock(spec=DashboardService)
         return service
-    
+
     @pytest.mark.asyncio
     async def test_get_login_timeline_success(self, mock_service):
         """Test successful login timeline retrieval."""
         from src.models.dashboard import LoginActivityPoint
-        
+
         now = datetime.utcnow()
         mock_timeline = LoginActivityTimeline(
             data=[
@@ -136,13 +135,13 @@ class TestLoginTimelineEndpoint:
             change_percent=12.5
         )
         mock_service.get_login_activity_timeline.return_value = mock_timeline
-        
+
         result = await dashboard_api.get_login_timeline(
             time_range=TimeRange.DAY_7,
             tenant_id=None,
             service=mock_service
         )
-        
+
         assert len(result.data) == 2
         assert result.total_successful == 220
         assert result.change_percent == 12.5
@@ -150,37 +149,37 @@ class TestLoginTimelineEndpoint:
             time_range=TimeRange.DAY_7,
             tenant_id=None
         )
-    
+
     @pytest.mark.asyncio
     async def test_get_login_timeline_error(self, mock_service):
         """Test login timeline with service error."""
         mock_service.get_login_activity_timeline.side_effect = Exception("Query failed")
-        
+
         with pytest.raises(HTTPException) as exc_info:
             await dashboard_api.get_login_timeline(
                 time_range=TimeRange.DAY_30,
                 tenant_id=None,
                 service=mock_service
             )
-        
+
         assert exc_info.value.status_code == 500
         assert "Error fetching login timeline" in exc_info.value.detail
 
 
 class TestGeoHeatmapEndpoint:
     """Test cases for geo heatmap endpoint."""
-    
+
     @pytest.fixture
     def mock_service(self):
         """Create a mock dashboard service."""
         service = AsyncMock(spec=DashboardService)
         return service
-    
+
     @pytest.mark.asyncio
     async def test_get_geo_heatmap_success(self, mock_service):
         """Test successful geo heatmap retrieval."""
         from src.models.dashboard import GeoLocationPoint
-        
+
         mock_heatmap = GeoHeatmapData(
             locations=[
                 GeoLocationPoint(
@@ -207,18 +206,18 @@ class TestGeoHeatmapEndpoint:
             top_country_count=500
         )
         mock_service.get_geo_heatmap_data.return_value = mock_heatmap
-        
+
         result = await dashboard_api.get_geo_heatmap(
             time_range=TimeRange.DAY_30,
             tenant_id=None,
             service=mock_service
         )
-        
+
         assert len(result.locations) == 2
         assert result.total_countries == 2
         assert result.top_country == "United States"
         mock_service.get_geo_heatmap_data.assert_called_once()
-    
+
     @pytest.mark.asyncio
     async def test_get_geo_heatmap_empty(self, mock_service):
         """Test geo heatmap with no data."""
@@ -229,31 +228,31 @@ class TestGeoHeatmapEndpoint:
             top_country_count=0
         )
         mock_service.get_geo_heatmap_data.return_value = mock_heatmap
-        
+
         result = await dashboard_api.get_geo_heatmap(
             time_range=TimeRange.DAY_7,
             tenant_id=None,
             service=mock_service
         )
-        
+
         assert len(result.locations) == 0
         assert result.total_countries == 0
 
 
 class TestAnomalyTrendEndpoint:
     """Test cases for anomaly trend endpoint."""
-    
+
     @pytest.fixture
     def mock_service(self):
         """Create a mock dashboard service."""
         service = AsyncMock(spec=DashboardService)
         return service
-    
+
     @pytest.mark.asyncio
     async def test_get_anomaly_trend_success(self, mock_service):
         """Test successful anomaly trend retrieval."""
         from src.models.dashboard import AnomalyTrendPoint
-        
+
         now = datetime.utcnow()
         mock_trend = AnomalyTrendData(
             data=[
@@ -274,13 +273,13 @@ class TestAnomalyTrendEndpoint:
             change_percent=-25.0
         )
         mock_service.get_anomaly_trend.return_value = mock_trend
-        
+
         result = await dashboard_api.get_anomaly_trend(
             time_range=TimeRange.DAY_7,
             tenant_id=None,
             service=mock_service
         )
-        
+
         assert len(result.data) == 2
         assert result.total_anomalies == 8
         assert result.top_type == "impossible_travel"
@@ -289,18 +288,18 @@ class TestAnomalyTrendEndpoint:
 
 class TestTopRiskUsersEndpoint:
     """Test cases for top risk users endpoint."""
-    
+
     @pytest.fixture
     def mock_service(self):
         """Create a mock dashboard service."""
         service = AsyncMock(spec=DashboardService)
         return service
-    
+
     @pytest.mark.asyncio
     async def test_get_top_risk_users_success(self, mock_service):
         """Test successful top risk users retrieval."""
         from src.models.dashboard import TopRiskUser
-        
+
         mock_users = TopRiskUsersData(
             users=[
                 TopRiskUser(
@@ -325,18 +324,18 @@ class TestTopRiskUsersEndpoint:
             avg_risk_score=77.5
         )
         mock_service.get_top_risk_users.return_value = mock_users
-        
+
         result = await dashboard_api.get_top_risk_users(
             limit=10,
             tenant_id=None,
             service=mock_service
         )
-        
+
         assert len(result.users) == 2
         assert result.users[0].risk_score == 85
         assert result.avg_risk_score == 77.5
         mock_service.get_top_risk_users.assert_called_once_with(limit=10, tenant_id=None)
-    
+
     @pytest.mark.asyncio
     async def test_get_top_risk_users_with_limit(self, mock_service):
         """Test top risk users with custom limit."""
@@ -345,30 +344,30 @@ class TestTopRiskUsersEndpoint:
             total_users=0,
             avg_risk_score=0.0
         )
-        
+
         await dashboard_api.get_top_risk_users(
             limit=5,
             tenant_id="tenant-123",
             service=mock_service
         )
-        
+
         mock_service.get_top_risk_users.assert_called_once_with(limit=5, tenant_id="tenant-123")
 
 
 class TestAlertVolumeEndpoint:
     """Test cases for alert volume endpoint."""
-    
+
     @pytest.fixture
     def mock_service(self):
         """Create a mock dashboard service."""
         service = AsyncMock(spec=DashboardService)
         return service
-    
+
     @pytest.mark.asyncio
     async def test_get_alert_volume_success(self, mock_service):
         """Test successful alert volume retrieval."""
         from src.models.dashboard import AlertVolumePoint
-        
+
         now = datetime.utcnow()
         mock_volume = AlertVolumeData(
             data=[
@@ -400,13 +399,13 @@ class TestAlertVolumeEndpoint:
             peak_time=now - timedelta(days=1)
         )
         mock_service.get_alert_volume.return_value = mock_volume
-        
+
         result = await dashboard_api.get_alert_volume(
             time_range=TimeRange.DAY_7,
             tenant_id=None,
             service=mock_service
         )
-        
+
         assert len(result.data) == 2
         assert result.peak_volume == 19
         assert result.total_by_severity["CRITICAL"] == 1
@@ -414,13 +413,13 @@ class TestAlertVolumeEndpoint:
 
 class TestAnomalyBreakdownEndpoint:
     """Test cases for anomaly breakdown endpoint."""
-    
+
     @pytest.fixture
     def mock_service(self):
         """Create a mock dashboard service."""
         service = AsyncMock(spec=DashboardService)
         return service
-    
+
     @pytest.mark.asyncio
     async def test_get_anomaly_breakdown_success(self, mock_service):
         """Test successful anomaly breakdown retrieval."""
@@ -445,13 +444,13 @@ class TestAnomalyBreakdownEndpoint:
             )
         ]
         mock_service.get_anomaly_breakdown.return_value = mock_breakdown
-        
+
         result = await dashboard_api.get_anomaly_breakdown(
             time_range=TimeRange.DAY_30,
             tenant_id=None,
             service=mock_service
         )
-        
+
         assert len(result) == 3
         assert result[0].type == "impossible_travel"
         assert result[0].percentage == 50.0
@@ -459,26 +458,26 @@ class TestAnomalyBreakdownEndpoint:
 
 class TestFullDashboardEndpoint:
     """Test cases for full dashboard endpoint."""
-    
+
     @pytest.fixture
     def mock_service(self):
         """Create a mock dashboard service."""
         service = AsyncMock(spec=DashboardService)
         return service
-    
+
     @pytest.mark.asyncio
     async def test_get_full_dashboard_success(self, mock_service):
         """Test successful full dashboard retrieval."""
         from src.models.dashboard import (
-            LoginActivityPoint,
-            GeoLocationPoint,
-            AnomalyTrendPoint,
-            TopRiskUser,
             AlertVolumePoint,
+            AnomalyTrendPoint,
+            GeoLocationPoint,
+            LoginActivityPoint,
+            TopRiskUser,
         )
-        
+
         now = datetime.utcnow()
-        
+
         mock_service.get_summary_stats.return_value = DashboardSummary(
             total_logins_24h=1000,
             failed_logins_24h=50,
@@ -490,7 +489,7 @@ class TestFullDashboardEndpoint:
             login_success_rate=95.0,
             top_threats=["impossible_travel"]
         )
-        
+
         mock_service.get_login_activity_timeline.return_value = LoginActivityTimeline(
             data=[LoginActivityPoint(timestamp=now, successful_logins=100, failed_logins=5, total_logins=105)],
             time_range=TimeRange.DAY_30,
@@ -498,7 +497,7 @@ class TestFullDashboardEndpoint:
             total_failed=5,
             change_percent=0.0
         )
-        
+
         mock_service.get_geo_heatmap_data.return_value = GeoHeatmapData(
             locations=[GeoLocationPoint(
                 country_code="US",
@@ -513,7 +512,7 @@ class TestFullDashboardEndpoint:
             top_country="United States",
             top_country_count=100
         )
-        
+
         mock_service.get_anomaly_trend.return_value = AnomalyTrendData(
             data=[AnomalyTrendPoint(date=now, count=5, types={"impossible_travel": 5})],
             time_range=TimeRange.DAY_30,
@@ -521,7 +520,7 @@ class TestFullDashboardEndpoint:
             top_type="impossible_travel",
             change_percent=0.0
         )
-        
+
         mock_service.get_top_risk_users.return_value = TopRiskUsersData(
             users=[TopRiskUser(
                 user_email="test@example.com",
@@ -534,7 +533,7 @@ class TestFullDashboardEndpoint:
             total_users=1,
             avg_risk_score=80.0
         )
-        
+
         mock_service.get_alert_volume.return_value = AlertVolumeData(
             data=[AlertVolumePoint(timestamp=now, critical=1, high=2, medium=3, low=4, total=10)],
             time_range=TimeRange.DAY_30,
@@ -542,24 +541,24 @@ class TestFullDashboardEndpoint:
             peak_volume=10,
             peak_time=now
         )
-        
+
         mock_service.get_anomaly_breakdown.return_value = [
             AnomalyTypeBreakdown(type="impossible_travel", count=5, percentage=100.0, avg_risk_score=75.0)
         ]
-        
+
         result = await dashboard_api.get_full_dashboard(
             time_range=TimeRange.DAY_30,
             tenant_id=None,
             service=mock_service
         )
-        
+
         assert isinstance(result, DashboardDataResponse)
         assert result.summary.total_logins_24h == 1000
         assert len(result.login_timeline.data) == 1
         assert len(result.geo_heatmap.locations) == 1
         assert len(result.top_risk_users.users) == 1
         assert result.time_range == TimeRange.DAY_30
-        
+
         # Verify all service methods were called
         mock_service.get_summary_stats.assert_called_once()
         mock_service.get_login_activity_timeline.assert_called_once()
@@ -572,63 +571,63 @@ class TestFullDashboardEndpoint:
 
 class TestExportEndpoint:
     """Test cases for export endpoint."""
-    
+
     @pytest.fixture
     def mock_service(self):
         """Create a mock dashboard service."""
         service = AsyncMock(spec=DashboardService)
         return service
-    
+
     @pytest.mark.asyncio
     async def test_export_dashboard_success(self, mock_service):
         """Test successful dashboard export request."""
         from src.models.dashboard import ExportRequest
-        
+
         request = ExportRequest(
             time_range=TimeRange.DAY_30,
             format="csv",
             charts=["all"]
         )
-        
+
         result = await dashboard_api.export_dashboard(
             request=request,
             tenant_id=None,
             service=mock_service
         )
-        
+
         assert result.format == "csv"
         assert "dashboard-export" in result.filename
         assert result.download_url == "/api/v1/dashboard/export/download/csv"
-    
+
     @pytest.mark.asyncio
     async def test_export_dashboard_json(self, mock_service):
         """Test dashboard export to JSON."""
         from src.models.dashboard import ExportRequest
-        
+
         request = ExportRequest(
             time_range=TimeRange.DAY_7,
             format="json"
         )
-        
+
         result = await dashboard_api.export_dashboard(
             request=request,
             tenant_id="tenant-123",
             service=mock_service
         )
-        
+
         assert result.format == "json"
         assert ".json" in result.filename
 
 
 class TestDownloadExportEndpoint:
     """Test cases for download export endpoint."""
-    
+
     @pytest.fixture
     def mock_service(self):
         """Create a mock dashboard service."""
         service = AsyncMock(spec=DashboardService)
         return service
-    
+
     @pytest.mark.asyncio
     async def test_download_csv_success(self, mock_service):
         """Test successful CSV download."""
@@ -636,11 +635,11 @@ class TestDownloadExportEndpoint:
             format="csv",
             service=mock_service
         )
-        
+
         assert result.status_code == 200
         assert result.media_type == "text/csv"
         assert "dashboard-export" in result.headers["Content-Disposition"]
-    
+
     @pytest.mark.asyncio
     async def test_download_json_success(self, mock_service):
         """Test successful JSON download."""
@@ -648,10 +647,10 @@ class TestDownloadExportEndpoint:
             format="json",
             service=mock_service
         )
-        
+
         assert result.status_code == 200
         assert result.media_type == "application/json"
-    
+
     @pytest.mark.asyncio
     async def test_download_invalid_format(self, mock_service):
         """Test download with invalid format."""
@@ -660,10 +659,10 @@ class TestDownloadExportEndpoint:
                 format="invalid",
                 service=mock_service
             )
-        
+
         assert exc_info.value.status_code == 400
         assert "Unsupported export format" in exc_info.value.detail
-    
+
     @pytest.mark.asyncio
     async def test_download_pdf_not_supported(self, mock_service):
         """Test PDF export returns error."""
@@ -672,5 +671,5 @@ class TestDownloadExportEndpoint:
                 format="pdf",
                 service=mock_service
             )
-        
+
         assert exc_info.value.status_code == 400

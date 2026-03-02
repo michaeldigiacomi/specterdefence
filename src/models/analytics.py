@@ -1,32 +1,32 @@
 """Analytics models for login tracking and anomaly detection."""
 
 import uuid
-from datetime import datetime, timezone
-from typing import Optional, List, Any, Dict
+from datetime import UTC, datetime
+from typing import Optional
 
-from sqlalchemy import String, Boolean, DateTime, Float, ForeignKey, Index
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
-from src.models.types import UUID, JSONB
+from src.models.types import JSONB, UUID
 
 
 def utc_now() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class LoginAnalyticsModel(Base):
     """Login analytics database model for storing geo-located login attempts."""
-    
+
     __tablename__ = "login_analytics"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4
     )
-    audit_log_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    audit_log_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("audit_logs.id"),
         nullable=True,
@@ -50,33 +50,33 @@ class LoginAnalyticsModel(Base):
         nullable=False,
         comment="IP address (IPv4 or IPv6)"
     )
-    country: Mapped[Optional[str]] = mapped_column(
+    country: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         index=True,
         comment="Country name"
     )
-    country_code: Mapped[Optional[str]] = mapped_column(
+    country_code: Mapped[str | None] = mapped_column(
         String(2),
         nullable=True,
         comment="ISO country code"
     )
-    city: Mapped[Optional[str]] = mapped_column(
+    city: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="City name"
     )
-    region: Mapped[Optional[str]] = mapped_column(
+    region: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="Region/State name"
     )
-    latitude: Mapped[Optional[float]] = mapped_column(
+    latitude: Mapped[float | None] = mapped_column(
         Float,
         nullable=True,
         comment="Latitude coordinate"
     )
-    longitude: Mapped[Optional[float]] = mapped_column(
+    longitude: Mapped[float | None] = mapped_column(
         Float,
         nullable=True,
         comment="Longitude coordinate"
@@ -93,12 +93,12 @@ class LoginAnalyticsModel(Base):
         nullable=False,
         comment="Whether login was successful"
     )
-    failure_reason: Mapped[Optional[str]] = mapped_column(
+    failure_reason: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="Reason for login failure if applicable"
     )
-    anomaly_flags: Mapped[List[str]] = mapped_column(
+    anomaly_flags: Mapped[list[str]] = mapped_column(
         JSONB,
         default=list,
         nullable=False,
@@ -114,10 +114,10 @@ class LoginAnalyticsModel(Base):
         default=utc_now,
         nullable=False
     )
-    
+
     # Relationships
     audit_log: Mapped[Optional["AuditLogModel"]] = relationship("AuditLogModel", back_populates="login_analytics")
-    
+
     __table_args__ = (
         # Composite index for user login history queries
         Index('ix_login_analytics_user_time', 'user_email', 'login_time'),
@@ -126,16 +126,16 @@ class LoginAnalyticsModel(Base):
         # Index for IP-based queries
         Index('ix_login_analytics_ip_time', 'ip_address', 'login_time'),
     )
-    
+
     def __repr__(self) -> str:
         return f"<LoginAnalytics(id={self.id}, user={self.user_email}, country={self.country})>"
 
 
 class UserLoginHistoryModel(Base):
     """User login history for tracking known countries and IPs."""
-    
+
     __tablename__ = "user_login_history"
-    
+
     user_email: Mapped[str] = mapped_column(
         String(255),
         primary_key=True,
@@ -147,39 +147,39 @@ class UserLoginHistoryModel(Base):
         nullable=False,
         comment="Internal tenant UUID"
     )
-    known_countries: Mapped[List[str]] = mapped_column(
+    known_countries: Mapped[list[str]] = mapped_column(
         JSONB,
         default=list,
         nullable=False,
         comment="List of previously seen country codes"
     )
-    known_ips: Mapped[List[str]] = mapped_column(
+    known_ips: Mapped[list[str]] = mapped_column(
         JSONB,
         default=list,
         nullable=False,
         comment="List of previously seen IP addresses"
     )
-    last_login_time: Mapped[Optional[datetime]] = mapped_column(
+    last_login_time: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
         comment="Timestamp of last successful login"
     )
-    last_login_country: Mapped[Optional[str]] = mapped_column(
+    last_login_country: Mapped[str | None] = mapped_column(
         String(2),
         nullable=True,
         comment="Country code of last login"
     )
-    last_login_ip: Mapped[Optional[str]] = mapped_column(
+    last_login_ip: Mapped[str | None] = mapped_column(
         String(45),
         nullable=True,
         comment="IP address of last login"
     )
-    last_latitude: Mapped[Optional[float]] = mapped_column(
+    last_latitude: Mapped[float | None] = mapped_column(
         Float,
         nullable=True,
         comment="Latitude of last login"
     )
-    last_longitude: Mapped[Optional[float]] = mapped_column(
+    last_longitude: Mapped[float | None] = mapped_column(
         Float,
         nullable=True,
         comment="Longitude of last login"
@@ -200,20 +200,20 @@ class UserLoginHistoryModel(Base):
         onupdate=utc_now,
         nullable=False
     )
-    
+
     __table_args__ = (
         Index('ix_user_login_history_tenant', 'tenant_id'),
     )
-    
+
     def __repr__(self) -> str:
         return f"<UserLoginHistory(user={self.user_email}, last_country={self.last_login_country})>"
 
 
 class AnomalyDetectionConfig(Base):
     """Configuration for anomaly detection per tenant."""
-    
+
     __tablename__ = "anomaly_detection_config"
-    
+
     tenant_id: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("tenants.id"),
@@ -265,6 +265,6 @@ class AnomalyDetectionConfig(Base):
         onupdate=utc_now,
         nullable=False
     )
-    
+
     def __repr__(self) -> str:
         return f"<AnomalyDetectionConfig(tenant={self.tenant_id}, enabled={self.enabled})>"

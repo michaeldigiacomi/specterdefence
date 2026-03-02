@@ -1,7 +1,14 @@
 """Unit tests for encryption service."""
 
+import sys
+
 import pytest
 from cryptography.fernet import InvalidToken
+
+# Remove any mock encryption module before importing
+encryption_modules = [key for key in sys.modules if "encryption" in key.lower() and key != "tests.unit.test_encryption"]
+for key in encryption_modules:
+    del sys.modules[key]
 
 from src.services.encryption import EncryptionService, encryption_service
 
@@ -13,10 +20,10 @@ class TestEncryptionService:
         """Test that encrypt and decrypt are inverse operations."""
         service = EncryptionService()
         original = "my-super-secret-value"
-        
+
         encrypted = service.encrypt(original)
         decrypted = service.decrypt(encrypted)
-        
+
         assert encrypted != original
         assert decrypted == original
 
@@ -24,13 +31,13 @@ class TestEncryptionService:
         """Test that encrypting same value twice gives different results (Fernet uses random IV)."""
         service = EncryptionService()
         value = "test-value"
-        
+
         encrypted1 = service.encrypt(value)
         encrypted2 = service.encrypt(value)
-        
+
         # Due to random IV, encrypted values should be different
         assert encrypted1 != encrypted2
-        
+
         # But both should decrypt to the same value
         assert service.decrypt(encrypted1) == value
         assert service.decrypt(encrypted2) == value
@@ -38,21 +45,21 @@ class TestEncryptionService:
     def test_encrypt_empty_string_raises(self):
         """Test that encrypting empty string raises ValueError."""
         service = EncryptionService()
-        
+
         with pytest.raises(ValueError, match="Cannot encrypt empty string"):
             service.encrypt("")
 
     def test_decrypt_empty_string_raises(self):
         """Test that decrypting empty string raises ValueError."""
         service = EncryptionService()
-        
+
         with pytest.raises(ValueError, match="Cannot decrypt empty string"):
             service.decrypt("")
 
     def test_decrypt_invalid_data_raises(self):
         """Test that decrypting invalid data raises an error."""
         service = EncryptionService()
-        
+
         with pytest.raises((InvalidToken, Exception)):
             service.decrypt("not-valid-encrypted-data")
 
@@ -60,7 +67,7 @@ class TestEncryptionService:
         """Test that global encryption service is initialized."""
         assert encryption_service is not None
         assert isinstance(encryption_service, EncryptionService)
-        
+
         # Test basic operation
         value = "test"
         encrypted = encryption_service.encrypt(value)
@@ -78,7 +85,7 @@ class TestEncryptionService:
             "unicode: ñ 中文 🎉",
             "a" * 1000,  # Long string
         ]
-        
+
         for value in special_values:
             encrypted = service.encrypt(value)
             decrypted = service.decrypt(encrypted)
@@ -88,8 +95,8 @@ class TestEncryptionService:
         """Test encryption of binary-like string data."""
         service = EncryptionService()
         binary_like = "\\x00\\x01\\x02\\x03"
-        
+
         encrypted = service.encrypt(binary_like)
         decrypted = service.decrypt(encrypted)
-        
+
         assert decrypted == binary_like

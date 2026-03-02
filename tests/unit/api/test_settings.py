@@ -1,11 +1,12 @@
 """Tests for settings API endpoints."""
 
-import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
+from src.models.settings import DetectionThresholdsModel, SystemSettingsModel, UserPreferencesModel
 from src.services.settings import SettingsService
-from src.models.settings import SystemSettingsModel, UserPreferencesModel, DetectionThresholdsModel
 
 
 @pytest.fixture
@@ -35,14 +36,14 @@ async def test_get_system_settings(mock_settings_service):
     mock_settings.api_rate_limit = 1000
     mock_settings.max_export_rows = 10000
     mock_settings.log_level = "INFO"
-    mock_settings.created_at = datetime.now(timezone.utc)
-    mock_settings.updated_at = datetime.now(timezone.utc)
-    
+    mock_settings.created_at = datetime.now(UTC)
+    mock_settings.updated_at = datetime.now(UTC)
+
     mock_settings_service.get_system_settings = AsyncMock(return_value=mock_settings)
-    
+
     # Act
     result = await mock_settings_service.get_system_settings()
-    
+
     # Assert
     assert result.audit_log_retention_days == 90
     assert result.login_history_retention_days == 365
@@ -56,12 +57,12 @@ async def test_update_system_settings(mock_settings_service):
     mock_settings = SystemSettingsModel()
     mock_settings.audit_log_retention_days = 60
     mock_settings_service.update_system_settings = AsyncMock(return_value=mock_settings)
-    
+
     updates = {"audit_log_retention_days": 60}
-    
+
     # Act
     result = await mock_settings_service.update_system_settings(updates)
-    
+
     # Assert
     assert result.audit_log_retention_days == 60
 
@@ -77,12 +78,12 @@ async def test_get_user_preferences(mock_settings_service):
     mock_prefs.email_notifications = True
     mock_prefs.discord_notifications = True
     mock_prefs.notification_min_severity = "MEDIUM"
-    
+
     mock_settings_service.get_user_preferences = AsyncMock(return_value=mock_prefs)
-    
+
     # Act
     result = await mock_settings_service.get_user_preferences("test@example.com")
-    
+
     # Assert
     assert result.user_email == "test@example.com"
     assert result.timezone == "UTC"
@@ -96,14 +97,14 @@ async def test_update_user_preferences(mock_settings_service):
     mock_prefs = UserPreferencesModel()
     mock_prefs.user_email = "test@example.com"
     mock_prefs.theme = "dark"
-    
+
     mock_settings_service.update_user_preferences = AsyncMock(return_value=mock_prefs)
-    
+
     updates = {"theme": "dark"}
-    
+
     # Act
     result = await mock_settings_service.update_user_preferences("test@example.com", updates)
-    
+
     # Assert
     assert result.theme == "dark"
 
@@ -116,12 +117,12 @@ async def test_get_detection_thresholds(mock_settings_service):
     mock_thresholds.impossible_travel_enabled = True
     mock_thresholds.impossible_travel_min_speed_kmh = 800
     mock_thresholds.brute_force_threshold = 5
-    
+
     mock_settings_service.get_detection_thresholds = AsyncMock(return_value=mock_thresholds)
-    
+
     # Act
     result = await mock_settings_service.get_detection_thresholds()
-    
+
     # Assert
     assert result.impossible_travel_enabled is True
     assert result.impossible_travel_min_speed_kmh == 800
@@ -134,14 +135,14 @@ async def test_update_detection_thresholds(mock_settings_service):
     # Arrange
     mock_thresholds = DetectionThresholdsModel()
     mock_thresholds.brute_force_threshold = 10
-    
+
     mock_settings_service.update_detection_thresholds = AsyncMock(return_value=mock_thresholds)
-    
+
     updates = {"brute_force_threshold": 10}
-    
+
     # Act
     result = await mock_settings_service.update_detection_thresholds(updates)
-    
+
     # Assert
     assert result.brute_force_threshold == 10
 
@@ -156,14 +157,14 @@ async def test_create_api_key(mock_settings_service):
         "name": "Test Key",
         "prefix": "sd_test_"
     })
-    
+
     # Act
     result = await mock_settings_service.create_api_key(
         name="Test Key",
         scopes=["read:analytics"],
         created_by="admin@test.com"
     )
-    
+
     # Assert
     assert result["name"] == "Test Key"
     assert "key" in result
@@ -174,22 +175,23 @@ async def test_create_api_key(mock_settings_service):
 async def test_list_api_keys(mock_settings_service):
     """Test listing API keys."""
     # Arrange
-    from src.models.settings import ApiKeyModel
     import uuid
-    
+
+    from src.models.settings import ApiKeyModel
+
     mock_key = MagicMock(spec=ApiKeyModel)
     mock_key.id = uuid.uuid4()
     mock_key.name = "Test Key"
     mock_key.key_prefix = "sd_test"
     mock_key.scopes = ["read:analytics"]
     mock_key.is_active = True
-    mock_key.created_at = datetime.now(timezone.utc)
-    
+    mock_key.created_at = datetime.now(UTC)
+
     mock_settings_service.list_api_keys = AsyncMock(return_value=[mock_key])
-    
+
     # Act
     result = await mock_settings_service.list_api_keys()
-    
+
     # Assert
     assert len(result) == 1
     assert result[0].name == "Test Key"
@@ -201,10 +203,10 @@ async def test_revoke_api_key(mock_settings_service):
     """Test revoking an API key."""
     # Arrange
     mock_settings_service.revoke_api_key = AsyncMock(return_value=True)
-    
+
     # Act
     result = await mock_settings_service.revoke_api_key("test-key-id")
-    
+
     # Assert
     assert result is True
 
@@ -217,20 +219,20 @@ async def test_export_configuration(mock_settings_service):
         "id": "backup-123",
         "name": "Test Backup",
         "categories": ["system", "detection"],
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "config": {
             "system": {"log_level": "INFO"},
             "detection": {"brute_force_threshold": 5}
         }
     })
-    
+
     # Act
     result = await mock_settings_service.export_configuration(
         categories=["system", "detection"],
         name="Test Backup",
         created_by="admin@test.com"
     )
-    
+
     # Assert
     assert result["name"] == "Test Backup"
     assert "system" in result["config"]
@@ -245,18 +247,18 @@ async def test_import_configuration(mock_settings_service):
         "imported": ["system", "detection"],
         "errors": []
     })
-    
+
     config_data = {
         "system": {"log_level": "DEBUG"},
         "detection": {"brute_force_threshold": 10}
     }
-    
+
     # Act
     result = await mock_settings_service.import_configuration(
         config_data=config_data,
         overwrite=True
     )
-    
+
     # Assert
     assert len(result["imported"]) == 2
     assert len(result["errors"]) == 0
@@ -272,16 +274,15 @@ async def test_webhook_test_success():
 
 class TestSettingsValidation:
     """Test settings validation."""
-    
+
     def test_system_settings_validation(self):
         """Test system settings field validation."""
         # Test retention days limits
-        from sqlalchemy import inspect
-        
+
         # Get the default values from column info
         assert SystemSettingsModel.audit_log_retention_days.default.arg == 90
         assert SystemSettingsModel.login_history_retention_days.default.arg == 365
-        
+
     def test_detection_thresholds_validation(self):
         """Test detection thresholds field validation."""
         # Test default values

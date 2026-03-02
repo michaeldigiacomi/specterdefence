@@ -1,19 +1,20 @@
 """Microsoft Graph API client for MFA enrollment data."""
 
 import logging
-from typing import Optional, Dict, Any, List
+from collections.abc import Callable
 from datetime import datetime
+from typing import Any
 
 import httpx
 
-from src.clients.ms_graph import MSGraphClient, MSGraphAPIError
+from src.clients.ms_graph import MSGraphAPIError, MSGraphClient
 
 logger = logging.getLogger(__name__)
 
 
 class MFAReportClient:
     """Client for retrieving MFA enrollment data from Microsoft Graph."""
-    
+
     # Admin role template IDs that indicate admin privileges
     ADMIN_ROLE_TEMPLATES = [
         "62e90394-69f5-4237-9190-012177145e10",  # Global Administrator
@@ -38,7 +39,7 @@ class MFAReportClient:
         "f2ef992c-3afb-46b9-b7cf-a126ee74c451",  # Security Reader
         "3a2c62db-5318-420d-8d74-23affee5d9d5",  # Intune Administrator
     ]
-    
+
     # MFA method mapping from Graph API to internal types
     MFA_METHOD_MAPPING = {
         "#microsoft.graph.fido2AuthenticationMethod": "fido2",
@@ -50,7 +51,7 @@ class MFAReportClient:
         "#microsoft.graph.windowsHelloForBusinessAuthenticationMethod": "helloForBusiness",
         "#microsoft.graph.hardwareOathAuthenticationMethod": "hardwareToken",
     }
-    
+
     def __init__(self, graph_client: MSGraphClient) -> None:
         """Initialize MFA report client.
         
@@ -59,8 +60,8 @@ class MFAReportClient:
         """
         self.graph_client = graph_client
         self.timeout = graph_client.timeout
-    
-    async def get_all_users(self) -> List[Dict[str, Any]]:
+
+    async def get_all_users(self) -> list[dict[str, Any]]:
         """Get all users from the tenant.
         
         Returns:
@@ -68,7 +69,7 @@ class MFAReportClient:
         """
         token = await self.graph_client.get_access_token()
         users = []
-        
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             # Get users with relevant fields
             url = (
@@ -77,29 +78,29 @@ class MFAReportClient:
                 "signInActivity,createdDateTime"
                 "&$top=999"
             )
-            
+
             while url:
                 response = await client.get(
                     url,
                     headers={"Authorization": f"Bearer {token}"}
                 )
-                
+
                 if response.status_code != 200:
                     raise MSGraphAPIError(
                         f"Failed to fetch users: {response.status_code} - {response.text}",
                         status_code=response.status_code
                     )
-                
+
                 data = response.json()
                 users.extend(data.get("value", []))
-                
+
                 # Handle pagination
                 url = data.get("@odata.nextLink")
-        
+
         logger.info(f"Retrieved {len(users)} users from tenant")
         return users
-    
-    async def get_user_mfa_methods(self, user_id: str) -> List[Dict[str, Any]]:
+
+    async def get_user_mfa_methods(self, user_id: str) -> list[dict[str, Any]]:
         """Get MFA methods registered for a specific user.
         
         Args:
@@ -110,16 +111,16 @@ class MFAReportClient:
         """
         token = await self.graph_client.get_access_token()
         methods = []
-        
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             # Query all authentication methods
             url = f"https://graph.microsoft.com/beta/users/{user_id}/authentication/methods"
-            
+
             response = await client.get(
                 url,
                 headers={"Authorization": f"Bearer {token}"}
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 methods = data.get("value", [])
@@ -130,10 +131,10 @@ class MFAReportClient:
             else:
                 logger.warning(f"Failed to get MFA methods for user {user_id}: {response.status_code}")
                 return []
-        
+
         return methods
-    
-    async def get_user_directory_roles(self, user_id: str) -> List[Dict[str, Any]]:
+
+    async def get_user_directory_roles(self, user_id: str) -> list[dict[str, Any]]:
         """Get directory roles assigned to a user.
         
         Args:
@@ -143,15 +144,15 @@ class MFAReportClient:
             List of directory roles assigned to the user
         """
         token = await self.graph_client.get_access_token()
-        
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             url = f"https://graph.microsoft.com/v1.0/users/{user_id}/memberOf"
-            
+
             response = await client.get(
                 url,
                 headers={"Authorization": f"Bearer {token}"}
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 # Filter for directory roles only
@@ -165,8 +166,8 @@ class MFAReportClient:
             else:
                 logger.warning(f"Failed to get directory roles for user {user_id}: {response.status_code}")
                 return []
-    
-    async def get_user_app_role_assignments(self, user_id: str) -> List[Dict[str, Any]]:
+
+    async def get_user_app_role_assignments(self, user_id: str) -> list[dict[str, Any]]:
         """Get app role assignments for a user (indicates admin roles).
         
         Args:
@@ -176,23 +177,23 @@ class MFAReportClient:
             List of app role assignments
         """
         token = await self.graph_client.get_access_token()
-        
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             url = f"https://graph.microsoft.com/v1.0/users/{user_id}/appRoleAssignments"
-            
+
             response = await client.get(
                 url,
                 headers={"Authorization": f"Bearer {token}"}
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 return data.get("value", [])
             else:
                 logger.warning(f"Failed to get app roles for user {user_id}: {response.status_code}")
                 return []
-    
-    def analyze_mfa_methods(self, methods: List[Dict[str, Any]]) -> Dict[str, Any]:
+
+    def analyze_mfa_methods(self, methods: list[dict[str, Any]]) -> dict[str, Any]:
         """Analyze MFA methods to determine registration status and strength.
         
         Args:
@@ -211,25 +212,25 @@ class MFAReportClient:
             "primary_method": None,
             "strength": "none",
         }
-        
+
         if not methods:
             return result
-        
+
         method_types = []
         has_strong = False
         has_moderate = False
         has_weak = False
-        
+
         for method in methods:
             method_type = method.get("@odata.type", "")
             mapped_type = self.MFA_METHOD_MAPPING.get(method_type, "unknown")
-            
+
             # Skip password-only entries
             if mapped_type == "password":
                 continue
-            
+
             method_types.append(mapped_type)
-            
+
             # Determine strength
             if mapped_type in ["fido2", "hardwareToken", "helloForBusiness"]:
                 has_strong = True
@@ -237,7 +238,7 @@ class MFAReportClient:
                 has_moderate = True
             elif mapped_type in ["sms", "voice", "email"]:
                 has_weak = True
-        
+
         # Determine overall strength (best available)
         if has_strong:
             result["strength"] = "strong"
@@ -245,10 +246,10 @@ class MFAReportClient:
             result["strength"] = "moderate"
         elif has_weak:
             result["strength"] = "weak"
-        
+
         result["is_mfa_registered"] = len(method_types) > 0
         result["mfa_methods"] = method_types
-        
+
         # Set primary method (prefer strongest)
         if "fido2" in method_types:
             result["primary_method"] = "fido2"
@@ -258,10 +259,10 @@ class MFAReportClient:
             result["primary_method"] = "authenticatorApp"
         elif method_types:
             result["primary_method"] = method_types[0]
-        
+
         return result
-    
-    def check_admin_status(self, directory_roles: List[Dict[str, Any]]) -> Dict[str, Any]:
+
+    def check_admin_status(self, directory_roles: list[dict[str, Any]]) -> dict[str, Any]:
         """Check if user has admin privileges based on directory roles.
         
         Args:
@@ -276,18 +277,18 @@ class MFAReportClient:
             "is_admin": False,
             "admin_roles": [],
         }
-        
+
         for role in directory_roles:
             role_template_id = role.get("roleTemplateId", "")
             role_name = role.get("displayName", "")
-            
+
             if role_template_id in self.ADMIN_ROLE_TEMPLATES:
                 result["is_admin"] = True
                 result["admin_roles"].append(role_name)
-        
+
         return result
-    
-    def parse_sign_in_activity(self, user_data: Dict[str, Any]) -> Optional[datetime]:
+
+    def parse_sign_in_activity(self, user_data: dict[str, Any]) -> datetime | None:
         """Parse sign-in activity from user data.
         
         Args:
@@ -298,16 +299,16 @@ class MFAReportClient:
         """
         sign_in_activity = user_data.get("signInActivity", {})
         last_sign_in = sign_in_activity.get("lastSignInDateTime")
-        
+
         if last_sign_in:
             try:
                 return datetime.fromisoformat(last_sign_in.replace("Z", "+00:00"))
             except (ValueError, AttributeError):
                 logger.debug(f"Failed to parse sign-in datetime: {last_sign_in}")
-        
+
         return None
-    
-    async def get_full_user_mfa_data(self, user_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def get_full_user_mfa_data(self, user_id: str, user_data: dict[str, Any]) -> dict[str, Any]:
         """Get complete MFA data for a user.
         
         Args:
@@ -320,14 +321,14 @@ class MFAReportClient:
         # Get MFA methods
         mfa_methods = await self.get_user_mfa_methods(user_id)
         mfa_analysis = self.analyze_mfa_methods(mfa_methods)
-        
+
         # Get admin roles
         directory_roles = await self.get_user_directory_roles(user_id)
         admin_analysis = self.check_admin_status(directory_roles)
-        
+
         # Parse sign-in activity
         last_sign_in = self.parse_sign_in_activity(user_data)
-        
+
         return {
             "user_id": user_id,
             "user_principal_name": user_data.get("userPrincipalName"),
@@ -340,8 +341,8 @@ class MFAReportClient:
             "raw_mfa_methods": mfa_methods,
             "raw_user_data": user_data,
         }
-    
-    async def scan_all_users_mfa(self, progress_callback: Optional[callable] = None) -> List[Dict[str, Any]]:
+
+    async def scan_all_users_mfa(self, progress_callback: Callable | None = None) -> list[dict[str, Any]]:
         """Scan all users and their MFA status.
         
         Args:
@@ -353,24 +354,24 @@ class MFAReportClient:
         # Get all users
         users = await self.get_all_users()
         results = []
-        
+
         total = len(users)
         for i, user in enumerate(users):
             try:
                 user_id = user.get("id")
                 if not user_id:
                     continue
-                
+
                 mfa_data = await self.get_full_user_mfa_data(user_id, user)
                 results.append(mfa_data)
-                
+
                 # Report progress
                 if progress_callback:
                     progress_callback(i + 1, total)
-                    
+
             except Exception as e:
                 logger.error(f"Error processing user {user.get('userPrincipalName')}: {e}")
                 continue
-        
+
         logger.info(f"Completed MFA scan for {len(results)} users")
         return results

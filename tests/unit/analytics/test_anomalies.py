@@ -1,12 +1,11 @@
 """Unit tests for the anomaly detection engine."""
 
+from datetime import datetime
+
 import pytest
-import math
-from datetime import datetime, timedelta
 
 from src.analytics.anomalies import (
     AnomalyDetector,
-    AnomalyResult,
     AnomalyType,
     Location,
 )
@@ -14,154 +13,154 @@ from src.analytics.anomalies import (
 
 class TestLocation:
     """Tests for Location dataclass."""
-    
+
     def test_valid_location(self):
         """Test creating a valid location."""
         loc = Location(latitude=40.7128, longitude=-74.0060, country="US", city="New York")
-        
+
         assert loc.latitude == 40.7128
         assert loc.longitude == -74.0060
         assert loc.country == "US"
         assert loc.city == "New York"
-    
+
     def test_location_boundary_values(self):
         """Test location with boundary coordinate values."""
         # Valid boundaries
         Location(latitude=90, longitude=180)
         Location(latitude=-90, longitude=-180)
         Location(latitude=0, longitude=0)
-    
+
     def test_invalid_latitude(self):
         """Test that invalid latitude raises error."""
         with pytest.raises(ValueError, match="Invalid latitude"):
             Location(latitude=91, longitude=0)
-        
+
         with pytest.raises(ValueError, match="Invalid latitude"):
             Location(latitude=-91, longitude=0)
-    
+
     def test_invalid_longitude(self):
         """Test that invalid longitude raises error."""
         with pytest.raises(ValueError, match="Invalid longitude"):
             Location(latitude=0, longitude=181)
-        
+
         with pytest.raises(ValueError, match="Invalid longitude"):
             Location(latitude=0, longitude=-181)
 
 
 class TestHaversineDistance:
     """Tests for haversine distance calculation."""
-    
+
     @pytest.fixture
     def detector(self):
         """Create an AnomalyDetector instance."""
         return AnomalyDetector()
-    
+
     def test_distance_same_point(self, detector):
         """Test distance between identical points is zero."""
         loc = Location(latitude=40.7128, longitude=-74.0060)
         distance = detector.haversine_distance(loc, loc)
-        
+
         assert distance == 0.0
-    
+
     def test_distance_nyc_to_london(self, detector):
         """Test distance from NYC to London (approximately 5570 km)."""
         nyc = Location(latitude=40.7128, longitude=-74.0060)
         london = Location(latitude=51.5074, longitude=-0.1278)
-        
+
         distance = detector.haversine_distance(nyc, london)
-        
+
         # Should be approximately 5570 km
         assert 5500 < distance < 5600
-    
+
     def test_distance_nyc_to_la(self, detector):
         """Test distance from NYC to LA (approximately 3940 km)."""
         nyc = Location(latitude=40.7128, longitude=-74.0060)
         la = Location(latitude=34.0522, longitude=-118.2437)
-        
+
         distance = detector.haversine_distance(nyc, la)
-        
+
         # Should be approximately 3940 km
         assert 3900 < distance < 4000
-    
+
     def test_distance_equator_poles(self, detector):
         """Test distance from equator to pole."""
         equator = Location(latitude=0, longitude=0)
         north_pole = Location(latitude=90, longitude=0)
-        
+
         distance = detector.haversine_distance(equator, north_pole)
-        
+
         # Should be approximately 10007 km (quarter circumference)
         assert 10000 < distance < 10010
-    
+
     def test_symmetry(self, detector):
         """Test that distance is symmetric."""
         loc1 = Location(latitude=40.7128, longitude=-74.0060)
         loc2 = Location(latitude=51.5074, longitude=-0.1278)
-        
+
         dist1 = detector.haversine_distance(loc1, loc2)
         dist2 = detector.haversine_distance(loc2, loc1)
-        
+
         assert dist1 == dist2
-    
+
     def test_distance_antipodal_points(self, detector):
         """Test distance between antipodal points (should be ~20015 km)."""
         # Antipodal points are opposite each other on Earth
         loc1 = Location(latitude=0, longitude=0)
         loc2 = Location(latitude=0, longitude=180)
-        
+
         distance = detector.haversine_distance(loc1, loc2)
-        
+
         # Should be approximately half Earth's circumference
         assert 20000 < distance < 20020
-    
+
     def test_distance_pole_to_pole(self, detector):
         """Test distance from North Pole to South Pole."""
         north_pole = Location(latitude=90, longitude=0)
         south_pole = Location(latitude=-90, longitude=0)
-        
+
         distance = detector.haversine_distance(north_pole, south_pole)
-        
+
         # Should be approximately half Earth's circumference
         assert 20000 < distance < 20020
-    
+
     def test_distance_across_dateline(self, detector):
         """Test distance calculation across the international dateline."""
         # Tokyo and Los Angeles are close to opposite sides of dateline
         tokyo = Location(latitude=35.6762, longitude=139.6503)
         la = Location(latitude=34.0522, longitude=-118.2437)
-        
+
         distance = detector.haversine_distance(tokyo, la)
-        
+
         # Should be approximately 8800 km
         assert 8700 < distance < 8900
-    
+
     def test_distance_small_values(self, detector):
         """Test distance with very small coordinate differences."""
         loc1 = Location(latitude=40.7128, longitude=-74.0060)
         loc2 = Location(latitude=40.7129, longitude=-74.0061)
-        
+
         distance = detector.haversine_distance(loc1, loc2)
-        
+
         # Should be a small distance (about 15 meters)
         assert 0 < distance < 1
 
 
 class TestImpossibleTravelDetection:
     """Tests for impossible travel detection."""
-    
+
     @pytest.fixture
     def detector(self):
         """Create an AnomalyDetector with default speed."""
         return AnomalyDetector(travel_speed_kmh=900)
-    
+
     def test_possible_travel_nyc_to_boston(self, detector):
         """Test NYC to Boston in 3 hours (should be possible)."""
         nyc = Location(latitude=40.7128, longitude=-74.0060)
         boston = Location(latitude=42.3601, longitude=-71.0589)
-        
+
         prev_time = datetime(2024, 1, 1, 12, 0, 0)
         curr_time = datetime(2024, 1, 1, 15, 0, 0)  # 3 hours later
-        
+
         result = detector.detect_impossible_travel(
             prev_location=nyc,
             prev_time=prev_time,
@@ -170,19 +169,19 @@ class TestImpossibleTravelDetection:
             prev_country="US",
             curr_country="US"
         )
-        
+
         assert result.type == AnomalyType.IMPOSSIBLE_TRAVEL
         assert result.detected is False
         assert result.risk_score == 0
-    
+
     def test_impossible_travel_nyc_to_tokyo(self, detector):
         """Test NYC to Tokyo in 1 hour (should be impossible)."""
         nyc = Location(latitude=40.7128, longitude=-74.0060, country="US", city="New York")
         tokyo = Location(latitude=35.6762, longitude=139.6503, country="JP", city="Tokyo")
-        
+
         prev_time = datetime(2024, 1, 1, 12, 0, 0)
         curr_time = datetime(2024, 1, 1, 13, 0, 0)  # 1 hour later
-        
+
         result = detector.detect_impossible_travel(
             prev_location=nyc,
             prev_time=prev_time,
@@ -191,20 +190,20 @@ class TestImpossibleTravelDetection:
             prev_country="US",
             curr_country="JP"
         )
-        
+
         assert result.type == AnomalyType.IMPOSSIBLE_TRAVEL
         assert result.detected is True
         assert result.risk_score > 90  # Very high risk
         assert "New York" in result.message or "Tokyo" in result.message or "US" in result.message
-    
+
     def test_impossible_travel_nyc_to_tokyo_45min(self, detector):
         """Test NYC to Tokyo in 45 min - should flag with high risk (~90%+)."""
         nyc = Location(latitude=40.7128, longitude=-74.0060, country="US", city="New York")
         tokyo = Location(latitude=35.6762, longitude=139.6503, country="JP", city="Tokyo")
-        
+
         prev_time = datetime(2024, 1, 1, 12, 0, 0)
         curr_time = datetime(2024, 1, 1, 12, 45, 0)  # 45 minutes later
-        
+
         result = detector.detect_impossible_travel(
             prev_location=nyc,
             prev_time=prev_time,
@@ -213,18 +212,18 @@ class TestImpossibleTravelDetection:
             prev_country="US",
             curr_country="JP"
         )
-        
+
         assert result.detected is True
         assert result.risk_score >= 90  # Very high risk for impossible travel
-    
+
     def test_london_to_paris_2hours_should_not_flag(self, detector):
         """Test London to Paris in 2 hours - should NOT flag (possible by train)."""
         london = Location(latitude=51.5074, longitude=-0.1278, country="GB", city="London")
         paris = Location(latitude=48.8566, longitude=2.3522, country="FR", city="Paris")
-        
+
         prev_time = datetime(2024, 1, 1, 12, 0, 0)
         curr_time = datetime(2024, 1, 1, 14, 0, 0)  # 2 hours later
-        
+
         result = detector.detect_impossible_travel(
             prev_location=london,
             prev_time=prev_time,
@@ -233,18 +232,18 @@ class TestImpossibleTravelDetection:
             prev_country="GB",
             curr_country="FR"
         )
-        
+
         assert result.detected is False
         assert result.risk_score == 0
-    
+
     def test_impossible_travel_same_country(self, detector):
         """Test impossible travel within same country."""
         la = Location(latitude=34.0522, longitude=-118.2437)
         nyc = Location(latitude=40.7128, longitude=-74.0060)
-        
+
         prev_time = datetime(2024, 1, 1, 12, 0, 0)
         curr_time = datetime(2024, 1, 1, 13, 0, 0)  # 1 hour later
-        
+
         result = detector.detect_impossible_travel(
             prev_location=la,
             prev_time=prev_time,
@@ -253,18 +252,18 @@ class TestImpossibleTravelDetection:
             prev_country="US",
             curr_country="US"
         )
-        
+
         assert result.detected is True
         # LA to NYC is ~3940 km, needs ~4.4 hours at 900 km/h
         assert result.risk_score > 70
-    
+
     def test_same_location_twice_no_anomaly(self, detector):
         """Test same location twice - should not flag."""
         loc = Location(latitude=40.7128, longitude=-74.0060, country="US", city="New York")
-        
+
         prev_time = datetime(2024, 1, 1, 12, 0, 0)
         curr_time = datetime(2024, 1, 1, 13, 0, 0)  # 1 hour later
-        
+
         result = detector.detect_impossible_travel(
             prev_location=loc,
             prev_time=prev_time,
@@ -273,112 +272,112 @@ class TestImpossibleTravelDetection:
             prev_country="US",
             curr_country="US"
         )
-        
+
         assert result.detected is False
         assert result.risk_score == 0
-    
+
     def test_time_too_small_to_evaluate(self, detector):
         """Test that very small time differences are skipped."""
         loc1 = Location(latitude=40.7128, longitude=-74.0060)
         loc2 = Location(latitude=42.3601, longitude=-71.0589)
-        
+
         prev_time = datetime(2024, 1, 1, 12, 0, 0)
         curr_time = datetime(2024, 1, 1, 12, 3, 0)  # 3 minutes later
-        
+
         result = detector.detect_impossible_travel(
             prev_location=loc1,
             prev_time=prev_time,
             curr_location=loc2,
             curr_time=curr_time
         )
-        
+
         assert result.detected is False
         assert result.risk_score == 0
         assert "too small" in result.message
-    
+
     def test_exact_minimum_travel_time(self, detector):
         """Test borderline case where time equals minimum."""
         # Two points ~900 km apart (1 hour at 900 km/h)
         loc1 = Location(latitude=0, longitude=0)
         # Approx 900 km north
         loc2 = Location(latitude=8.1, longitude=0)
-        
+
         prev_time = datetime(2024, 1, 1, 12, 0, 0)
         curr_time = datetime(2024, 1, 1, 13, 0, 0)  # 1 hour later
-        
+
         result = detector.detect_impossible_travel(
             prev_location=loc1,
             prev_time=prev_time,
             curr_location=loc2,
             curr_time=curr_time
         )
-        
+
         # Should be possible (just barely)
         assert result.detected is False or result.risk_score < 10
-    
+
     def test_negative_time_difference(self, detector):
         """Test with negative time difference (curr_time before prev_time)."""
         nyc = Location(latitude=40.7128, longitude=-74.0060)
         tokyo = Location(latitude=35.6762, longitude=139.6503)
-        
+
         prev_time = datetime(2024, 1, 1, 12, 0, 0)
         curr_time = datetime(2024, 1, 1, 11, 0, 0)  # 1 hour BEFORE
-        
+
         result = detector.detect_impossible_travel(
             prev_location=nyc,
             prev_time=prev_time,
             curr_location=tokyo,
             curr_time=curr_time
         )
-        
+
         # Should still work with abs value, but detected based on distance
         assert result.type == AnomalyType.IMPOSSIBLE_TRAVEL
 
 
 class TestRiskScoreCalculation:
     """Tests for risk score calculation."""
-    
+
     @pytest.fixture
     def detector(self):
         """Create an AnomalyDetector with default speed."""
         return AnomalyDetector(travel_speed_kmh=900)
-    
+
     def test_risk_score_zero_when_time_sufficient(self, detector):
         """Test risk score is zero when time is sufficient."""
         score = detector.calculate_risk_score(
             actual_time_min=120,  # 2 hours
             min_travel_time_min=60  # 1 hour needed
         )
-        
+
         assert score == 0
-    
+
     def test_risk_score_maximum_when_no_time(self, detector):
         """Test risk score is 100 when no time elapsed."""
         score = detector.calculate_risk_score(
             actual_time_min=0,
             min_travel_time_min=60
         )
-        
+
         assert score == 100
-    
+
     def test_risk_score_half_when_half_time(self, detector):
         """Test risk score when actual time is half of minimum."""
         score = detector.calculate_risk_score(
             actual_time_min=30,
             min_travel_time_min=60
         )
-        
+
         assert score == 50
-    
+
     def test_risk_score_capped_at_100(self, detector):
         """Test risk score doesn't exceed 100."""
         score = detector.calculate_risk_score(
             actual_time_min=-10,  # Negative time (shouldn't happen but test anyway)
             min_travel_time_min=60
         )
-        
+
         assert score == 100
-    
+
     def test_risk_score_30_min_difference(self, detector):
         """Test risk score with 30 min difference for long distance."""
         # Distance that needs 600 min (10 hours) at 900 km/h
@@ -387,9 +386,9 @@ class TestRiskScoreCalculation:
             actual_time_min=30,
             min_travel_time_min=600
         )
-        
+
         assert score == 95
-    
+
     def test_risk_score_5_min_difference(self, detector):
         """Test risk score with 5 min difference for long distance."""
         # Distance that needs 600 min (10 hours) at 900 km/h
@@ -398,107 +397,107 @@ class TestRiskScoreCalculation:
             actual_time_min=5,
             min_travel_time_min=600
         )
-        
+
         assert score == 99
-    
+
     def test_risk_score_zero_min_travel_time(self, detector):
         """Test risk score when min travel time is zero."""
         score = detector.calculate_risk_score(
             actual_time_min=10,
             min_travel_time_min=0
         )
-        
+
         assert score == 0
 
 
 class TestMinTravelTimeCalculation:
     """Tests for minimum travel time calculation."""
-    
+
     def test_min_travel_time_calculation(self):
         """Test basic travel time calculation."""
         detector = AnomalyDetector(travel_speed_kmh=900)
-        
+
         # 900 km at 900 km/h = 1 hour = 60 minutes
         time = detector.calculate_min_travel_time(900)
         assert time == 60.0
-        
+
         # 1800 km at 900 km/h = 2 hours = 120 minutes
         time = detector.calculate_min_travel_time(1800)
         assert time == 120.0
-    
+
     def test_min_travel_time_zero_distance(self):
         """Test travel time for zero distance."""
         detector = AnomalyDetector(travel_speed_kmh=900)
-        
+
         time = detector.calculate_min_travel_time(0)
         assert time == 0.0
-    
+
     def test_min_travel_time_zero_speed(self):
         """Test travel time with zero speed (should return infinity)."""
         detector = AnomalyDetector(travel_speed_kmh=0)
-        
+
         time = detector.calculate_min_travel_time(100)
         assert time == float('inf')
-    
+
     def test_min_travel_time_negative_speed(self):
         """Test travel time with negative speed (should return infinity)."""
         detector = AnomalyDetector(travel_speed_kmh=-100)
-        
+
         time = detector.calculate_min_travel_time(100)
         assert time == float('inf')
 
 
 class TestNewCountryDetection:
     """Tests for new country detection."""
-    
+
     @pytest.fixture
     def detector(self):
         """Create an AnomalyDetector."""
         return AnomalyDetector()
-    
+
     def test_new_country_first_login(self, detector):
         """Test first login to a country (empty known list)."""
         result = detector.detect_new_country("US", [])
-        
+
         assert result.type == AnomalyType.NEW_COUNTRY
         assert result.detected is True
         assert result.risk_score == 30  # Lower risk for first login
         assert "US" in result.message
-    
+
     def test_new_country_additional(self, detector):
         """Test login from new country when user has history."""
         result = detector.detect_new_country("JP", ["US", "CA"])
-        
+
         assert result.detected is True
         assert result.risk_score == 50  # Moderate risk
         assert "JP" in result.message
         assert "US" in result.message
         assert "CA" in result.message
-    
+
     def test_known_country(self, detector):
         """Test login from known country."""
         result = detector.detect_new_country("US", ["US", "CA"])
-        
+
         assert result.detected is False
         assert result.risk_score == 0
-    
+
     def test_case_insensitive_country_code(self, detector):
         """Test that country codes are case-insensitive."""
         result = detector.detect_new_country("us", ["US"])
-        
+
         assert result.detected is False
-    
+
     def test_second_country_detection(self, detector):
         """Test that second country has different risk score."""
         result = detector.detect_new_country("CA", ["US"])
-        
+
         assert result.detected is True
         assert result.risk_score == 60  # Higher risk for second country
-    
+
     def test_new_country_risk_lower_than_impossible_travel(self, detector):
         """Test that new country has lower risk than impossible travel."""
         country_result = detector.detect_new_country("JP", ["US"])
-        
+
         # Impossible travel with same 30 min time diff would be ~95% risk
         # New country should be lower (second country has risk 60)
         assert country_result.risk_score <= 60
@@ -507,62 +506,62 @@ class TestNewCountryDetection:
 
 class TestNewIPDetection:
     """Tests for new IP detection."""
-    
+
     @pytest.fixture
     def detector(self):
         """Create an AnomalyDetector."""
         return AnomalyDetector()
-    
+
     def test_new_ip_first_login(self, detector):
         """Test first login from any IP."""
         result = detector.detect_new_ip("192.168.1.1", [])
-        
+
         assert result.type == AnomalyType.NEW_IP
         assert result.detected is True
         assert result.risk_score == 10
-    
+
     def test_new_ip_additional(self, detector):
         """Test new IP when user has IP history."""
         result = detector.detect_new_ip("10.0.0.1", ["192.168.1.1"])
-        
+
         assert result.detected is True
         assert result.risk_score == 25
-    
+
     def test_known_ip(self, detector):
         """Test login from known IP."""
         result = detector.detect_new_ip("192.168.1.1", ["192.168.1.1", "10.0.0.1"])
-        
+
         assert result.detected is False
         assert result.risk_score == 0
 
 
 class TestFailedLoginDetection:
     """Tests for failed login detection."""
-    
+
     @pytest.fixture
     def detector(self):
         """Create an AnomalyDetector."""
         return AnomalyDetector()
-    
+
     def test_successful_login(self, detector):
         """Test successful login has no anomaly."""
         result = detector.detect_failed_login(is_success=True)
-        
+
         assert result.type == AnomalyType.FAILED_LOGIN
         assert result.detected is False
         assert result.risk_score == 0
-    
+
     def test_single_failure(self, detector):
         """Test single failed login."""
         result = detector.detect_failed_login(
             is_success=False,
             failure_reason="Invalid password"
         )
-        
+
         assert result.detected is True
         assert result.risk_score == 20
         assert "Invalid password" in result.message
-    
+
     def test_multiple_failures_threshold(self, detector):
         """Test multiple failures at threshold (3 failures = medium risk)."""
         result = detector.detect_failed_login(
@@ -570,11 +569,11 @@ class TestFailedLoginDetection:
             failure_reason="Invalid password",
             recent_failures=3
         )
-        
+
         assert result.type == AnomalyType.MULTIPLE_FAILURES
         assert result.detected is True
         assert result.risk_score == 50
-    
+
     def test_many_failures_high_risk(self, detector):
         """Test 5 failed logins in 10 min = high risk."""
         result = detector.detect_failed_login(
@@ -582,11 +581,11 @@ class TestFailedLoginDetection:
             failure_reason="Account locked",
             recent_failures=5
         )
-        
+
         assert result.type == AnomalyType.MULTIPLE_FAILURES
         assert result.risk_score == 80
         assert "5" in result.message
-    
+
     def test_two_failures_no_flag(self, detector):
         """Test 2 failed logins (below threshold)."""
         result = detector.detect_failed_login(
@@ -594,29 +593,29 @@ class TestFailedLoginDetection:
             failure_reason="Invalid password",
             recent_failures=2
         )
-        
+
         # Should be FAILED_LOGIN, not MULTIPLE_FAILURES
         assert result.type == AnomalyType.FAILED_LOGIN
         assert result.risk_score == 20
-    
+
     def test_risk_escalation_with_failures(self, detector):
         """Test risk escalation with multiple failures."""
         result_1 = detector.detect_failed_login(is_success=False, recent_failures=1)
         result_2 = detector.detect_failed_login(is_success=False, recent_failures=3)
         result_3 = detector.detect_failed_login(is_success=False, recent_failures=5)
-        
+
         # Risk should escalate
         assert result_1.risk_score < result_2.risk_score < result_3.risk_score
 
 
 class TestAnalyzeLogin:
     """Tests for comprehensive login analysis."""
-    
+
     @pytest.fixture
     def detector(self):
         """Create an AnomalyDetector."""
         return AnomalyDetector()
-    
+
     def test_analyze_successful_login_no_anomalies(self, detector):
         """Test analysis of normal successful login."""
         current_login = {
@@ -629,19 +628,19 @@ class TestAnalyzeLogin:
             "login_time": datetime(2024, 1, 1, 12, 0, 0),
             "is_success": True
         }
-        
+
         user_history = {
             "known_countries": ["US"],
             "known_ips": ["192.168.1.1"],
             "failed_attempts_24h": 0
         }
-        
+
         results = detector.analyze_login(current_login, user_history=user_history)
-        
+
         # Should have results but no detected anomalies
         detected = [r for r in results if r.detected]
         assert len(detected) == 0
-    
+
     def test_analyze_failed_login(self, detector):
         """Test analysis of failed login."""
         current_login = {
@@ -651,14 +650,14 @@ class TestAnalyzeLogin:
             "is_success": False,
             "failure_reason": "Invalid credentials"
         }
-        
+
         results = detector.analyze_login(current_login)
-        
+
         # Should detect failed login
         failed_results = [r for r in results if r.type in (AnomalyType.FAILED_LOGIN, AnomalyType.MULTIPLE_FAILURES)]
         assert len(failed_results) > 0
         assert any(r.detected for r in failed_results)
-    
+
     def test_analyze_new_country(self, detector):
         """Test detection of new country."""
         current_login = {
@@ -671,20 +670,20 @@ class TestAnalyzeLogin:
             "login_time": datetime(2024, 1, 1, 12, 0, 0),
             "is_success": True
         }
-        
+
         user_history = {
             "known_countries": ["US"],
             "known_ips": ["192.168.1.1"],
             "failed_attempts_24h": 0
         }
-        
+
         results = detector.analyze_login(current_login, user_history=user_history)
-        
+
         # Should detect new country
         country_results = [r for r in results if r.type == AnomalyType.NEW_COUNTRY]
         assert len(country_results) > 0
         assert country_results[0].detected is True
-    
+
     def test_analyze_impossible_travel(self, detector):
         """Test detection of impossible travel."""
         current_login = {
@@ -697,7 +696,7 @@ class TestAnalyzeLogin:
             "login_time": datetime(2024, 1, 1, 13, 0, 0),  # 1 hour later
             "is_success": True
         }
-        
+
         previous_login = {
             "latitude": 40.7128,
             "longitude": -74.0060,
@@ -705,15 +704,15 @@ class TestAnalyzeLogin:
             "city": "New York",
             "login_time": datetime(2024, 1, 1, 12, 0, 0)
         }
-        
+
         results = detector.analyze_login(current_login, previous_login=previous_login)
-        
+
         # Should detect impossible travel
         travel_results = [r for r in results if r.type == AnomalyType.IMPOSSIBLE_TRAVEL]
         assert len(travel_results) > 0
         assert travel_results[0].detected is True
         assert travel_results[0].risk_score > 90
-    
+
     def test_analyze_missing_geo_data(self, detector):
         """Test graceful handling of missing geo data."""
         current_login = {
@@ -725,12 +724,12 @@ class TestAnalyzeLogin:
             "login_time": datetime(2024, 1, 1, 12, 0, 0),
             "is_success": True
         }
-        
+
         results = detector.analyze_login(current_login, user_history={"known_countries": []})
-        
+
         # Should return results but skip location-based analysis
         assert isinstance(results, list)
-    
+
     def test_analyze_invalid_coordinates(self, detector):
         """Test handling of invalid coordinates."""
         current_login = {
@@ -742,12 +741,12 @@ class TestAnalyzeLogin:
             "login_time": datetime(2024, 1, 1, 12, 0, 0),
             "is_success": True
         }
-        
+
         results = detector.analyze_login(current_login, user_history={"known_countries": []})
-        
+
         # Should handle gracefully
         assert isinstance(results, list)
-    
+
     def test_analyze_with_previous_login_invalid_coords(self, detector):
         """Test handling invalid previous login coordinates."""
         current_login = {
@@ -759,44 +758,44 @@ class TestAnalyzeLogin:
             "login_time": datetime(2024, 1, 1, 12, 0, 0),
             "is_success": True
         }
-        
+
         previous_login = {
             "latitude": 999,  # Invalid
             "longitude": -74.0060,
             "country_code": "US",
             "login_time": datetime(2024, 1, 1, 11, 0, 0)
         }
-        
+
         results = detector.analyze_login(current_login, previous_login=previous_login)
-        
+
         # Should handle gracefully without crashing
         assert isinstance(results, list)
 
 
 class TestAnomalyDetectorConfiguration:
     """Tests for detector configuration."""
-    
+
     def test_default_speed(self):
         """Test default travel speed."""
         detector = AnomalyDetector()
         assert detector.travel_speed_kmh == 900
-    
+
     def test_custom_speed(self):
         """Test custom travel speed."""
         detector = AnomalyDetector(travel_speed_kmh=800)
         assert detector.travel_speed_kmh == 800
-    
+
     def test_custom_speed_affects_calculation(self):
         """Test that custom speed affects travel time calculation."""
         fast_detector = AnomalyDetector(travel_speed_kmh=1000)
         slow_detector = AnomalyDetector(travel_speed_kmh=500)
-        
+
         # Same distance, different speeds
         distance = 1000  # km
-        
+
         fast_time = fast_detector.calculate_min_travel_time(distance)
         slow_time = slow_detector.calculate_min_travel_time(distance)
-        
+
         assert fast_time < slow_time
         assert fast_time == 60  # 1000 km / 1000 km/h = 1 hour = 60 minutes
         assert slow_time == 120  # 1000 km / 500 km/h = 2 hours = 120 minutes
@@ -804,100 +803,100 @@ class TestAnomalyDetectorConfiguration:
 
 class TestFalsePositiveFiltering:
     """Tests for false positive filtering scenarios."""
-    
+
     @pytest.fixture
     def detector(self):
         """Create an AnomalyDetector."""
         return AnomalyDetector()
-    
+
     def test_vpn_usage_same_ip_different_countries(self, detector):
         """Test VPN usage - same IP but different countries (handle gracefully)."""
         # This scenario can happen with VPNs - the IP might geolocate differently
         # The system should handle this gracefully without crashing
-        
+
         result = detector.detect_new_country("US", ["US", "CA"])
         assert result.detected is False  # Known country
-        
+
         # Even if the same IP shows different countries in different lookups,
         # the system tracks countries per user, not per IP
-    
+
     def test_mobile_device_location_jump(self, detector):
         """Test mobile device with location jump (shorter time window)."""
         # Mobile devices can legitimately appear to "jump" locations
         # if they connect through different cell towers or networks
-        
+
         # Within 5 minutes, even large distances are not flagged
         loc1 = Location(latitude=40.7128, longitude=-74.0060)
         loc2 = Location(latitude=35.6762, longitude=139.6503)
-        
+
         prev_time = datetime(2024, 1, 1, 12, 0, 0)
         curr_time = datetime(2024, 1, 1, 12, 3, 0)  # 3 minutes - within threshold
-        
+
         result = detector.detect_impossible_travel(
             prev_location=loc1,
             prev_time=prev_time,
             curr_location=loc2,
             curr_time=curr_time
         )
-        
+
         # Should not flag due to short time window
         assert result.detected is False
-    
+
     def test_timezone_edge_case(self, detector):
         """Test timezone edge cases near midnight."""
         loc1 = Location(latitude=40.7128, longitude=-74.0060)
         loc2 = Location(latitude=34.0522, longitude=-118.2437)
-        
+
         # Login near midnight UTC but with short time diff (below threshold)
         prev_time = datetime(2024, 1, 1, 23, 55, 0)
         curr_time = datetime(2024, 1, 1, 23, 58, 0)  # 3 min later, below 5 min threshold
-        
+
         result = detector.detect_impossible_travel(
             prev_location=loc1,
             prev_time=prev_time,
             curr_location=loc2,
             curr_time=curr_time
         )
-        
+
         # 3 minutes is below the threshold, so should not be flagged
         assert result.detected is False
 
 
 class TestMissingDataHandling:
     """Tests for handling missing or edge case data."""
-    
+
     @pytest.fixture
     def detector(self):
         """Create an AnomalyDetector."""
         return AnomalyDetector()
-    
+
     def test_empty_known_countries_first_login(self, detector):
         """Test empty known countries list (first login ever)."""
         result = detector.detect_new_country("US", [])
-        
+
         assert result.detected is True
         assert result.risk_score == 30
         assert result.details["is_first_login"] is True
-    
+
     def test_none_country_code(self, detector):
         """Test with None country code."""
         result = detector.detect_new_country("US", [])
-        
+
         # Should handle gracefully - test with valid country
         assert result.type == AnomalyType.NEW_COUNTRY
-        
+
         # Test with empty string
         result = detector.detect_new_country("", ["US"])
         assert result.detected is True  # Empty string is not in known countries
-    
+
     def test_missing_prev_country_in_details(self, detector):
         """Test that missing country info is handled in details."""
         loc1 = Location(latitude=40.7128, longitude=-74.0060, city="New York")
         loc2 = Location(latitude=51.5074, longitude=-0.1278, city="London")
-        
+
         prev_time = datetime(2024, 1, 1, 12, 0, 0)
         curr_time = datetime(2024, 1, 1, 13, 0, 0)
-        
+
         result = detector.detect_impossible_travel(
             prev_location=loc1,
             prev_time=prev_time,
@@ -906,7 +905,7 @@ class TestMissingDataHandling:
             prev_country=None,
             curr_country=None
         )
-        
+
         # Should work even with None countries
         assert result.type == AnomalyType.IMPOSSIBLE_TRAVEL
         assert "Unknown" in result.message

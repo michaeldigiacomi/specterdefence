@@ -1,14 +1,12 @@
 """Authentication module for local user authentication with JWT."""
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, List
-from collections import defaultdict
 import time
+from collections import defaultdict
+from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from src.config import settings
@@ -16,21 +14,22 @@ from src.config import settings
 router = APIRouter()
 # Use bcrypt directly to avoid passlib compatibility issues with newer bcrypt versions
 import bcrypt as bcrypt_lib
+
 security = HTTPBearer(auto_error=False)
 
 # Simple in-memory rate limiter for login attempts
 # Key: IP address, Value: list of timestamps
-_login_attempts: Dict[str, List[float]] = defaultdict(list)
+_login_attempts: dict[str, list[float]] = defaultdict(list)
 _MAX_ATTEMPTS = 5  # Max 5 attempts
 _WINDOW_SECONDS = 300  # Within 5 minutes
 _BLOCK_DURATION = 900  # Block for 15 minutes after exceeded
-_blocklist: Dict[str, float] = {}  # IP -> unblock timestamp
+_blocklist: dict[str, float] = {}  # IP -> unblock timestamp
 
 
 def _check_rate_limit(ip_address: str) -> bool:
     """Check if IP is rate limited. Returns True if allowed, False if blocked."""
     now = time.time()
-    
+
     # Check if IP is in blocklist
     if ip_address in _blocklist:
         if now < _blocklist[ip_address]:
@@ -38,19 +37,19 @@ def _check_rate_limit(ip_address: str) -> bool:
         else:
             del _blocklist[ip_address]  # Unblock
             _login_attempts[ip_address] = []  # Clear attempts
-    
+
     # Clean old attempts outside window
     _login_attempts[ip_address] = [
         ts for ts in _login_attempts[ip_address]
         if now - ts < _WINDOW_SECONDS
     ]
-    
+
     # Check if too many attempts
     if len(_login_attempts[ip_address]) >= _MAX_ATTEMPTS:
         # Add to blocklist
         _blocklist[ip_address] = now + _BLOCK_DURATION
         return False
-    
+
     return True
 
 
@@ -99,19 +98,19 @@ def get_password_hash(password: str) -> str:
     return hashed.decode('utf-8')
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(hours=24)
+        expire = datetime.now(UTC) + timedelta(hours=24)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm="HS256")
     return encoded_jwt
 
 
-def verify_token(token: str) -> Optional[dict]:
+def verify_token(token: str) -> dict | None:
     """Verify a JWT token and return the payload."""
     try:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=["HS256"])
@@ -123,7 +122,7 @@ def verify_token(token: str) -> Optional[dict]:
         return None
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[dict]:
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict | None:
     """Dependency to get the current authenticated user."""
     if not credentials:
         raise HTTPException(
@@ -131,7 +130,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     payload = verify_token(credentials.credentials)
     if payload is None:
         raise HTTPException(
@@ -139,7 +138,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     username = payload.get("sub")
     if username != settings.ADMIN_USERNAME:
         raise HTTPException(
@@ -147,7 +146,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail="User not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     return {"username": username}
 
 
@@ -161,7 +160,7 @@ async def login(request: LoginRequest, req: Request):
     """Authenticate user and return JWT token."""
     # Get client IP
     client_ip = req.headers.get("x-forwarded-for", req.client.host).split(",")[0].strip()
-    
+
     # Check rate limit
     if not _check_rate_limit(client_ip):
         raise HTTPException(
@@ -169,10 +168,10 @@ async def login(request: LoginRequest, req: Request):
             detail="Too many login attempts. Please try again in 15 minutes.",
             headers={"Retry-After": "900"},
         )
-    
+
     # Record this attempt
     _record_attempt(client_ip)
-    
+
     # Verify username
     if request.username != settings.ADMIN_USERNAME:
         raise HTTPException(
@@ -180,7 +179,7 @@ async def login(request: LoginRequest, req: Request):
             detail="Invalid username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Verify password
     if not verify_password(request.password, settings.ADMIN_PASSWORD_HASH):
         raise HTTPException(
@@ -188,16 +187,16 @@ async def login(request: LoginRequest, req: Request):
             detail="Invalid username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Clear failed attempts on successful login
     _login_attempts[client_ip] = []
-    
+
     # Create access token (reduced to 2 hours for security)
     access_token_expires = timedelta(hours=2)
     access_token = create_access_token(
         data={"sub": settings.ADMIN_USERNAME}, expires_delta=access_token_expires
     )
-    
+
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
@@ -247,17 +246,17 @@ async def change_password(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Current password is incorrect",
         )
-    
+
     # Validate new password length
     if len(request.new_password) < 8:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="New password must be at least 8 characters long",
         )
-    
+
     # Generate new hash
     new_hash = get_password_hash(request.new_password)
-    
+
     # In a real production environment, we'd update the database or secret
     # For now, return success - the user needs to update the env variable
     return ChangePasswordResponse(

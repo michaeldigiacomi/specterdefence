@@ -2,8 +2,9 @@
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any, List, AsyncGenerator
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from urllib.parse import urljoin
 
 import httpx
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 MANAGEMENT_API_BASE = "https://manage.office.com/api/v1.0"
 CONTENT_TYPES = [
     "Audit.AzureActiveDirectory",
-    "Audit.Exchange", 
+    "Audit.Exchange",
     "Audit.SharePoint",
     "Audit.General",
     "DLP.All",
@@ -64,7 +65,7 @@ class O365ManagementClient:
         self.client_secret = client_secret
         self.max_retries = max_retries
         self.base_delay = base_delay
-        
+
         # MSAL confidential client for token acquisition
         authority = f"{settings.MS_LOGIN_URL}/{tenant_id}"
         self.app = msal.ConfidentialClientApplication(
@@ -72,9 +73,9 @@ class O365ManagementClient:
             client_credential=client_secret,
             authority=authority,
         )
-        
-        self._access_token: Optional[str] = None
-        self._token_expires_at: Optional[datetime] = None
+
+        self._access_token: str | None = None
+        self._token_expires_at: datetime | None = None
 
     async def _get_access_token(self) -> str:
         """Get access token for Management API.
@@ -87,39 +88,39 @@ class O365ManagementClient:
         """
         # Check if we have a valid cached token
         if self._access_token and self._token_expires_at:
-            if datetime.now(timezone.utc) < self._token_expires_at - timedelta(minutes=5):
+            if datetime.now(UTC) < self._token_expires_at - timedelta(minutes=5):
                 return self._access_token
-        
+
         # Try to get token silently from cache
         result = self.app.acquire_token_silent(
             ["https://manage.office.com/.default"],
             account=None
         )
-        
+
         if not result:
             # Fetch new token
             result = self.app.acquire_token_for_client(
                 scopes=["https://manage.office.com/.default"]
             )
-        
+
         if "access_token" not in result:
             error = result.get("error_description", "Unknown error")
             raise O365ManagementAuthError(f"Failed to get access token: {error}")
-        
+
         self._access_token = result["access_token"]
         # Set expiry with buffer
         expires_in = result.get("expires_in", 3600)
-        self._token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in - 300)
-        
+        self._token_expires_at = datetime.now(UTC) + timedelta(seconds=expires_in - 300)
+
         return self._access_token
 
     async def _make_request(
         self,
         method: str,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
         retry_count: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Make authenticated request to Management API with retry logic.
         
         Args:
@@ -137,12 +138,12 @@ class O365ManagementClient:
         """
         token = await self._get_access_token()
         url = urljoin(f"{MANAGEMENT_API_BASE}/{self.tenant_id}/", endpoint)
-        
+
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
-        
+
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.request(
@@ -152,21 +153,21 @@ class O365ManagementClient:
                     params=params,
                     timeout=60.0
                 )
-                
+
                 # Handle rate limiting (429 Too Many Requests)
                 if response.status_code == 429:
                     if retry_count >= self.max_retries:
                         raise RateLimitError(
                             f"Rate limit exceeded after {self.max_retries} retries"
                         )
-                    
+
                     # Get retry-after header or use exponential backoff
                     retry_after = response.headers.get("Retry-After")
                     if retry_after:
                         delay = int(retry_after)
                     else:
                         delay = self.base_delay * (2 ** retry_count)
-                    
+
                     logger.warning(
                         f"Rate limited. Waiting {delay}s before retry {retry_count + 1}/{self.max_retries}"
                     )
@@ -174,7 +175,7 @@ class O365ManagementClient:
                     return await self._make_request(
                         method, endpoint, params, retry_count + 1
                     )
-                
+
                 # Handle other errors
                 if response.status_code == 401:
                     # Token might be expired, clear and retry once
@@ -184,15 +185,15 @@ class O365ManagementClient:
                             method, endpoint, params, retry_count + 1
                         )
                     raise O365ManagementAuthError(f"Authentication failed: {response.text}")
-                
+
                 if response.status_code == 403:
                     raise O365ManagementAuthError(
                         f"Access denied. Check permissions: {response.text}"
                     )
-                
+
                 response.raise_for_status()
                 return response.json()
-                
+
             except httpx.HTTPStatusError as e:
                 raise O365ManagementAPIError(f"HTTP error {e.response.status_code}: {e.response.text}")
             except httpx.RequestError as e:
@@ -205,7 +206,7 @@ class O365ManagementClient:
                     )
                 raise O365ManagementAPIError(f"Request failed after {self.max_retries} retries: {e}")
 
-    async def start_subscription(self, content_type: str) -> Dict[str, Any]:
+    async def start_subscription(self, content_type: str) -> dict[str, Any]:
         """Start a subscription for a content type.
         
         Args:
@@ -214,12 +215,12 @@ class O365ManagementClient:
         Returns:
             Subscription response.
         """
-        endpoint = f"activity/feed/subscriptions/start"
+        endpoint = "activity/feed/subscriptions/start"
         params = {"contentType": content_type}
-        
+
         return await self._make_request("POST", endpoint, params)
 
-    async def list_subscriptions(self) -> List[Dict[str, Any]]:
+    async def list_subscriptions(self) -> list[dict[str, Any]]:
         """List active subscriptions.
         
         Returns:
@@ -229,7 +230,7 @@ class O365ManagementClient:
         result = await self._make_request("GET", endpoint)
         return result if isinstance(result, list) else []
 
-    async def stop_subscription(self, content_type: str) -> Dict[str, Any]:
+    async def stop_subscription(self, content_type: str) -> dict[str, Any]:
         """Stop a subscription for a content type.
         
         Args:
@@ -238,18 +239,18 @@ class O365ManagementClient:
         Returns:
             Stop response.
         """
-        endpoint = f"activity/feed/subscriptions/stop"
+        endpoint = "activity/feed/subscriptions/stop"
         params = {"contentType": content_type}
-        
+
         return await self._make_request("POST", endpoint, params)
 
     async def get_content_blobs(
         self,
         content_type: str,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
-        next_page_uri: Optional[str] = None
-    ) -> Dict[str, Any]:
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        next_page_uri: str | None = None
+    ) -> dict[str, Any]:
         """Get content blob URLs for a content type.
         
         Args:
@@ -272,19 +273,19 @@ class O365ManagementClient:
                 )
                 response.raise_for_status()
                 return response.json()
-        
+
         # Build request with time range
         endpoint = "activity/feed/subscriptions/content"
-        params: Dict[str, str] = {"contentType": content_type}
-        
+        params: dict[str, str] = {"contentType": content_type}
+
         if start_time:
             params["startTime"] = start_time.strftime("%Y-%m-%dT%H:%M:%S")
         if end_time:
             params["endTime"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
-        
+
         return await self._make_request("GET", endpoint, params)
 
-    async def download_content(self, content_uri: str) -> List[Dict[str, Any]]:
+    async def download_content(self, content_uri: str) -> list[dict[str, Any]]:
         """Download content from a blob URL.
         
         Args:
@@ -297,27 +298,27 @@ class O365ManagementClient:
         async with httpx.AsyncClient() as client:
             response = await client.get(content_uri, timeout=60.0)
             response.raise_for_status()
-            
+
             # Content is often newline-delimited JSON
             content = response.text.strip()
             if not content:
                 return []
-            
+
             events = []
             for line in content.split("\n"):
                 line = line.strip()
                 if line:
                     import json
                     events.append(json.loads(line))
-            
+
             return events
 
     async def collect_logs(
         self,
         content_type: str,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None
-    ) -> AsyncGenerator[List[Dict[str, Any]], None]:
+        start_time: datetime | None = None,
+        end_time: datetime | None = None
+    ) -> AsyncGenerator[list[dict[str, Any]], None]:
         """Collect all logs for a content type with pagination.
         
         Args:
@@ -328,10 +329,10 @@ class O365ManagementClient:
         Yields:
             Batches of audit log events.
         """
-        next_page_uri: Optional[str] = None
+        next_page_uri: str | None = None
         total_blobs = 0
         total_events = 0
-        
+
         while True:
             try:
                 result = await self.get_content_blobs(
@@ -340,17 +341,17 @@ class O365ManagementClient:
                     end_time=end_time,
                     next_page_uri=next_page_uri
                 )
-                
+
                 blobs = result.get("contentUri", [])
                 next_page_uri = result.get("nextPageUri")
-                
+
                 if not blobs:
                     logger.info(f"No more blobs for {content_type}")
                     break
-                
+
                 total_blobs += len(blobs)
                 logger.info(f"Processing {len(blobs)} blobs for {content_type} (total: {total_blobs})")
-                
+
                 # Download content from each blob
                 for blob_url in blobs:
                     try:
@@ -358,13 +359,13 @@ class O365ManagementClient:
                         if events:
                             total_events += len(events)
                             yield events
-                            
+
                             # Small delay to be nice to the API
                             await asyncio.sleep(0.1)
                     except Exception as e:
                         logger.error(f"Failed to download content from {blob_url}: {e}")
                         continue
-                
+
                 # If no next page, we're done
                 if not next_page_uri:
                     logger.info(
@@ -372,7 +373,7 @@ class O365ManagementClient:
                         f"{total_blobs} blobs, {total_events} events"
                     )
                     break
-                    
+
             except RateLimitError:
                 logger.error(f"Rate limit exceeded for {content_type}")
                 raise
@@ -380,14 +381,14 @@ class O365ManagementClient:
                 logger.error(f"Error collecting logs for {content_type}: {e}")
                 raise
 
-    async def ensure_subscriptions(self) -> List[str]:
+    async def ensure_subscriptions(self) -> list[str]:
         """Ensure all required content type subscriptions are active.
         
         Returns:
             List of successfully subscribed content types.
         """
         subscribed = []
-        
+
         for content_type in CONTENT_TYPES:
             try:
                 result = await self.start_subscription(content_type)
@@ -401,7 +402,7 @@ class O365ManagementClient:
                     logger.error(f"Failed to subscribe to {content_type}: {e}")
             except Exception as e:
                 logger.error(f"Failed to subscribe to {content_type}: {e}")
-        
+
         return subscribed
 
 

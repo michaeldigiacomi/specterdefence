@@ -1,78 +1,78 @@
 """Models package for SpecterDefence."""
 
-from src.models.tenant import (
-    TenantBase,
-    TenantCreate,
-    TenantUpdate,
-    TenantResponse,
-    TenantDetailResponse,
-    TenantValidationResponse,
-    TenantListResponse,
-    TenantCreateResponse,
+from src.models.alerts import (
+    AlertHistoryModel,
+    AlertRuleModel,
+    AlertWebhookModel,
+    EventType,
+    SeverityLevel,
+    WebhookType,
 )
-from src.models.db import TenantModel
+from src.models.analytics import (
+    AnomalyDetectionConfig,
+    LoginAnalyticsModel,
+    UserLoginHistoryModel,
+)
 from src.models.audit_log import (
     AuditLogModel,
     CollectionStateModel,
     ContentSubscriptionModel,
     LogType,
 )
-from src.models.analytics import (
-    LoginAnalyticsModel,
-    UserLoginHistoryModel,
-    AnomalyDetectionConfig,
-)
-from src.models.alerts import (
-    AlertWebhookModel,
-    AlertRuleModel,
-    AlertHistoryModel,
-    SeverityLevel,
-    EventType,
-    WebhookType,
-)
-from src.models.mailbox_rules import (
-    MailboxRuleModel,
-    MailboxRuleAlertModel,
-    RuleType,
-    RuleSeverity,
-    RuleStatus,
-)
-from src.models.oauth_apps import (
-    OAuthAppModel,
-    OAuthAppConsentModel,
-    OAuthAppAlertModel,
-    OAuthAppPermissionModel,
-    RiskLevel,
-    AppStatus,
-    PublisherType,
-)
 from src.models.dashboard import (
-    TimeRange,
-    LoginActivityPoint,
-    LoginActivityTimeline,
-    GeoLocationPoint,
-    GeoHeatmapData,
-    AnomalyTrendPoint,
-    AnomalyTrendData,
-    TopRiskUser,
-    TopRiskUsersData,
-    AlertVolumePoint,
     AlertVolumeData,
+    AlertVolumePoint,
+    AnomalyTrendData,
+    AnomalyTrendPoint,
     AnomalyTypeBreakdown,
-    DashboardSummary,
     DashboardDataResponse,
+    DashboardSummary,
     ExportRequest,
     ExportResponse,
+    GeoHeatmapData,
+    GeoLocationPoint,
+    LoginActivityPoint,
+    LoginActivityTimeline,
+    TimeRange,
+    TopRiskUser,
+    TopRiskUsersData,
+)
+from src.models.db import TenantModel
+from src.models.mailbox_rules import (
+    MailboxRuleAlertModel,
+    MailboxRuleModel,
+    RuleSeverity,
+    RuleStatus,
+    RuleType,
+)
+from src.models.oauth_apps import (
+    AppStatus,
+    OAuthAppAlertModel,
+    OAuthAppConsentModel,
+    OAuthAppModel,
+    OAuthAppPermissionModel,
+    PublisherType,
+    RiskLevel,
 )
 from src.models.settings import (
-    SystemSettingsModel,
-    UserPreferencesModel,
-    DetectionThresholdsModel,
     ApiKeyModel,
     ConfigurationBackupModel,
-    TimeZone,
+    DetectionThresholdsModel,
     NotificationChannel,
     SettingsCategory,
+    SystemSettingsModel,
+    TimeZone,
+    UserPreferencesModel,
+)
+from src.models.tenant import (
+    TenantBase,
+    TenantCreate,
+    TenantCreateResponse,
+    TenantDetailResponse,
+    TenantListResponse,
+    TenantResponse,
+    TenantUpdate,
+    TenantValidationResponse,
 )
 
 __all__ = [

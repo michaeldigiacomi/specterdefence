@@ -1,34 +1,32 @@
 """MFA Enrollment Tracking API endpoints for SpecterDefence."""
 
-from typing import List, Optional, Dict, Any
 from datetime import datetime
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, status as http_status, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import status as http_status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
-from src.services.mfa_report import MFAReportService
 from src.models.mfa_report import (
-    MFAUserModel,
-    MFAEnrollmentHistoryModel,
-    MFAComplianceAlertModel,
-    MFAStrengthLevel,
-    ComplianceStatus,
-    MFAUserResponse,
-    MFAUserListResponse,
+    MFAComplianceReport,
     MFAEnrollmentSummary,
     MFAEnrollmentTrendsResponse,
-    MFAMethodsDistributionResponse,
-    MFAStrengthDistributionResponse,
-    MFAComplianceReport,
-    MFAScanRequest,
-    MFAScanResponse,
     MFAExemptionRequest,
     MFAExemptionResponse,
+    MFAMethodsDistributionResponse,
     MFAResolveAlertRequest,
     MFAResolveAlertResponse,
+    MFAScanRequest,
+    MFAScanResponse,
+    MFAStrengthDistributionResponse,
+    MFAStrengthLevel,
+    MFAUserListResponse,
+    MFAUserModel,
+    MFAUserResponse,
 )
-from pydantic import BaseModel, Field
+from src.services.mfa_report import MFAReportService
 
 router = APIRouter()
 
@@ -39,7 +37,7 @@ router = APIRouter()
 
 class UsersWithoutMFAResponse(BaseModel):
     """Response model for users without MFA."""
-    items: List[MFAUserResponse]
+    items: list[MFAUserResponse]
     total: int
     limit: int
     offset: int
@@ -48,7 +46,7 @@ class UsersWithoutMFAResponse(BaseModel):
 
 class AdminsWithoutMFAResponse(BaseModel):
     """Response model for admins without MFA."""
-    items: List[MFAUserResponse]
+    items: list[MFAUserResponse]
     total: int
     message: str
 
@@ -117,7 +115,7 @@ async def get_mfa_summary(
         MFA enrollment summary
     """
     summary = await service.get_enrollment_summary(tenant_id=tenant_id)
-    
+
     return MFAEnrollmentSummary(
         tenant_id=summary["tenant_id"],
         snapshot_date=summary["snapshot_date"],
@@ -150,10 +148,10 @@ async def get_mfa_summary(
 )
 async def list_mfa_users(
     tenant_id: str = Query(..., description="Tenant UUID"),
-    is_mfa_registered: Optional[bool] = Query(None, description="Filter by MFA registration"),
-    is_admin: Optional[bool] = Query(None, description="Filter by admin status"),
-    mfa_strength: Optional[str] = Query(None, description="Filter by MFA strength (strong, moderate, weak, none)"),
-    needs_attention: Optional[bool] = Query(None, description="Filter by attention required"),
+    is_mfa_registered: bool | None = Query(None, description="Filter by MFA registration"),
+    is_admin: bool | None = Query(None, description="Filter by admin status"),
+    mfa_strength: str | None = Query(None, description="Filter by MFA strength (strong, moderate, weak, none)"),
+    needs_attention: bool | None = Query(None, description="Filter by attention required"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     service: MFAReportService = Depends(get_mfa_report_service)
@@ -183,7 +181,7 @@ async def list_mfa_users(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid MFA strength: {mfa_strength}. Must be one of: strong, moderate, weak, none"
             )
-    
+
     result = await service.get_users(
         tenant_id=tenant_id,
         is_mfa_registered=is_mfa_registered,
@@ -193,7 +191,7 @@ async def list_mfa_users(
         limit=limit,
         offset=offset,
     )
-    
+
     return MFAUserListResponse(
         items=[_format_user_response(user) for user in result["items"]],
         total=result["total"],
@@ -233,10 +231,10 @@ async def get_users_without_mfa(
         limit=limit,
         offset=offset,
     )
-    
+
     # Count critical findings (admins without MFA)
     critical_count = sum(1 for user in result["items"] if user.is_admin)
-    
+
     return UsersWithoutMFAResponse(
         items=[_format_user_response(user) for user in result["items"]],
         total=result["total"],
@@ -271,14 +269,14 @@ async def get_admins_without_mfa(
         tenant_id=tenant_id,
         limit=limit,
     )
-    
+
     message = (
         f"CRITICAL: {len(admins)} admin(s) without MFA detected! "
         "Immediate action required."
         if admins else
         "All admins have MFA registered."
     )
-    
+
     return AdminsWithoutMFAResponse(
         items=[_format_user_response(admin) for admin in admins],
         total=len(admins),
@@ -311,7 +309,7 @@ async def get_mfa_trends(
         tenant_id=tenant_id,
         days=days,
     )
-    
+
     return MFAEnrollmentTrendsResponse(
         tenant_id=trends["tenant_id"],
         trends=trends["trends"],
@@ -339,7 +337,7 @@ async def get_method_distribution(
         MFA method distribution
     """
     distribution = await service.get_mfa_method_distribution(tenant_id=tenant_id)
-    
+
     return MFAMethodsDistributionResponse(
         tenant_id=distribution["tenant_id"],
         total_mfa_users=distribution["total_mfa_users"],
@@ -367,7 +365,7 @@ async def get_strength_distribution(
         MFA strength distribution
     """
     distribution = await service.get_mfa_strength_distribution(tenant_id=tenant_id)
-    
+
     return MFAStrengthDistributionResponse(
         tenant_id=distribution["tenant_id"],
         distribution=distribution["distribution"],
@@ -399,59 +397,59 @@ async def get_compliance_report(
     """
     # Get summary
     summary = await service.get_enrollment_summary(tenant_id=tenant_id)
-    
+
     # Get non-compliant users
     non_compliant_result = await service.get_users_without_mfa(
         tenant_id=tenant_id,
         include_exempt=False,
         limit=100,
     )
-    
+
     # Get admins without MFA
     admins_without_mfa = await service.get_admins_without_mfa(
         tenant_id=tenant_id,
         limit=100,
     )
-    
+
     # Get users with weak MFA
     weak_mfa_result = await service.get_users(
         tenant_id=tenant_id,
         mfa_strength=MFAStrengthLevel.WEAK,
         limit=100,
     )
-    
+
     # Generate recommendations
     recommendations = []
-    
+
     if admins_without_mfa:
         recommendations.append(
             f"CRITICAL: {len(admins_without_mfa)} admin(s) without MFA. "
             "Immediate enrollment required."
         )
-    
+
     if summary["mfa_coverage_percentage"] < 95:
         recommendations.append(
             f"MFA coverage at {summary['mfa_coverage_percentage']}%. "
             f"Target: 95%+. {summary['non_compliant_users']} users need to enroll."
         )
-    
+
     if summary["weak_mfa_users"] > 0:
         recommendations.append(
             f"{summary['weak_mfa_users']} user(s) using weak MFA (SMS/Voice). "
             "Recommend upgrading to Authenticator app or FIDO2."
         )
-    
+
     if summary["strong_mfa_users"] == 0 and summary["mfa_registered_users"] > 0:
         recommendations.append(
             "No users with strong MFA (FIDO2/Hardware tokens). "
             "Consider promoting FIDO2 adoption for high-security accounts."
         )
-    
+
     if not recommendations:
         recommendations.append(
             "Excellent MFA posture! Maintain current compliance levels."
         )
-    
+
     return MFAComplianceReport(
         tenant_id=tenant_id,
         generated_at=datetime.utcnow(),
@@ -514,7 +512,7 @@ async def scan_mfa(
             full_scan=request.full_scan,
             check_compliance=request.check_compliance,
         )
-        
+
         return MFAScanResponse(
             success=results["success"],
             tenant_id=request.tenant_id,
@@ -563,20 +561,20 @@ async def set_user_exemption(
     """
     # For revocation, use empty reason
     exempt = bool(request.exemption_reason)
-    
+
     user = await service.set_user_exemption(
         user_id=user_id,
         exempt=exempt,
         reason=request.exemption_reason,
         expires_at=request.expires_at,
     )
-    
+
     if not user:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"User with ID {user_id} not found"
         )
-    
+
     return MFAExemptionResponse(
         success=True,
         user_id=user_id,
@@ -593,18 +591,18 @@ async def set_user_exemption(
 
 @router.get(
     "/alerts",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
     summary="List MFA compliance alerts",
     description="List MFA compliance alerts with optional filtering."
 )
 async def list_mfa_alerts(
-    tenant_id: Optional[str] = Query(None, description="Tenant UUID"),
-    resolved: Optional[bool] = Query(None, description="Filter by resolution status"),
-    severity: Optional[str] = Query(None, description="Filter by severity (critical, high, medium, low)"),
+    tenant_id: str | None = Query(None, description="Tenant UUID"),
+    resolved: bool | None = Query(None, description="Filter by resolution status"),
+    severity: str | None = Query(None, description="Filter by severity (critical, high, medium, low)"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     service: MFAReportService = Depends(get_mfa_report_service)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """List MFA compliance alerts.
     
     Args:
@@ -625,7 +623,7 @@ async def list_mfa_alerts(
         limit=limit,
         offset=offset,
     )
-    
+
     return {
         "items": [
             {
@@ -674,13 +672,13 @@ async def resolve_alert(
         alert_id=alert_id,
         resolved_by=request.resolved_by,
     )
-    
+
     if not alert:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Alert with ID {alert_id} not found"
         )
-    
+
     return MFAResolveAlertResponse(
         success=True,
         alert_id=alert_id,

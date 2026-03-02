@@ -2,7 +2,7 @@
 
 import base64
 import hashlib
-import os
+
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -19,9 +19,9 @@ class EncryptionService:
         secret_key = getattr(settings, 'ENCRYPTION_KEY', settings.SECRET_KEY)
         if not secret_key:
             raise ValueError("ENCRYPTION_KEY or SECRET_KEY must be set")
-        
+
         secret_key_bytes = secret_key.encode()
-        
+
         # Use configurable salt from environment, or derive from secret key
         # In production, ENCRYPTION_SALT should be set to a unique value
         salt_input = getattr(settings, 'ENCRYPTION_SALT', None)
@@ -31,7 +31,7 @@ class EncryptionService:
         else:
             # Derive salt from secret key (deterministic but unique per deployment)
             salt = hashlib.sha256(secret_key_bytes).digest()[:16]
-        
+
         # OWASP 2023 recommendation: 600,000 iterations for SHA256
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),

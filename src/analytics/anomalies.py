@@ -1,11 +1,11 @@
 """Anomaly detection engine for login analytics."""
 
-import math
 import logging
+import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any, Tuple
+from datetime import datetime
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -23,23 +23,23 @@ class AnomalyType(str, Enum):
 @dataclass
 class AnomalyResult:
     """Result of anomaly detection."""
-    
+
     type: AnomalyType
     detected: bool
     risk_score: int  # 0-100
-    details: Dict[str, Any]
+    details: dict[str, Any]
     message: str
 
 
 @dataclass
 class Location:
     """Geographic location with coordinates."""
-    
+
     latitude: float
     longitude: float
-    country: Optional[str] = None
-    city: Optional[str] = None
-    
+    country: str | None = None
+    city: str | None = None
+
     def __post_init__(self):
         """Validate coordinates."""
         if not (-90 <= self.latitude <= 90):
@@ -50,16 +50,16 @@ class Location:
 
 class AnomalyDetector:
     """Detects anomalies in login patterns."""
-    
+
     # Earth's radius in kilometers
     EARTH_RADIUS_KM = 6371.0
-    
+
     # Default travel speed assumption (km/h) - commercial flight average
     DEFAULT_TRAVEL_SPEED_KMH = 900
-    
+
     # Minimum time between logins to consider (in minutes) for impossible travel
     MIN_TIME_DIFFERENCE_MINUTES = 5
-    
+
     def __init__(self, travel_speed_kmh: float = DEFAULT_TRAVEL_SPEED_KMH):
         """
         Initialize the anomaly detector.
@@ -68,7 +68,7 @@ class AnomalyDetector:
             travel_speed_kmh: Assumed travel speed in km/h for impossible travel detection
         """
         self.travel_speed_kmh = travel_speed_kmh
-    
+
     @staticmethod
     def haversine_distance(loc1: Location, loc2: Location) -> float:
         """
@@ -88,14 +88,14 @@ class AnomalyDetector:
         lat2_rad = math.radians(loc2.latitude)
         delta_lat = math.radians(loc2.latitude - loc1.latitude)
         delta_lon = math.radians(loc2.longitude - loc1.longitude)
-        
+
         # Haversine formula
-        a = (math.sin(delta_lat / 2) ** 2 + 
+        a = (math.sin(delta_lat / 2) ** 2 +
              math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2)
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        
+
         return AnomalyDetector.EARTH_RADIUS_KM * c
-    
+
     def calculate_min_travel_time(self, distance_km: float) -> float:
         """
         Calculate minimum travel time between two points.
@@ -108,10 +108,10 @@ class AnomalyDetector:
         """
         if self.travel_speed_kmh <= 0:
             return float('inf')
-        
+
         # time = distance / speed, convert hours to minutes
         return (distance_km / self.travel_speed_kmh) * 60
-    
+
     def calculate_risk_score(self, actual_time_min: float, min_travel_time_min: float) -> int:
         """
         Calculate risk score for impossible travel.
@@ -128,25 +128,25 @@ class AnomalyDetector:
         """
         if min_travel_time_min <= 0:
             return 0
-        
+
         if actual_time_min >= min_travel_time_min:
             return 0
-        
+
         # Calculate ratio: how much shorter was the actual time?
         ratio = actual_time_min / min_travel_time_min
-        
+
         # Risk score: 100 - (ratio * 100), but cap at 100
         risk_score = int(100 - (ratio * 100))
         return min(100, max(0, risk_score))
-    
+
     def detect_impossible_travel(
         self,
         prev_location: Location,
         prev_time: datetime,
         curr_location: Location,
         curr_time: datetime,
-        prev_country: Optional[str] = None,
-        curr_country: Optional[str] = None
+        prev_country: str | None = None,
+        curr_country: str | None = None
     ) -> AnomalyResult:
         """
         Detect if travel between two login locations is physically impossible.
@@ -165,7 +165,7 @@ class AnomalyDetector:
         # Calculate time difference
         time_diff = curr_time - prev_time
         time_diff_minutes = abs(time_diff.total_seconds() / 60)
-        
+
         # Skip if time difference is too small (same session, etc.)
         if time_diff_minutes < self.MIN_TIME_DIFFERENCE_MINUTES:
             return AnomalyResult(
@@ -178,23 +178,23 @@ class AnomalyDetector:
                 },
                 message="Time difference too small for travel analysis"
             )
-        
+
         # Calculate distance
         distance_km = self.haversine_distance(prev_location, curr_location)
-        
+
         # Calculate minimum travel time
         min_travel_time = self.calculate_min_travel_time(distance_km)
-        
+
         # Check if travel is impossible
         is_impossible = time_diff_minutes < min_travel_time
-        
+
         # Calculate risk score
         risk_score = self.calculate_risk_score(time_diff_minutes, min_travel_time)
-        
+
         # Build location strings
         prev_location_str = f"{prev_location.city}, {prev_country or 'Unknown'}" if prev_location.city else f"{prev_country or 'Unknown'}"
         curr_location_str = f"{curr_location.city}, {curr_country or 'Unknown'}" if curr_location.city else f"{curr_country or 'Unknown'}"
-        
+
         details = {
             "distance_km": round(distance_km, 2),
             "time_diff_minutes": round(time_diff_minutes, 2),
@@ -214,7 +214,7 @@ class AnomalyDetector:
             },
             "location_strings": [prev_location_str, curr_location_str]
         }
-        
+
         if is_impossible:
             message = (
                 f"Impossible travel detected: {prev_location_str} to {curr_location_str} "
@@ -226,7 +226,7 @@ class AnomalyDetector:
                 f"Travel possible: {prev_location_str} to {curr_location_str} "
                 f"in {time_diff_minutes:.0f} minutes (minimum required: {min_travel_time:.0f} minutes)"
             )
-        
+
         return AnomalyResult(
             type=AnomalyType.IMPOSSIBLE_TRAVEL,
             detected=is_impossible,
@@ -234,11 +234,11 @@ class AnomalyDetector:
             details=details,
             message=message
         )
-    
+
     def detect_new_country(
         self,
         country_code: str,
-        known_countries: List[str]
+        known_countries: list[str]
     ) -> AnomalyResult:
         """
         Detect if login is from a new country for the user.
@@ -252,9 +252,9 @@ class AnomalyDetector:
         """
         country_code = country_code.upper()
         known_countries_upper = [c.upper() for c in known_countries]
-        
+
         is_new = country_code not in known_countries_upper
-        
+
         # Risk score: higher for first login, lower if user has traveled before
         if is_new:
             if len(known_countries) == 0:
@@ -265,18 +265,18 @@ class AnomalyDetector:
                 risk_score = 50  # Experienced traveler
         else:
             risk_score = 0
-        
+
         details = {
             "country_code": country_code,
             "known_countries": known_countries,
             "is_first_login": len(known_countries) == 0
         }
-        
+
         if is_new:
             message = f"New country detected: {country_code}. Previously seen: {', '.join(known_countries) or 'None'}"
         else:
             message = f"Known country: {country_code}"
-        
+
         return AnomalyResult(
             type=AnomalyType.NEW_COUNTRY,
             detected=is_new,
@@ -284,11 +284,11 @@ class AnomalyDetector:
             details=details,
             message=message
         )
-    
+
     def detect_new_ip(
         self,
         ip_address: str,
-        known_ips: List[str]
+        known_ips: list[str]
     ) -> AnomalyResult:
         """
         Detect if login is from a new IP address for the user.
@@ -301,7 +301,7 @@ class AnomalyDetector:
             AnomalyResult with detection status
         """
         is_new = ip_address not in known_ips
-        
+
         # Risk score based on user's IP history
         if is_new:
             if len(known_ips) == 0:
@@ -310,15 +310,15 @@ class AnomalyDetector:
                 risk_score = 25
         else:
             risk_score = 0
-        
+
         details = {
             "ip_address": ip_address,
             "known_ips_count": len(known_ips),
             "is_new": is_new
         }
-        
+
         message = f"New IP address detected: {ip_address}" if is_new else f"Known IP address: {ip_address}"
-        
+
         return AnomalyResult(
             type=AnomalyType.NEW_IP,
             detected=is_new,
@@ -326,11 +326,11 @@ class AnomalyDetector:
             details=details,
             message=message
         )
-    
+
     def detect_failed_login(
         self,
         is_success: bool,
-        failure_reason: Optional[str] = None,
+        failure_reason: str | None = None,
         recent_failures: int = 0
     ) -> AnomalyResult:
         """
@@ -352,10 +352,10 @@ class AnomalyDetector:
                 details={"recent_failures": recent_failures},
                 message="Login successful"
             )
-        
+
         # Base risk score for failed login
         risk_score = 20
-        
+
         # Increase risk for multiple failures
         if recent_failures >= 5:
             risk_score = 80
@@ -366,18 +366,18 @@ class AnomalyDetector:
         else:
             risk_score = 20
             detected_type = AnomalyType.FAILED_LOGIN
-        
+
         details = {
             "failure_reason": failure_reason,
             "recent_failures": recent_failures,
             "is_multiple": recent_failures >= 3
         }
-        
+
         if recent_failures >= 3:
             message = f"Multiple failed login attempts ({recent_failures} in 24h). Last reason: {failure_reason or 'Unknown'}"
         else:
             message = f"Failed login: {failure_reason or 'Unknown reason'}"
-        
+
         return AnomalyResult(
             type=detected_type,
             detected=True,
@@ -385,13 +385,13 @@ class AnomalyDetector:
             details=details,
             message=message
         )
-    
+
     def analyze_login(
         self,
-        current_login: Dict[str, Any],
-        previous_login: Optional[Dict[str, Any]] = None,
-        user_history: Optional[Dict[str, Any]] = None
-    ) -> List[AnomalyResult]:
+        current_login: dict[str, Any],
+        previous_login: dict[str, Any] | None = None,
+        user_history: dict[str, Any] | None = None
+    ) -> list[AnomalyResult]:
         """
         Perform complete anomaly analysis on a login attempt.
         
@@ -404,29 +404,29 @@ class AnomalyDetector:
             List of anomaly detection results
         """
         results = []
-        
+
         # Detect failed login
         is_success = current_login.get("is_success", True)
         failure_reason = current_login.get("failure_reason")
         recent_failures = user_history.get("failed_attempts_24h", 0) if user_history else 0
-        
+
         failure_result = self.detect_failed_login(is_success, failure_reason, recent_failures)
         results.append(failure_result)
-        
+
         # Skip location-based analysis for failed logins
         if not is_success:
             return results
-        
+
         # Get current location
         curr_lat = current_login.get("latitude")
         curr_lon = current_login.get("longitude")
         curr_country = current_login.get("country_code")
         curr_ip = current_login.get("ip_address")
-        
+
         if curr_lat is None or curr_lon is None:
             logger.warning("Cannot perform location analysis without coordinates")
             return results
-        
+
         try:
             curr_location = Location(
                 latitude=curr_lat,
@@ -437,19 +437,19 @@ class AnomalyDetector:
         except ValueError as e:
             logger.error(f"Invalid current location: {e}")
             return results
-        
+
         # Detect new country
         if user_history and curr_country:
             known_countries = user_history.get("known_countries", [])
             country_result = self.detect_new_country(curr_country, known_countries)
             results.append(country_result)
-        
+
         # Detect new IP
         if user_history and curr_ip:
             known_ips = user_history.get("known_ips", [])
             ip_result = self.detect_new_ip(curr_ip, known_ips)
             results.append(ip_result)
-        
+
         # Detect impossible travel
         if previous_login:
             prev_lat = previous_login.get("latitude")
@@ -457,8 +457,8 @@ class AnomalyDetector:
             prev_time = previous_login.get("login_time")
             prev_country = previous_login.get("country_code")
             curr_time = current_login.get("login_time")
-            
-            if (prev_lat is not None and prev_lon is not None and 
+
+            if (prev_lat is not None and prev_lon is not None and
                 prev_time is not None and curr_time is not None):
                 try:
                     prev_location = Location(
@@ -467,7 +467,7 @@ class AnomalyDetector:
                         country=prev_country,
                         city=previous_login.get("city")
                     )
-                    
+
                     travel_result = self.detect_impossible_travel(
                         prev_location=prev_location,
                         prev_time=prev_time,
@@ -477,8 +477,8 @@ class AnomalyDetector:
                         curr_country=curr_country
                     )
                     results.append(travel_result)
-                    
+
                 except ValueError as e:
                     logger.error(f"Invalid previous location: {e}")
-        
+
         return results

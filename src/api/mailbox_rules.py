@@ -1,21 +1,18 @@
 """Mailbox rule API endpoints for SpecterDefence."""
 
-from typing import List, Optional
-from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status as http_status, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import status as http_status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
-from src.services.mailbox_rules import MailboxRuleService
 from src.models.mailbox_rules import (
-    MailboxRuleModel,
-    MailboxRuleAlertModel,
-    RuleType,
     RuleSeverity,
     RuleStatus,
+    RuleType,
 )
-from pydantic import BaseModel, Field
+from src.services.mailbox_rules import MailboxRuleService
 
 router = APIRouter()
 
@@ -35,29 +32,29 @@ class MailboxRuleResponse(BaseModel):
     is_enabled: bool
     status: str
     severity: str
-    forward_to: Optional[str]
+    forward_to: str | None
     forward_to_external: bool
-    external_domain: Optional[str]
-    redirect_to: Optional[str]
+    external_domain: str | None
+    redirect_to: str | None
     is_hidden_folder_redirect: bool
     has_suspicious_patterns: bool
     created_outside_business_hours: bool
     created_by_non_owner: bool
-    created_by: Optional[str]
-    detection_reasons: List[str]
-    rule_created_at: Optional[str]
-    rule_modified_at: Optional[str]
+    created_by: str | None
+    detection_reasons: list[str]
+    rule_created_at: str | None
+    rule_modified_at: str | None
     last_scan_at: str
     created_at: str
     updated_at: str
-    
+
     class Config:
         from_attributes = True
 
 
 class MailboxRuleListResponse(BaseModel):
     """Response model for listing mailbox rules."""
-    items: List[MailboxRuleResponse]
+    items: list[MailboxRuleResponse]
     total: int
     limit: int
     offset: int
@@ -74,17 +71,17 @@ class MailboxRuleAlertResponse(BaseModel):
     title: str
     description: str
     is_acknowledged: bool
-    acknowledged_by: Optional[str]
-    acknowledged_at: Optional[str]
+    acknowledged_by: str | None
+    acknowledged_at: str | None
     created_at: str
-    
+
     class Config:
         from_attributes = True
 
 
 class MailboxRuleAlertListResponse(BaseModel):
     """Response model for listing mailbox rule alerts."""
-    items: List[MailboxRuleAlertResponse]
+    items: list[MailboxRuleAlertResponse]
     total: int
     limit: int
     offset: int
@@ -92,7 +89,7 @@ class MailboxRuleAlertListResponse(BaseModel):
 
 class ScanRequest(BaseModel):
     """Request model for triggering a mailbox rule scan."""
-    tenant_id: Optional[str] = Field(
+    tenant_id: str | None = Field(
         None,
         description="Specific tenant to scan (if not provided, scans all tenants)"
     )
@@ -105,7 +102,7 @@ class ScanRequest(BaseModel):
 class ScanResponse(BaseModel):
     """Response model for scan operation."""
     success: bool
-    tenant_id: Optional[str]
+    tenant_id: str | None
     results: dict
     message: str
 
@@ -118,7 +115,7 @@ class AcknowledgeAlertRequest(BaseModel):
 class AcknowledgeAlertResponse(BaseModel):
     """Response model for acknowledging an alert."""
     success: bool
-    alert: Optional[MailboxRuleAlertResponse]
+    alert: MailboxRuleAlertResponse | None
     message: str
 
 
@@ -151,11 +148,11 @@ async def get_mailbox_rule_service(db: AsyncSession = Depends(get_db)) -> Mailbo
     description="List mailbox rules across all tenants with optional filtering."
 )
 async def list_mailbox_rules(
-    tenant_id: Optional[str] = None,
-    user_email: Optional[str] = None,
-    status: Optional[str] = None,
-    severity: Optional[str] = None,
-    rule_type: Optional[str] = None,
+    tenant_id: str | None = None,
+    user_email: str | None = None,
+    status: str | None = None,
+    severity: str | None = None,
+    rule_type: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
@@ -179,7 +176,7 @@ async def list_mailbox_rules(
     status_enum = None
     severity_enum = None
     type_enum = None
-    
+
     if status:
         try:
             status_enum = RuleStatus(status.lower())
@@ -188,7 +185,7 @@ async def list_mailbox_rules(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid status: {status}"
             )
-    
+
     if severity:
         try:
             severity_enum = RuleSeverity(severity.upper())
@@ -197,7 +194,7 @@ async def list_mailbox_rules(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid severity: {severity}"
             )
-    
+
     if rule_type:
         try:
             type_enum = RuleType(rule_type.lower())
@@ -206,7 +203,7 @@ async def list_mailbox_rules(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid rule type: {rule_type}"
             )
-    
+
     result = await service.get_rules(
         tenant_id=tenant_id,
         user_email=user_email,
@@ -216,7 +213,7 @@ async def list_mailbox_rules(
         limit=limit,
         offset=offset
     )
-    
+
     return MailboxRuleListResponse(
         items=[
             MailboxRuleResponse(
@@ -281,7 +278,7 @@ async def get_mailbox_rule(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Mailbox rule with ID {rule_id} not found"
         )
-    
+
     return MailboxRuleResponse(
         id=str(rule.id),
         tenant_id=rule.tenant_id,
@@ -318,8 +315,8 @@ async def get_mailbox_rule(
 )
 async def get_tenant_mailbox_rules(
     tenant_id: str,
-    status: Optional[str] = None,
-    severity: Optional[str] = None,
+    status: str | None = None,
+    severity: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
@@ -340,7 +337,7 @@ async def get_tenant_mailbox_rules(
     # Convert string enums
     status_enum = None
     severity_enum = None
-    
+
     if status:
         try:
             status_enum = RuleStatus(status.lower())
@@ -349,7 +346,7 @@ async def get_tenant_mailbox_rules(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid status: {status}"
             )
-    
+
     if severity:
         try:
             severity_enum = RuleSeverity(severity.upper())
@@ -358,7 +355,7 @@ async def get_tenant_mailbox_rules(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid severity: {severity}"
             )
-    
+
     result = await service.get_rules(
         tenant_id=tenant_id,
         status=status_enum,
@@ -366,7 +363,7 @@ async def get_tenant_mailbox_rules(
         limit=limit,
         offset=offset
     )
-    
+
     return MailboxRuleListResponse(
         items=[
             MailboxRuleResponse(
@@ -405,7 +402,7 @@ async def get_tenant_mailbox_rules(
 
 @router.get(
     "/tenants/{tenant_id}/suspicious",
-    response_model=List[MailboxRuleResponse],
+    response_model=list[MailboxRuleResponse],
     summary="Get suspicious rules",
     description="Get suspicious and malicious mailbox rules for a tenant."
 )
@@ -413,7 +410,7 @@ async def get_suspicious_rules(
     tenant_id: str,
     limit: int = Query(default=100, ge=1, le=500),
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
-) -> List[MailboxRuleResponse]:
+) -> list[MailboxRuleResponse]:
     """Get suspicious and malicious mailbox rules.
     
     Args:
@@ -425,7 +422,7 @@ async def get_suspicious_rules(
         List of suspicious/malicious rules
     """
     rules = await service.get_suspicious_rules(tenant_id=tenant_id, limit=limit)
-    
+
     return [
         MailboxRuleResponse(
             id=str(rule.id),
@@ -489,13 +486,13 @@ async def scan_mailbox_rules(
             status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="tenant_id is required"
         )
-    
+
     try:
         results = await service.scan_tenant_mailbox_rules(
             tenant_id=request.tenant_id,
             trigger_alerts=request.trigger_alerts
         )
-        
+
         return ScanResponse(
             success=True,
             tenant_id=request.tenant_id,
@@ -526,9 +523,9 @@ async def scan_mailbox_rules(
     description="List mailbox rule alerts with optional filtering."
 )
 async def list_mailbox_rule_alerts(
-    tenant_id: Optional[str] = None,
-    acknowledged: Optional[bool] = None,
-    severity: Optional[str] = None,
+    tenant_id: str | None = None,
+    acknowledged: bool | None = None,
+    severity: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
@@ -555,7 +552,7 @@ async def list_mailbox_rule_alerts(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid severity: {severity}"
             )
-    
+
     result = await service.get_alerts(
         tenant_id=tenant_id,
         acknowledged=acknowledged,
@@ -563,7 +560,7 @@ async def list_mailbox_rule_alerts(
         limit=limit,
         offset=offset
     )
-    
+
     return MailboxRuleAlertListResponse(
         items=[
             MailboxRuleAlertResponse(
@@ -613,13 +610,13 @@ async def acknowledge_alert(
         HTTPException: If alert not found
     """
     alert = await service.acknowledge_alert(alert_id, request.acknowledged_by)
-    
+
     if not alert:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Alert with ID {alert_id} not found"
         )
-    
+
     return AcknowledgeAlertResponse(
         success=True,
         alert=MailboxRuleAlertResponse(
@@ -663,35 +660,34 @@ async def get_rules_summary(
     Returns:
         Summary of suspicious rules
     """
-    from sqlalchemy import func
-    
+
     # Get suspicious and malicious rules
     suspicious_rules = await service.get_suspicious_rules(
         tenant_id=tenant_id,
         limit=1000
     )
-    
+
     # Calculate summary stats
     total_suspicious = sum(1 for r in suspicious_rules if r.status == RuleStatus.SUSPICIOUS)
     total_malicious = sum(1 for r in suspicious_rules if r.status == RuleStatus.MALICIOUS)
-    
+
     by_severity = {}
     by_type = {}
-    
+
     for rule in suspicious_rules:
         severity = rule.severity.value
         rule_type = rule.rule_type.value
-        
+
         by_severity[severity] = by_severity.get(severity, 0) + 1
         by_type[rule_type] = by_type.get(rule_type, 0) + 1
-    
+
     # Get recent alerts count
     alerts_result = await service.get_alerts(
         tenant_id=tenant_id,
         limit=1000
     )
     recent_alerts = alerts_result["total"]
-    
+
     return SuspiciousRulesSummary(
         total_suspicious=total_suspicious,
         total_malicious=total_malicious,

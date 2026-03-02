@@ -1,10 +1,11 @@
 """Unit tests for mailbox rules client."""
 
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.clients.mailbox_rules import MailboxRuleClient, MSGraphAPIError
+import pytest
+
+from src.clients.mailbox_rules import MailboxRuleClient
 from src.clients.ms_graph import MSGraphClient
 
 
@@ -296,22 +297,22 @@ class TestMailboxRuleClient:
     def test_is_outside_business_hours(self, mailbox_client):
         """Test business hours detection."""
         # Weekday business hours (9 AM - 6 PM)
-        weekday_morning = datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc)  # Monday 10 AM
+        weekday_morning = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)  # Monday 10 AM
         assert mailbox_client._is_outside_business_hours(weekday_morning) is False
 
         # Weekday before hours
-        weekday_early = datetime(2024, 1, 15, 7, 0, 0, tzinfo=timezone.utc)  # Monday 7 AM
+        weekday_early = datetime(2024, 1, 15, 7, 0, 0, tzinfo=UTC)  # Monday 7 AM
         assert mailbox_client._is_outside_business_hours(weekday_early) is True
 
         # Weekday after hours
-        weekday_late = datetime(2024, 1, 15, 20, 0, 0, tzinfo=timezone.utc)  # Monday 8 PM
+        weekday_late = datetime(2024, 1, 15, 20, 0, 0, tzinfo=UTC)  # Monday 8 PM
         assert mailbox_client._is_outside_business_hours(weekday_late) is True
 
         # Weekend
-        saturday = datetime(2024, 1, 13, 10, 0, 0, tzinfo=timezone.utc)  # Saturday 10 AM
+        saturday = datetime(2024, 1, 13, 10, 0, 0, tzinfo=UTC)  # Saturday 10 AM
         assert mailbox_client._is_outside_business_hours(saturday) is True
 
-        sunday = datetime(2024, 1, 14, 14, 0, 0, tzinfo=timezone.utc)  # Sunday 2 PM
+        sunday = datetime(2024, 1, 14, 14, 0, 0, tzinfo=UTC)  # Sunday 2 PM
         assert mailbox_client._is_outside_business_hours(sunday) is True
 
     def test_calculate_severity_critical(self, mailbox_client):

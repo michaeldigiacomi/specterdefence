@@ -2,16 +2,16 @@
 
 import asyncio
 import os
-from datetime import datetime, timezone
-from typing import AsyncGenerator, Generator
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import uuid
+from collections.abc import AsyncGenerator, Generator
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 # Set testing environment variables before importing app
 os.environ['TESTING'] = 'true'
@@ -23,16 +23,15 @@ os.environ['ENCRYPTION_SALT'] = 'test-salt-for-encryption-32chars'
 
 from src.database import Base, get_db
 from src.main import app
-from src.models.db import TenantModel
-from src.models.tenant import TenantCreate, TenantResponse
 from src.models.alerts import (
-    SeverityLevel,
-    EventType,
-    AlertWebhookModel,
     AlertRuleModel,
+    AlertWebhookModel,
+    EventType,
+    SeverityLevel,
     WebhookType,
 )
-
+from src.models.db import TenantModel
+from src.models.tenant import TenantCreate
 
 # =============================================================================
 # Database Fixtures
@@ -53,15 +52,15 @@ def event_loop():
 async def test_engine():
     """Create a test database engine (function-scoped to avoid scope mismatch)."""
     engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
-    
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     yield engine
-    
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
-    
+
     await engine.dispose()
 
 
@@ -72,7 +71,7 @@ async def test_db(test_engine):
     async with test_engine.connect() as conn:
         # Begin a transaction
         trans = await conn.begin()
-        
+
         # Create a session bound to the connection
         async_session = async_sessionmaker(
             conn,
@@ -80,10 +79,10 @@ async def test_db(test_engine):
             expire_on_commit=False,
             autoflush=False,
         )
-        
+
         async with async_session() as session:
             yield session
-        
+
         # Rollback the transaction after the test
         await trans.rollback()
 
@@ -108,17 +107,17 @@ async def async_db_session(test_db) -> AsyncGenerator[AsyncSession, None]:
 async def test_client(test_db) -> AsyncGenerator[AsyncClient, None]:
     """Create an async test client with database override."""
     from httpx import ASGITransport
-    
+
     async def override_get_db():
         yield test_db
-    
+
     # Override the dependency
     app.dependency_overrides[get_db] = override_get_db
-    
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
-    
+
     # Clean up override
     app.dependency_overrides.clear()
 
@@ -127,17 +126,17 @@ async def test_client(test_db) -> AsyncGenerator[AsyncClient, None]:
 async def async_client(test_db) -> AsyncGenerator[AsyncClient, None]:
     """Alias for test_client fixture."""
     from httpx import ASGITransport
-    
+
     async def override_get_db():
         yield test_db
-    
+
     # Override the dependency
     app.dependency_overrides[get_db] = override_get_db
-    
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
-    
+
     # Clean up override
     app.dependency_overrides.clear()
 
@@ -145,7 +144,12 @@ async def async_client(test_db) -> AsyncGenerator[AsyncClient, None]:
 @pytest.fixture
 def mock_db():
     """Create a mock database session."""
-    return MagicMock(spec=AsyncSession)
+    mock = MagicMock(spec=AsyncSession)
+    # Make execute and commit methods return awaitable mocks
+    mock.execute = AsyncMock()
+    mock.commit = AsyncMock()
+    mock.refresh = AsyncMock()
+    return mock
 
 
 @pytest.fixture
@@ -191,8 +195,8 @@ async def sample_tenant(test_db) -> TenantModel:
         client_id="87654321-4321-4321-4321-210987654321",
         client_secret="encrypted-secret-placeholder",
         is_active=True,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     test_db.add(tenant)
     await test_db.commit()
@@ -212,16 +216,16 @@ async def sample_tenants(test_db) -> list[TenantModel]:
             client_id=f"{i+10:08d}-{i+10:04d}-{i+10:04d}-{i+10:04d}-{i+10:012d}",
             client_secret=f"encrypted-secret-{i}",
             is_active=True,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         test_db.add(tenant)
         tenants.append(tenant)
-    
+
     await test_db.commit()
     for tenant in tenants:
         await test_db.refresh(tenant)
-    
+
     return tenants
 
 
@@ -333,7 +337,7 @@ def mock_ms_graph_client(mock_msal_app):
     """Return a mock MSGraphClient instance."""
     with patch("src.clients.ms_graph.msal.ConfidentialClientApplication") as mock_msal_class:
         mock_msal_class.return_value = mock_msal_app
-        
+
         from src.clients.ms_graph import MSGraphClient
         client = MSGraphClient(
             tenant_id="test-tenant-id",
@@ -368,7 +372,7 @@ async def sample_webhook(test_db) -> AlertWebhookModel:
         webhook_url="encrypted-webhook-url",
         webhook_type=WebhookType.DISCORD,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     test_db.add(webhook)
     await test_db.commit()
@@ -386,8 +390,8 @@ async def sample_alert_rule(test_db) -> AlertRuleModel:
         min_severity=SeverityLevel.MEDIUM,
         cooldown_minutes=30,
         is_active=True,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     test_db.add(rule)
     await test_db.commit()
@@ -474,9 +478,9 @@ def mock_brute_force_event():
 @pytest.fixture
 def freezer():
     """Fixture to freeze time for tests."""
-    from datetime import datetime, timezone
-    frozen_time = datetime(2026, 3, 1, 12, 0, 0, tzinfo=timezone.utc)
-    
+    from datetime import datetime
+    frozen_time = datetime(2026, 3, 1, 12, 0, 0, tzinfo=UTC)
+
     with patch("src.models.alerts.utc_now") as mock_utc_now:
         mock_utc_now.return_value = frozen_time
         yield frozen_time

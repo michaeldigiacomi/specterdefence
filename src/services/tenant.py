@@ -1,26 +1,27 @@
 """Tenant service for business logic."""
 
-import logging
 import hashlib
-from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
+import logging
+from datetime import UTC, datetime
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.clients.ms_graph import MSGraphAPIError, MSGraphAuthError, MSGraphClient
 from src.models.db import TenantModel
 from src.models.tenant import (
     TenantCreate,
-    TenantUpdate,
-    TenantResponse,
-    TenantValidationResponse,
-    TenantHealthCheckResponse,
-    TenantHealthCheckConnectivity,
     TenantHealthCheckAuth,
-    TenantHealthCheckPermissions,
+    TenantHealthCheckConnectivity,
     TenantHealthCheckInfo,
+    TenantHealthCheckPermissions,
+    TenantHealthCheckResponse,
+    TenantResponse,
+    TenantUpdate,
+    TenantValidationResponse,
 )
 from src.services.encryption import encryption_service
-from src.clients.ms_graph import MSGraphClient, MSGraphAuthError, MSGraphAPIError
 
 # Audit logger for credential access
 audit_logger = logging.getLogger('specterdefence.audit')
@@ -44,7 +45,7 @@ class TenantService:
         """
         self.db = db
 
-    async def list_tenants(self, include_inactive: bool = False) -> List[TenantResponse]:
+    async def list_tenants(self, include_inactive: bool = False) -> list[TenantResponse]:
         """List all tenants.
         
         Args:
@@ -56,13 +57,13 @@ class TenantService:
         query = select(TenantModel)
         if not include_inactive:
             query = query.where(TenantModel.is_active.is_(True))
-        
+
         result = await self.db.execute(query)
         tenants = result.scalars().all()
-        
+
         return [self._to_response(tenant) for tenant in tenants]
 
-    async def get_tenant(self, tenant_id: str) -> Optional[TenantModel]:
+    async def get_tenant(self, tenant_id: str) -> TenantModel | None:
         """Get a tenant by internal ID.
         
         Args:
@@ -76,7 +77,7 @@ class TenantService:
         )
         return result.scalar_one_or_none()
 
-    async def get_tenant_by_ms_id(self, ms_tenant_id: str) -> Optional[TenantModel]:
+    async def get_tenant_by_ms_id(self, ms_tenant_id: str) -> TenantModel | None:
         """Get a tenant by Microsoft tenant ID.
         
         Args:
@@ -115,7 +116,7 @@ class TenantService:
             client_secret=client_secret,
             timeout=timeout
         )
-        
+
         if result.get("valid"):
             return TenantValidationResponse(
                 valid=True,
@@ -133,7 +134,7 @@ class TenantService:
     async def health_check_tenant(
         self,
         tenant_id: str,
-        required_permissions: Optional[List[str]] = None,
+        required_permissions: list[str] | None = None,
         timeout: float = 30.0,
         update_status: bool = True
     ) -> TenantHealthCheckResponse:
@@ -154,14 +155,14 @@ class TenantService:
         tenant = await self.get_tenant(tenant_id)
         if not tenant:
             raise TenantNotFoundError(f"Tenant with ID {tenant_id} not found")
-        
+
         # Default required permissions
         if required_permissions is None:
             required_permissions = ["AuditLog.Read.All"]
-        
+
         # Get decrypted secret with audit logging
         client_secret = self.get_decrypted_secret(tenant, user_id="health_check")
-        
+
         # Perform health check
         try:
             client = MSGraphClient(
@@ -170,11 +171,11 @@ class TenantService:
                 client_secret=client_secret,
                 timeout=timeout
             )
-            
+
             health_result = await client.health_check(
                 required_permissions=required_permissions
             )
-            
+
             # Build response
             response = TenantHealthCheckResponse(
                 tenant_id=tenant_id,
@@ -204,13 +205,13 @@ class TenantService:
                 timestamp=datetime.fromisoformat(health_result["timestamp"]),
                 message=self._get_health_check_message(health_result)
             )
-            
+
             # Update tenant status in database if requested
             if update_status:
                 await self._update_connection_status(tenant, response)
-            
+
             return response
-            
+
         except Exception as e:
             # Handle unexpected errors
             error_response = TenantHealthCheckResponse(
@@ -223,13 +224,13 @@ class TenantService:
                 authentication=TenantHealthCheckAuth(success=False, error=str(e)),
                 permissions=TenantHealthCheckPermissions(success=False),
                 tenant_info=TenantHealthCheckInfo(),
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 message=f"Health check failed: {str(e)}"
             )
-            
+
             if update_status:
                 await self._update_connection_status(tenant, error_response)
-            
+
             return error_response
 
     async def _update_connection_status(
@@ -245,7 +246,7 @@ class TenantService:
         """
         tenant.connection_status = health_check.status
         tenant.last_health_check = health_check.timestamp
-        
+
         # Set connection error message based on status
         if health_check.status == "healthy":
             tenant.connection_error = None
@@ -258,10 +259,10 @@ class TenantService:
             tenant.connection_error = f"Missing permissions: {missing}. Ensure admin consent is granted."
         else:
             tenant.connection_error = health_check.message
-        
+
         await self.db.commit()
 
-    def _get_health_check_message(self, health_result: Dict[str, Any]) -> str:
+    def _get_health_check_message(self, health_result: dict[str, Any]) -> str:
         """Generate a human-readable message from health check results.
         
         Args:
@@ -271,7 +272,7 @@ class TenantService:
             Human-readable status message
         """
         status = health_result.get("status")
-        
+
         if status == "healthy":
             latency = health_result["connectivity"]["latency_ms"]
             return f"Connection healthy (latency: {latency}ms)"
@@ -292,7 +293,7 @@ class TenantService:
         self,
         tenant_data: TenantCreate,
         validate: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a new tenant.
         
         Args:
@@ -313,7 +314,7 @@ class TenantService:
         ms_tenant_name = None
         initial_status = "unknown"
         connection_error = None
-        
+
         # Validate credentials if requested
         if validate:
             validation_result = await self.validate_tenant(
@@ -321,12 +322,12 @@ class TenantService:
                 client_id=tenant_data.client_id,
                 client_secret=tenant_data.client_secret
             )
-            
+
             if not validation_result.valid:
                 raise TenantValidationError(
                     validation_result.error or "Invalid credentials"
                 )
-            
+
             ms_tenant_name = validation_result.display_name
             initial_status = "connected"
 
@@ -342,7 +343,7 @@ class TenantService:
             is_active=True,
             connection_status=initial_status,
             connection_error=connection_error,
-            last_health_check=datetime.now(timezone.utc) if validate else None
+            last_health_check=datetime.now(UTC) if validate else None
         )
 
         self.db.add(tenant)
@@ -364,7 +365,7 @@ class TenantService:
         self,
         tenant_id: str,
         update_data: TenantUpdate
-    ) -> Optional[TenantResponse]:
+    ) -> TenantResponse | None:
         """Update a tenant.
         
         Args:
@@ -404,7 +405,7 @@ class TenantService:
         # Soft delete by setting inactive
         tenant.is_active = False
         await self.db.commit()
-        
+
         return True
 
     async def hard_delete_tenant(self, tenant_id: str) -> bool:
@@ -422,7 +423,7 @@ class TenantService:
 
         await self.db.delete(tenant)
         await self.db.commit()
-        
+
         return True
 
     def _to_response(self, tenant: TenantModel) -> TenantResponse:
@@ -459,14 +460,14 @@ class TenantService:
         """
         # Hash the tenant ID for audit log (privacy-preserving)
         tenant_id_hash = hashlib.sha256(tenant.id.encode()).hexdigest()[:16]
-        
+
         # Log credential access for security auditing
         audit_logger.warning(
             f"CREDENTIAL_ACCESS: user={user_id} tenant_hash={tenant_id_hash} "
             f"tenant_name={tenant.name} action=decrypt_client_secret "
-            f"timestamp={datetime.now(timezone.utc).isoformat()}"
+            f"timestamp={datetime.now(UTC).isoformat()}"
         )
-        
+
         return encryption_service.decrypt(tenant.client_secret)
 
 
@@ -491,7 +492,7 @@ async def validate_tenant_credentials(
     client_id: str,
     client_secret: str,
     timeout: float = 30.0
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Validate tenant credentials against Microsoft Graph.
     
     This is a standalone wrapper for backward compatibility with tests.
@@ -511,15 +512,15 @@ async def validate_tenant_credentials(
         client_id=client_id,
         client_secret=client_secret,
     )
-    
+
     try:
         # Try to get an access token
         token = await client.get_access_token()
-        
+
         # Try to get organization info
         async with client as c:
             org_info = await c.get_organization()
-        
+
         return {
             "valid": True,
             "tenant_id": tenant_id,

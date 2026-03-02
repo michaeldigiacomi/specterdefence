@@ -3,16 +3,13 @@
 import asyncio
 import json
 import logging
-from typing import Dict, List, Optional, Set
-from datetime import datetime, timezone
-from uuid import UUID
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
-from src.services.alert_stream import AlertStreamService, AlertStreamManager
-from src.models.alerts import SeverityLevel, EventType
+from src.services.alert_stream import AlertStreamManager, AlertStreamService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -20,18 +17,18 @@ router = APIRouter()
 # Global connection manager for WebSocket connections
 class ConnectionManager:
     """Manages WebSocket connections for alert streaming."""
-    
+
     def __init__(self):
         """Initialize connection manager."""
-        self.active_connections: Dict[str, WebSocket] = {}
-        self.connection_filters: Dict[str, Dict] = {}
+        self.active_connections: dict[str, WebSocket] = {}
+        self.connection_filters: dict[str, dict] = {}
         self._lock = asyncio.Lock()
-    
+
     async def connect(
         self,
         websocket: WebSocket,
         client_id: str,
-        filters: Optional[Dict] = None
+        filters: dict | None = None
     ) -> None:
         """Accept a new WebSocket connection.
         
@@ -45,7 +42,7 @@ class ConnectionManager:
             self.active_connections[client_id] = websocket
             self.connection_filters[client_id] = filters or {}
         logger.info(f"Client {client_id} connected. Total: {len(self.active_connections)}")
-    
+
     async def disconnect(self, client_id: str) -> None:
         """Remove a WebSocket connection.
         
@@ -56,7 +53,7 @@ class ConnectionManager:
             self.active_connections.pop(client_id, None)
             self.connection_filters.pop(client_id, None)
         logger.info(f"Client {client_id} disconnected. Total: {len(self.active_connections)}")
-    
+
     async def send_personal_message(self, message: dict, client_id: str) -> bool:
         """Send a message to a specific client.
         
@@ -69,14 +66,14 @@ class ConnectionManager:
         """
         if client_id not in self.active_connections:
             return False
-        
+
         try:
             await self.active_connections[client_id].send_json(message)
             return True
         except Exception as e:
             logger.error(f"Failed to send message to {client_id}: {e}")
             return False
-    
+
     async def broadcast(self, message: dict) -> int:
         """Broadcast a message to all connected clients.
         
@@ -88,7 +85,7 @@ class ConnectionManager:
         """
         sent_count = 0
         disconnected = []
-        
+
         for client_id, connection in list(self.active_connections.items()):
             try:
                 # Apply filters if configured
@@ -99,13 +96,13 @@ class ConnectionManager:
             except Exception as e:
                 logger.error(f"Failed to broadcast to {client_id}: {e}")
                 disconnected.append(client_id)
-        
+
         # Clean up disconnected clients
         for client_id in disconnected:
             await self.disconnect(client_id)
-        
+
         return sent_count
-    
+
     def _should_send_to_client(self, message: dict, filters: dict) -> bool:
         """Check if message should be sent based on client filters.
         
@@ -118,29 +115,29 @@ class ConnectionManager:
         """
         if not filters:
             return True
-        
+
         # Filter by severity
         severity_filter = filters.get("severity")
         if severity_filter and message.get("severity") not in severity_filter:
             return False
-        
+
         # Filter by event type
         event_type_filter = filters.get("event_types")
         if event_type_filter and message.get("event_type") not in event_type_filter:
             return False
-        
+
         # Filter by tenant
         tenant_filter = filters.get("tenant_id")
         if tenant_filter and message.get("tenant_id") != tenant_filter:
             return False
-        
+
         return True
-    
+
     def get_connection_count(self) -> int:
         """Get total number of active connections."""
         return len(self.active_connections)
-    
-    def get_client_ids(self) -> List[str]:
+
+    def get_client_ids(self) -> list[str]:
         """Get list of all connected client IDs."""
         return list(self.active_connections.keys())
 
@@ -152,9 +149,9 @@ manager = ConnectionManager()
 @router.websocket("/ws/alerts")
 async def alert_websocket(
     websocket: WebSocket,
-    severity: Optional[str] = Query(None, description="Filter by severity (comma-separated)"),
-    event_types: Optional[str] = Query(None, description="Filter by event types (comma-separated)"),
-    tenant_id: Optional[str] = Query(None, description="Filter by tenant ID"),
+    severity: str | None = Query(None, description="Filter by severity (comma-separated)"),
+    event_types: str | None = Query(None, description="Filter by event types (comma-separated)"),
+    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
     db: AsyncSession = Depends(get_db)
 ) -> None:
     """WebSocket endpoint for real-time alert streaming.
@@ -171,7 +168,7 @@ async def alert_websocket(
     """
     # Generate client ID
     client_id = f"{websocket.client.host}:{websocket.client.port}"
-    
+
     # Parse filters
     filters = {}
     if severity:
@@ -180,27 +177,27 @@ async def alert_websocket(
         filters["event_types"] = [et.strip() for et in event_types.split(",")]
     if tenant_id:
         filters["tenant_id"] = tenant_id
-    
+
     # Connect to manager
     await manager.connect(websocket, client_id, filters)
-    
+
     # Get alert stream service
     stream_service = AlertStreamService(db)
     stream_manager = AlertStreamManager(stream_service, manager)
-    
+
     try:
         # Subscribe to alert stream
         await stream_manager.subscribe_client(client_id, filters)
-        
+
         # Send initial connection success message
         await websocket.send_json({
             "type": "connection",
             "status": "connected",
             "client_id": client_id,
             "filters": filters,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         })
-        
+
         # Handle incoming messages
         while True:
             try:
@@ -217,7 +214,7 @@ async def alert_websocket(
                     "type": "error",
                     "message": str(e)
                 })
-                
+
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected: {client_id}")
     except Exception as e:
@@ -240,14 +237,14 @@ async def handle_client_message(
         stream_manager: Alert stream manager instance
     """
     msg_type = data.get("type")
-    
+
     if msg_type == "ping":
         # Simple ping/pong for keepalive
         await manager.send_personal_message({
             "type": "pong",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }, client_id)
-    
+
     elif msg_type == "acknowledge":
         # Acknowledge an alert
         alert_id = data.get("alert_id")
@@ -257,7 +254,7 @@ async def handle_client_message(
                 "type": "acknowledged",
                 "alert_id": alert_id,
             }, client_id)
-    
+
     elif msg_type == "dismiss":
         # Dismiss an alert
         alert_id = data.get("alert_id")
@@ -267,7 +264,7 @@ async def handle_client_message(
                 "type": "dismissed",
                 "alert_id": alert_id,
             }, client_id)
-    
+
     elif msg_type == "subscribe":
         # Update subscription filters
         filters = data.get("filters", {})
@@ -276,23 +273,23 @@ async def handle_client_message(
             "type": "subscribed",
             "filters": filters,
         }, client_id)
-    
+
     elif msg_type == "unsubscribe":
         # Remove all filters (receive all alerts)
         await stream_manager.update_subscription(client_id, {})
         await manager.send_personal_message({
             "type": "unsubscribed",
         }, client_id)
-    
+
     elif msg_type == "get_stats":
         # Get connection statistics
         stats = {
             "type": "stats",
             "connected_clients": manager.get_connection_count(),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         await manager.send_personal_message(stats, client_id)
-    
+
     else:
         await manager.send_personal_message({
             "type": "error",
@@ -310,5 +307,5 @@ async def get_websocket_stats() -> dict:
     return {
         "connected_clients": manager.get_connection_count(),
         "client_ids": manager.get_client_ids(),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }

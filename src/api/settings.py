@@ -1,21 +1,13 @@
 """Settings API endpoints."""
 
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, status, Depends, Query
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
-from src.services.settings import SettingsService, SettingsNotFoundError
-from src.models.settings import (
-    SystemSettingsModel,
-    UserPreferencesModel,
-    DetectionThresholdsModel,
-    ApiKeyModel,
-    ConfigurationBackupModel,
-    SettingsCategory,
-    TimeZone,
-)
-from pydantic import BaseModel, Field
+from src.services.settings import SettingsService
 
 router = APIRouter()
 
@@ -37,20 +29,20 @@ class SystemSettingsResponse(BaseModel):
     api_rate_limit: int
     max_export_rows: int
     log_level: str
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class SystemSettingsUpdate(BaseModel):
     """System settings update request."""
-    audit_log_retention_days: Optional[int] = Field(None, ge=1, le=3650)
-    login_history_retention_days: Optional[int] = Field(None, ge=1, le=3650)
-    alert_history_retention_days: Optional[int] = Field(None, ge=1, le=3650)
-    auto_cleanup_enabled: Optional[bool] = None
-    cleanup_schedule: Optional[str] = None
-    api_rate_limit: Optional[int] = Field(None, ge=10, le=10000)
-    max_export_rows: Optional[int] = Field(None, ge=100, le=100000)
-    log_level: Optional[str] = Field(None, pattern="^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$")
+    audit_log_retention_days: int | None = Field(None, ge=1, le=3650)
+    login_history_retention_days: int | None = Field(None, ge=1, le=3650)
+    alert_history_retention_days: int | None = Field(None, ge=1, le=3650)
+    auto_cleanup_enabled: bool | None = None
+    cleanup_schedule: str | None = None
+    api_rate_limit: int | None = Field(None, ge=10, le=10000)
+    max_export_rows: int | None = Field(None, ge=100, le=100000)
+    log_level: str | None = Field(None, pattern="^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$")
 
 
 class UserPreferencesResponse(BaseModel):
@@ -64,80 +56,80 @@ class UserPreferencesResponse(BaseModel):
     notification_min_severity: str
     default_dashboard_view: str
     refresh_interval_seconds: int
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class UserPreferencesUpdate(BaseModel):
     """User preferences update request."""
-    timezone: Optional[str] = None
-    date_format: Optional[str] = Field(None, pattern="^(ISO|US|EU)$")
-    theme: Optional[str] = Field(None, pattern="^(light|dark|system)$")
-    email_notifications: Optional[bool] = None
-    discord_notifications: Optional[bool] = None
-    notification_min_severity: Optional[str] = Field(None, pattern="^(LOW|MEDIUM|HIGH|CRITICAL)$")
-    default_dashboard_view: Optional[str] = None
-    refresh_interval_seconds: Optional[int] = Field(None, ge=10, le=3600)
+    timezone: str | None = None
+    date_format: str | None = Field(None, pattern="^(ISO|US|EU)$")
+    theme: str | None = Field(None, pattern="^(light|dark|system)$")
+    email_notifications: bool | None = None
+    discord_notifications: bool | None = None
+    notification_min_severity: str | None = Field(None, pattern="^(LOW|MEDIUM|HIGH|CRITICAL)$")
+    default_dashboard_view: str | None = None
+    refresh_interval_seconds: int | None = Field(None, ge=10, le=3600)
 
 
 class DetectionThresholdsResponse(BaseModel):
     """Detection thresholds response."""
-    tenant_id: Optional[str] = None
-    
+    tenant_id: str | None = None
+
     # Impossible travel
     impossible_travel_enabled: bool
     impossible_travel_min_speed_kmh: float
     impossible_travel_time_window_minutes: int
-    
+
     # New country
     new_country_enabled: bool
     new_country_learning_period_days: int
-    
+
     # Brute force
     brute_force_enabled: bool
     brute_force_threshold: int
     brute_force_window_minutes: int
-    
+
     # New IP
     new_ip_enabled: bool
     new_ip_learning_period_days: int
-    
+
     # Multiple failures
     multiple_failures_enabled: bool
     multiple_failures_threshold: int
     multiple_failures_window_minutes: int
-    
+
     # Risk scoring
     risk_score_base_multiplier: float
-    
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class DetectionThresholdsUpdate(BaseModel):
     """Detection thresholds update request."""
-    impossible_travel_enabled: Optional[bool] = None
-    impossible_travel_min_speed_kmh: Optional[float] = Field(None, ge=100, le=5000)
-    impossible_travel_time_window_minutes: Optional[int] = Field(None, ge=5, le=1440)
-    new_country_enabled: Optional[bool] = None
-    new_country_learning_period_days: Optional[int] = Field(None, ge=1, le=90)
-    brute_force_enabled: Optional[bool] = None
-    brute_force_threshold: Optional[int] = Field(None, ge=1, le=100)
-    brute_force_window_minutes: Optional[int] = Field(None, ge=5, le=1440)
-    new_ip_enabled: Optional[bool] = None
-    new_ip_learning_period_days: Optional[int] = Field(None, ge=1, le=90)
-    multiple_failures_enabled: Optional[bool] = None
-    multiple_failures_threshold: Optional[int] = Field(None, ge=1, le=100)
-    multiple_failures_window_minutes: Optional[int] = Field(None, ge=5, le=1440)
-    risk_score_base_multiplier: Optional[float] = Field(None, ge=0.1, le=10.0)
+    impossible_travel_enabled: bool | None = None
+    impossible_travel_min_speed_kmh: float | None = Field(None, ge=100, le=5000)
+    impossible_travel_time_window_minutes: int | None = Field(None, ge=5, le=1440)
+    new_country_enabled: bool | None = None
+    new_country_learning_period_days: int | None = Field(None, ge=1, le=90)
+    brute_force_enabled: bool | None = None
+    brute_force_threshold: int | None = Field(None, ge=1, le=100)
+    brute_force_window_minutes: int | None = Field(None, ge=5, le=1440)
+    new_ip_enabled: bool | None = None
+    new_ip_learning_period_days: int | None = Field(None, ge=1, le=90)
+    multiple_failures_enabled: bool | None = None
+    multiple_failures_threshold: int | None = Field(None, ge=1, le=100)
+    multiple_failures_window_minutes: int | None = Field(None, ge=5, le=1440)
+    risk_score_base_multiplier: float | None = Field(None, ge=0.1, le=10.0)
 
 
 class ApiKeyCreate(BaseModel):
     """API key creation request."""
     name: str = Field(..., min_length=1, max_length=255)
-    scopes: List[str]
-    tenant_id: Optional[str] = None
-    expires_days: Optional[int] = Field(None, ge=1, le=365)
+    scopes: list[str]
+    tenant_id: str | None = None
+    expires_days: int | None = Field(None, ge=1, le=365)
 
 
 class ApiKeyResponse(BaseModel):
@@ -145,12 +137,12 @@ class ApiKeyResponse(BaseModel):
     id: str
     name: str
     key_prefix: str
-    scopes: List[str]
-    tenant_id: Optional[str]
+    scopes: list[str]
+    tenant_id: str | None
     is_active: bool
-    expires_at: Optional[str]
-    last_used_at: Optional[str]
-    created_by: Optional[str]
+    expires_at: str | None
+    last_used_at: str | None
+    created_by: str | None
     created_at: str
 
 
@@ -165,9 +157,9 @@ class ApiKeyCreateResponse(BaseModel):
 
 class ApiKeyUpdate(BaseModel):
     """API key update request."""
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    scopes: Optional[List[str]] = None
-    is_active: Optional[bool] = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    scopes: list[str] | None = None
+    is_active: bool | None = None
 
 
 class WebhookTestRequest(BaseModel):
@@ -181,36 +173,36 @@ class WebhookTestResponse(BaseModel):
     """Webhook test response."""
     success: bool
     message: str
-    latency_ms: Optional[float] = None
+    latency_ms: float | None = None
 
 
 class ConfigExportRequest(BaseModel):
     """Configuration export request."""
-    categories: List[str]
+    categories: list[str]
     name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class ConfigExportResponse(BaseModel):
     """Configuration export response."""
     id: str
     name: str
-    description: Optional[str]
-    categories: List[str]
+    description: str | None
+    categories: list[str]
     created_at: str
     download_url: str
 
 
 class ConfigImportRequest(BaseModel):
     """Configuration import request."""
-    config: Dict[str, Any]
+    config: dict[str, Any]
     overwrite: bool = False
 
 
 class ConfigImportResponse(BaseModel):
     """Configuration import response."""
-    imported: List[str]
-    errors: List[str]
+    imported: list[str]
+    errors: list[str]
     message: str
 
 
@@ -218,9 +210,9 @@ class ConfigBackupResponse(BaseModel):
     """Configuration backup response."""
     id: str
     name: str
-    description: Optional[str]
-    categories: List[str]
-    created_by: Optional[str]
+    description: str | None
+    categories: list[str]
+    created_by: str | None
     created_at: str
 
 
@@ -264,7 +256,7 @@ async def update_system_settings(
     """Update system settings."""
     updates = {k: v for k, v in update.model_dump().items() if v is not None}
     settings = await service.update_system_settings(updates)
-    
+
     return SystemSettingsResponse(
         audit_log_retention_days=settings.audit_log_retention_days,
         login_history_retention_days=settings.login_history_retention_days,
@@ -322,7 +314,7 @@ async def update_user_preferences(
     """Update user preferences."""
     updates = {k: v for k, v in update.model_dump().items() if v is not None}
     prefs = await service.update_user_preferences(user_email, updates)
-    
+
     return UserPreferencesResponse(
         user_email=prefs.user_email,
         timezone=prefs.timezone,
@@ -347,12 +339,12 @@ async def update_user_preferences(
     description="Get anomaly detection thresholds for a tenant or global defaults."
 )
 async def get_detection_thresholds(
-    tenant_id: Optional[str] = None,
+    tenant_id: str | None = None,
     service: SettingsService = Depends(get_settings_service)
 ) -> DetectionThresholdsResponse:
     """Get detection thresholds."""
     thresholds = await service.get_detection_thresholds(tenant_id)
-    
+
     return DetectionThresholdsResponse(
         tenant_id=thresholds.tenant_id,
         impossible_travel_enabled=thresholds.impossible_travel_enabled,
@@ -382,13 +374,13 @@ async def get_detection_thresholds(
 )
 async def update_detection_thresholds(
     update: DetectionThresholdsUpdate,
-    tenant_id: Optional[str] = None,
+    tenant_id: str | None = None,
     service: SettingsService = Depends(get_settings_service)
 ) -> DetectionThresholdsResponse:
     """Update detection thresholds."""
     updates = {k: v for k, v in update.model_dump().items() if v is not None}
     thresholds = await service.update_detection_thresholds(updates, tenant_id)
-    
+
     return DetectionThresholdsResponse(
         tenant_id=thresholds.tenant_id,
         impossible_travel_enabled=thresholds.impossible_travel_enabled,
@@ -421,7 +413,7 @@ async def update_detection_thresholds(
 )
 async def create_api_key(
     request: ApiKeyCreate,
-    created_by: Optional[str] = None,
+    created_by: str | None = None,
     service: SettingsService = Depends(get_settings_service)
 ) -> ApiKeyCreateResponse:
     """Create a new API key."""
@@ -432,7 +424,7 @@ async def create_api_key(
         tenant_id=request.tenant_id,
         expires_days=request.expires_days
     )
-    
+
     return ApiKeyCreateResponse(
         id=result["id"],
         key=result["key"],
@@ -443,18 +435,18 @@ async def create_api_key(
 
 @router.get(
     "/api-keys",
-    response_model=List[ApiKeyResponse],
+    response_model=list[ApiKeyResponse],
     summary="List API keys",
     description="List all API keys."
 )
 async def list_api_keys(
-    tenant_id: Optional[str] = None,
+    tenant_id: str | None = None,
     include_inactive: bool = False,
     service: SettingsService = Depends(get_settings_service)
-) -> List[ApiKeyResponse]:
+) -> list[ApiKeyResponse]:
     """List API keys."""
     keys = await service.list_api_keys(tenant_id, include_inactive)
-    
+
     return [
         ApiKeyResponse(
             id=str(k.id),
@@ -489,7 +481,7 @@ async def get_api_key(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="API key not found"
         )
-    
+
     return ApiKeyResponse(
         id=str(key.id),
         name=key.name,
@@ -518,13 +510,13 @@ async def update_api_key(
     """Update an API key."""
     updates = {k: v for k, v in update.model_dump().items() if v is not None}
     key = await service.update_api_key(key_id, updates)
-    
+
     if not key:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="API key not found"
         )
-    
+
     return ApiKeyResponse(
         id=str(key.id),
         name=key.name,
@@ -570,12 +562,12 @@ async def send_test_webhook(
     request: WebhookTestRequest
 ) -> WebhookTestResponse:
     """Test a webhook URL."""
-    import asyncio
-    import aiohttp
     from datetime import datetime
-    
+
+    import aiohttp
+
     start_time = datetime.now()
-    
+
     try:
         if request.webhook_type.lower() == "discord":
             payload = {
@@ -592,28 +584,27 @@ async def send_test_webhook(
             }
         else:
             payload = {"text": request.message}
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                request.webhook_url,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=10)
-            ) as response:
-                latency = (datetime.now() - start_time).total_seconds() * 1000
-                
-                if response.status in [200, 204]:
-                    return WebhookTestResponse(
-                        success=True,
-                        message=f"Webhook test successful (HTTP {response.status})",
-                        latency_ms=round(latency, 2)
-                    )
-                else:
-                    return WebhookTestResponse(
-                        success=False,
-                        message=f"Webhook returned HTTP {response.status}",
-                        latency_ms=round(latency, 2)
-                    )
-    except asyncio.TimeoutError:
+
+        async with aiohttp.ClientSession() as session, session.post(
+            request.webhook_url,
+            json=payload,
+            timeout=aiohttp.ClientTimeout(total=10)
+        ) as response:
+            latency = (datetime.now() - start_time).total_seconds() * 1000
+
+            if response.status in [200, 204]:
+                return WebhookTestResponse(
+                    success=True,
+                    message=f"Webhook test successful (HTTP {response.status})",
+                    latency_ms=round(latency, 2)
+                )
+            else:
+                return WebhookTestResponse(
+                    success=False,
+                    message=f"Webhook returned HTTP {response.status}",
+                    latency_ms=round(latency, 2)
+                )
+    except TimeoutError:
         return WebhookTestResponse(
             success=False,
             message="Webhook test timed out after 10 seconds"
@@ -635,7 +626,7 @@ async def send_test_webhook(
 )
 async def export_configuration(
     request: ConfigExportRequest,
-    created_by: Optional[str] = None,
+    created_by: str | None = None,
     service: SettingsService = Depends(get_settings_service)
 ) -> ConfigExportResponse:
     """Export configuration."""
@@ -645,7 +636,7 @@ async def export_configuration(
         description=request.description,
         created_by=created_by
     )
-    
+
     return ConfigExportResponse(
         id=result["id"],
         name=result["name"],
@@ -672,7 +663,7 @@ async def download_configuration(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Configuration backup not found"
         )
-    
+
     from fastapi.responses import JSONResponse
     return JSONResponse(
         content=backup.config_data,
@@ -697,7 +688,7 @@ async def import_configuration(
         config_data=request.config,
         overwrite=request.overwrite
     )
-    
+
     return ConfigImportResponse(
         imported=result["imported"],
         errors=result["errors"],
@@ -707,16 +698,16 @@ async def import_configuration(
 
 @router.get(
     "/config/backups",
-    response_model=List[ConfigBackupResponse],
+    response_model=list[ConfigBackupResponse],
     summary="List configuration backups",
     description="List all configuration backups."
 )
 async def list_configuration_backups(
     service: SettingsService = Depends(get_settings_service)
-) -> List[ConfigBackupResponse]:
+) -> list[ConfigBackupResponse]:
     """List configuration backups."""
     backups = await service.list_configuration_backups()
-    
+
     return [
         ConfigBackupResponse(
             id=str(b.id),
@@ -759,10 +750,10 @@ async def delete_configuration_backup(
 async def get_tenant_settings(
     tenant_id: str,
     service: SettingsService = Depends(get_settings_service)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get tenant settings."""
     thresholds = await service.get_detection_thresholds(tenant_id)
-    
+
     return {
         "tenant_id": tenant_id,
         "detection": {

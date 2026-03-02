@@ -1,42 +1,42 @@
 """Unit tests for mailbox rules API endpoints."""
 
-import pytest
 from datetime import datetime
-from uuid import uuid4
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
 
+import pytest
 from fastapi import HTTPException
 
+from src.api.mailbox_rules import (
+    AcknowledgeAlertRequest,
+    ScanRequest,
+    acknowledge_alert,
+    get_mailbox_rule,
+    get_rules_summary,
+    get_suspicious_rules,
+    get_tenant_mailbox_rules,
+    list_mailbox_rule_alerts,
+    list_mailbox_rules,
+    scan_mailbox_rules,
+)
 from src.models.mailbox_rules import (
-    MailboxRuleModel,
     MailboxRuleAlertModel,
-    RuleType,
+    MailboxRuleModel,
     RuleSeverity,
     RuleStatus,
-)
-from src.api.mailbox_rules import (
-    list_mailbox_rules,
-    get_mailbox_rule,
-    get_tenant_mailbox_rules,
-    get_suspicious_rules,
-    scan_mailbox_rules,
-    list_mailbox_rule_alerts,
-    acknowledge_alert,
-    get_rules_summary,
-    ScanRequest,
-    AcknowledgeAlertRequest,
+    RuleType,
 )
 
 
 class TestMailboxRulesEndpoints:
     """Test cases for mailbox rules API endpoints."""
-    
+
     @pytest.fixture
     def mock_service(self):
         """Create a mock mailbox rule service."""
         service = AsyncMock()
         return service
-    
+
     @pytest.fixture
     def sample_rule(self):
         """Return a sample mailbox rule."""
@@ -66,7 +66,7 @@ class TestMailboxRulesEndpoints:
         rule.created_at = datetime.utcnow()
         rule.updated_at = datetime.utcnow()
         return rule
-    
+
     @pytest.fixture
     def sample_alert(self):
         """Return a sample mailbox rule alert."""
@@ -84,7 +84,7 @@ class TestMailboxRulesEndpoints:
         alert.acknowledged_at = None
         alert.created_at = datetime.utcnow()
         return alert
-    
+
     @pytest.mark.asyncio
     async def test_list_mailbox_rules_success(self, mock_service, sample_rule):
         """Test successful listing of mailbox rules."""
@@ -94,7 +94,7 @@ class TestMailboxRulesEndpoints:
             "limit": 100,
             "offset": 0,
         }
-        
+
         result = await list_mailbox_rules(
             tenant_id=None,
             user_email=None,
@@ -105,12 +105,12 @@ class TestMailboxRulesEndpoints:
             offset=0,
             service=mock_service,
         )
-        
+
         assert result.total == 1
         assert len(result.items) == 1
         assert result.items[0].rule_name == "Test Rule"
         mock_service.get_rules.assert_called_once()
-    
+
     @pytest.mark.asyncio
     async def test_list_mailbox_rules_with_filters(self, mock_service, sample_rule):
         """Test listing mailbox rules with filters."""
@@ -120,7 +120,7 @@ class TestMailboxRulesEndpoints:
             "limit": 50,
             "offset": 10,
         }
-        
+
         result = await list_mailbox_rules(
             tenant_id="tenant-123",
             user_email="user@example.com",
@@ -131,11 +131,11 @@ class TestMailboxRulesEndpoints:
             offset=10,
             service=mock_service,
         )
-        
+
         assert result.limit == 50
         assert result.offset == 10
         mock_service.get_rules.assert_called_once()
-    
+
     @pytest.mark.asyncio
     async def test_list_mailbox_rules_invalid_status(self, mock_service):
         """Test listing with invalid status filter."""
@@ -150,10 +150,10 @@ class TestMailboxRulesEndpoints:
                 offset=0,
                 service=mock_service,
             )
-        
+
         assert exc_info.value.status_code == 400
         assert "Invalid status" in exc_info.value.detail
-    
+
     @pytest.mark.asyncio
     async def test_list_mailbox_rules_invalid_severity(self, mock_service):
         """Test listing with invalid severity filter."""
@@ -168,35 +168,35 @@ class TestMailboxRulesEndpoints:
                 offset=0,
                 service=mock_service,
             )
-        
+
         assert exc_info.value.status_code == 400
-    
+
     @pytest.mark.asyncio
     async def test_get_mailbox_rule_success(self, mock_service, sample_rule):
         """Test getting a specific mailbox rule."""
         mock_service.get_rule_by_id.return_value = sample_rule
-        
+
         result = await get_mailbox_rule(
             rule_id=str(sample_rule.id),
             service=mock_service,
         )
-        
+
         assert result.rule_name == "Test Rule"
         assert result.id == str(sample_rule.id)
-    
+
     @pytest.mark.asyncio
     async def test_get_mailbox_rule_not_found(self, mock_service):
         """Test getting a non-existent mailbox rule."""
         mock_service.get_rule_by_id.return_value = None
-        
+
         with pytest.raises(HTTPException) as exc_info:
             await get_mailbox_rule(
                 rule_id="non-existent",
                 service=mock_service,
             )
-        
+
         assert exc_info.value.status_code == 404
-    
+
     @pytest.mark.asyncio
     async def test_get_tenant_mailbox_rules_success(self, mock_service, sample_rule):
         """Test getting tenant mailbox rules."""
@@ -206,7 +206,7 @@ class TestMailboxRulesEndpoints:
             "limit": 100,
             "offset": 0,
         }
-        
+
         result = await get_tenant_mailbox_rules(
             tenant_id="tenant-123",
             status=None,
@@ -215,7 +215,7 @@ class TestMailboxRulesEndpoints:
             offset=0,
             service=mock_service,
         )
-        
+
         assert result.total == 1
         mock_service.get_rules.assert_called_once_with(
             tenant_id="tenant-123",
@@ -224,21 +224,21 @@ class TestMailboxRulesEndpoints:
             limit=100,
             offset=0
         )
-    
+
     @pytest.mark.asyncio
     async def test_get_suspicious_rules_success(self, mock_service, sample_rule):
         """Test getting suspicious rules."""
         mock_service.get_suspicious_rules.return_value = [sample_rule]
-        
+
         result = await get_suspicious_rules(
             tenant_id="tenant-123",
             limit=100,
             service=mock_service,
         )
-        
+
         assert len(result) == 1
         assert result[0].rule_name == "Test Rule"
-    
+
     @pytest.mark.asyncio
     async def test_scan_mailbox_rules_success(self, mock_service):
         """Test successful mailbox rule scan."""
@@ -250,63 +250,63 @@ class TestMailboxRulesEndpoints:
             "malicious_rules": 0,
             "alerts_triggered": 2,
         }
-        
+
         request = ScanRequest(tenant_id="tenant-123", trigger_alerts=True)
-        
+
         result = await scan_mailbox_rules(
             request=request,
             service=mock_service,
         )
-        
+
         assert result.success is True
         assert result.results["total_rules"] == 10
         assert result.results["suspicious_rules"] == 2
-    
+
     @pytest.mark.asyncio
     async def test_scan_mailbox_rules_missing_tenant(self, mock_service):
         """Test scan without tenant ID."""
         request = ScanRequest(tenant_id=None, trigger_alerts=True)
-        
+
         with pytest.raises(HTTPException) as exc_info:
             await scan_mailbox_rules(
                 request=request,
                 service=mock_service,
             )
-        
+
         assert exc_info.value.status_code == 400
         assert "tenant_id is required" in exc_info.value.detail
-    
+
     @pytest.mark.asyncio
     async def test_scan_mailbox_rules_tenant_not_found(self, mock_service):
         """Test scan with non-existent tenant."""
         mock_service.scan_tenant_mailbox_rules.side_effect = ValueError("Tenant not-found-id not found")
-        
+
         request = ScanRequest(tenant_id="not-found-id", trigger_alerts=True)
-        
+
         with pytest.raises(HTTPException) as exc_info:
             await scan_mailbox_rules(
                 request=request,
                 service=mock_service,
             )
-        
+
         assert exc_info.value.status_code == 404
-    
+
     @pytest.mark.asyncio
     async def test_scan_mailbox_rules_error(self, mock_service):
         """Test scan with unexpected error."""
         mock_service.scan_tenant_mailbox_rules.side_effect = Exception("Database error")
-        
+
         request = ScanRequest(tenant_id="tenant-123", trigger_alerts=True)
-        
+
         with pytest.raises(HTTPException) as exc_info:
             await scan_mailbox_rules(
                 request=request,
                 service=mock_service,
             )
-        
+
         assert exc_info.value.status_code == 500
         assert "Scan failed" in exc_info.value.detail
-    
+
     @pytest.mark.asyncio
     async def test_list_mailbox_rule_alerts_success(self, mock_service, sample_alert):
         """Test listing mailbox rule alerts."""
@@ -316,7 +316,7 @@ class TestMailboxRulesEndpoints:
             "limit": 100,
             "offset": 0,
         }
-        
+
         result = await list_mailbox_rule_alerts(
             tenant_id="tenant-123",
             acknowledged=False,
@@ -325,11 +325,11 @@ class TestMailboxRulesEndpoints:
             offset=0,
             service=mock_service,
         )
-        
+
         assert result.total == 1
         assert len(result.items) == 1
         assert result.items[0].title == "Suspicious Mailbox Rule Detected"
-    
+
     @pytest.mark.asyncio
     async def test_list_mailbox_rule_alerts_invalid_severity(self, mock_service):
         """Test listing alerts with invalid severity."""
@@ -342,55 +342,55 @@ class TestMailboxRulesEndpoints:
                 offset=0,
                 service=mock_service,
             )
-        
+
         assert exc_info.value.status_code == 400
-    
+
     @pytest.mark.asyncio
     async def test_acknowledge_alert_success(self, mock_service, sample_alert):
         """Test successfully acknowledging an alert."""
         sample_alert.is_acknowledged = True
         sample_alert.acknowledged_by = "admin@example.com"
         mock_service.acknowledge_alert.return_value = sample_alert
-        
+
         request = AcknowledgeAlertRequest(acknowledged_by="admin@example.com")
-        
+
         result = await acknowledge_alert(
             alert_id=str(sample_alert.id),
             request=request,
             service=mock_service,
         )
-        
+
         assert result.success is True
         assert result.alert.is_acknowledged is True
         assert result.alert.acknowledged_by == "admin@example.com"
-    
+
     @pytest.mark.asyncio
     async def test_acknowledge_alert_not_found(self, mock_service):
         """Test acknowledging a non-existent alert."""
         mock_service.acknowledge_alert.return_value = None
-        
+
         request = AcknowledgeAlertRequest(acknowledged_by="admin@example.com")
-        
+
         with pytest.raises(HTTPException) as exc_info:
             await acknowledge_alert(
                 alert_id="non-existent",
                 request=request,
                 service=mock_service,
             )
-        
+
         assert exc_info.value.status_code == 404
-    
+
     @pytest.mark.asyncio
     async def test_get_rules_summary(self, mock_service, sample_rule):
         """Test getting rules summary."""
         mock_service.get_suspicious_rules.return_value = [sample_rule]
         mock_service.get_alerts.return_value = {"total": 5, "items": []}
-        
+
         result = await get_rules_summary(
             tenant_id="tenant-123",
             service=mock_service,
         )
-        
+
         assert result.total_suspicious + result.total_malicious >= 0
         assert "by_severity" in result.model_dump()
         assert "by_type" in result.model_dump()

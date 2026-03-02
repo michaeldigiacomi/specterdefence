@@ -1,17 +1,16 @@
 """Alert rule management for SpecterDefence."""
 
 import logging
-from typing import List, Optional, Dict, Any
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select, and_, or_
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.alerts import (
     AlertRuleModel,
     AlertWebhookModel,
     SeverityLevel,
-    EventType,
 )
 from src.services.encryption import encryption_service
 
@@ -30,7 +29,7 @@ class AlertWebhookNotFoundError(Exception):
 
 class AlertRuleService:
     """Service for managing alert rules and webhooks."""
-    
+
     def __init__(self, db: AsyncSession):
         """Initialize the alert rule service.
         
@@ -38,15 +37,15 @@ class AlertRuleService:
             db: Database session
         """
         self.db = db
-    
+
     # Webhook Management
-    
+
     async def create_webhook(
         self,
         name: str,
         webhook_url: str,
         webhook_type: str = "discord",
-        tenant_id: Optional[str] = None,
+        tenant_id: str | None = None,
     ) -> AlertWebhookModel:
         """Create a new alert webhook.
         
@@ -61,7 +60,7 @@ class AlertRuleService:
         """
         # Encrypt the webhook URL
         encrypted_url = encryption_service.encrypt(webhook_url)
-        
+
         webhook = AlertWebhookModel(
             name=name,
             webhook_url=encrypted_url,
@@ -69,15 +68,15 @@ class AlertRuleService:
             tenant_id=tenant_id,
             is_active=True,
         )
-        
+
         self.db.add(webhook)
         await self.db.commit()
         await self.db.refresh(webhook)
-        
+
         logger.info(f"Created webhook: {webhook.id} ({name})")
         return webhook
-    
-    async def get_webhook(self, webhook_id: UUID) -> Optional[AlertWebhookModel]:
+
+    async def get_webhook(self, webhook_id: UUID) -> AlertWebhookModel | None:
         """Get a webhook by ID.
         
         Args:
@@ -90,12 +89,12 @@ class AlertRuleService:
             select(AlertWebhookModel).where(AlertWebhookModel.id == webhook_id)
         )
         return result.scalar_one_or_none()
-    
+
     async def list_webhooks(
         self,
-        tenant_id: Optional[str] = None,
+        tenant_id: str | None = None,
         include_inactive: bool = False,
-    ) -> List[AlertWebhookModel]:
+    ) -> list[AlertWebhookModel]:
         """List webhooks.
         
         Args:
@@ -106,7 +105,7 @@ class AlertRuleService:
             List of webhook models
         """
         query = select(AlertWebhookModel)
-        
+
         # Filter by tenant (None = global, specific = tenant-specific)
         if tenant_id is not None:
             query = query.where(
@@ -115,15 +114,15 @@ class AlertRuleService:
                     AlertWebhookModel.tenant_id.is_(None)
                 )
             )
-        
+
         if not include_inactive:
             query = query.where(AlertWebhookModel.is_active.is_(True))
-        
+
         query = query.order_by(AlertWebhookModel.created_at.desc())
-        
+
         result = await self.db.execute(query)
         return list(result.scalars().all())
-    
+
     async def delete_webhook(self, webhook_id: UUID) -> bool:
         """Delete a webhook.
         
@@ -136,18 +135,18 @@ class AlertRuleService:
         webhook = await self.get_webhook(webhook_id)
         if not webhook:
             return False
-        
+
         await self.db.delete(webhook)
         await self.db.commit()
-        
+
         logger.info(f"Deleted webhook: {webhook_id}")
         return True
-    
+
     async def update_webhook(
         self,
         webhook_id: UUID,
-        updates: Dict[str, Any],
-    ) -> Optional[AlertWebhookModel]:
+        updates: dict[str, Any],
+    ) -> AlertWebhookModel | None:
         """Update a webhook.
         
         Args:
@@ -160,21 +159,21 @@ class AlertRuleService:
         webhook = await self.get_webhook(webhook_id)
         if not webhook:
             return None
-        
+
         # Encrypt webhook URL if being updated
         if "webhook_url" in updates:
             updates["webhook_url"] = encryption_service.encrypt(updates["webhook_url"])
-        
+
         for field, value in updates.items():
             if hasattr(webhook, field):
                 setattr(webhook, field, value)
-        
+
         await self.db.commit()
         await self.db.refresh(webhook)
-        
+
         logger.info(f"Updated webhook: {webhook_id}")
         return webhook
-    
+
     async def get_decrypted_webhook_url(self, webhook: AlertWebhookModel) -> str:
         """Get the decrypted webhook URL.
         
@@ -185,16 +184,16 @@ class AlertRuleService:
             Decrypted webhook URL
         """
         return encryption_service.decrypt(webhook.webhook_url)
-    
+
     # Rule Management
-    
+
     async def create_rule(
         self,
         name: str,
-        event_types: List[str],
+        event_types: list[str],
         min_severity: str,
         cooldown_minutes: int = 30,
-        tenant_id: Optional[str] = None,
+        tenant_id: str | None = None,
     ) -> AlertRuleModel:
         """Create a new alert rule.
         
@@ -216,15 +215,15 @@ class AlertRuleService:
             tenant_id=tenant_id,
             is_active=True,
         )
-        
+
         self.db.add(rule)
         await self.db.commit()
         await self.db.refresh(rule)
-        
+
         logger.info(f"Created alert rule: {rule.id} ({name})")
         return rule
-    
-    async def get_rule(self, rule_id: UUID) -> Optional[AlertRuleModel]:
+
+    async def get_rule(self, rule_id: UUID) -> AlertRuleModel | None:
         """Get a rule by ID.
         
         Args:
@@ -237,12 +236,12 @@ class AlertRuleService:
             select(AlertRuleModel).where(AlertRuleModel.id == rule_id)
         )
         return result.scalar_one_or_none()
-    
+
     async def list_rules(
         self,
-        tenant_id: Optional[str] = None,
+        tenant_id: str | None = None,
         include_inactive: bool = False,
-    ) -> List[AlertRuleModel]:
+    ) -> list[AlertRuleModel]:
         """List alert rules.
         
         Args:
@@ -253,7 +252,7 @@ class AlertRuleService:
             List of rule models
         """
         query = select(AlertRuleModel)
-        
+
         # Filter by tenant (None = global, specific = tenant-specific)
         if tenant_id is not None:
             query = query.where(
@@ -262,20 +261,20 @@ class AlertRuleService:
                     AlertRuleModel.tenant_id.is_(None)
                 )
             )
-        
+
         if not include_inactive:
             query = query.where(AlertRuleModel.is_active.is_(True))
-        
+
         query = query.order_by(AlertRuleModel.created_at.desc())
-        
+
         result = await self.db.execute(query)
         return list(result.scalars().all())
-    
+
     async def update_rule(
         self,
         rule_id: UUID,
-        updates: Dict[str, Any],
-    ) -> Optional[AlertRuleModel]:
+        updates: dict[str, Any],
+    ) -> AlertRuleModel | None:
         """Update an alert rule.
         
         Args:
@@ -288,21 +287,21 @@ class AlertRuleService:
         rule = await self.get_rule(rule_id)
         if not rule:
             return None
-        
+
         # Normalize severity to uppercase
         if "min_severity" in updates:
             updates["min_severity"] = updates["min_severity"].upper()
-        
+
         for field, value in updates.items():
             if hasattr(rule, field):
                 setattr(rule, field, value)
-        
+
         await self.db.commit()
         await self.db.refresh(rule)
-        
+
         logger.info(f"Updated alert rule: {rule_id}")
         return rule
-    
+
     async def delete_rule(self, rule_id: UUID) -> bool:
         """Delete an alert rule.
         
@@ -315,19 +314,19 @@ class AlertRuleService:
         rule = await self.get_rule(rule_id)
         if not rule:
             return False
-        
+
         await self.db.delete(rule)
         await self.db.commit()
-        
+
         logger.info(f"Deleted alert rule: {rule_id}")
         return True
-    
+
     async def find_matching_rules(
         self,
         event_type: str,
         severity: SeverityLevel,
-        tenant_id: Optional[str] = None,
-    ) -> List[AlertRuleModel]:
+        tenant_id: str | None = None,
+    ) -> list[AlertRuleModel]:
         """Find rules that match an event.
         
         Args:
@@ -345,9 +344,9 @@ class AlertRuleService:
             SeverityLevel.HIGH: 3,
             SeverityLevel.CRITICAL: 4,
         }
-        
+
         event_severity_level = severity_order.get(severity, 0)
-        
+
         # Build query
         query = select(AlertRuleModel).where(
             and_(
@@ -355,7 +354,7 @@ class AlertRuleService:
                 AlertRuleModel.event_types.contains([event_type]),
             )
         )
-        
+
         # Filter by tenant (get global rules and tenant-specific rules)
         if tenant_id is not None:
             query = query.where(
@@ -364,15 +363,15 @@ class AlertRuleService:
                     AlertRuleModel.tenant_id.is_(None)
                 )
             )
-        
+
         result = await self.db.execute(query)
         rules = result.scalars().all()
-        
+
         # Filter by severity level (only rules with min_severity <= event severity)
         matching_rules = []
         for rule in rules:
             rule_severity_level = severity_order.get(rule.min_severity, 0)
             if rule_severity_level <= event_severity_level:
                 matching_rules.append(rule)
-        
+
         return matching_rules

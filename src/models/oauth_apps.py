@@ -1,21 +1,21 @@
 """OAuth app models for SpecterDefence."""
 
 import uuid
-import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Optional, Any, Dict, List
+from typing import Any
 
-from sqlalchemy import String, Boolean, DateTime, Text, Enum as SQLEnum, Index, ForeignKey, Integer
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
-from src.models.types import UUID, JSONB, ARRAY
+from src.models.types import ARRAY, JSONB, UUID
 
 
 def utc_now() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class RiskLevel(str, Enum):
@@ -45,9 +45,9 @@ class PublisherType(str, Enum):
 
 class OAuthAppModel(Base):
     """OAuth application database model for tracking and analysis."""
-    
+
     __tablename__ = "oauth_apps"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -60,7 +60,7 @@ class OAuthAppModel(Base):
         index=True,
         comment="Internal tenant UUID"
     )
-    
+
     # App identification
     app_id: Mapped[str] = mapped_column(
         String(255),
@@ -73,19 +73,19 @@ class OAuthAppModel(Base):
         nullable=False,
         comment="Display name of the application"
     )
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
         comment="Application description"
     )
-    
+
     # Publisher information
-    publisher_name: Mapped[Optional[str]] = mapped_column(
+    publisher_name: Mapped[str | None] = mapped_column(
         String(500),
         nullable=True,
         comment="Publisher display name"
     )
-    publisher_id: Mapped[Optional[str]] = mapped_column(
+    publisher_id: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="Publisher ID"
@@ -108,7 +108,7 @@ class OAuthAppModel(Base):
         nullable=False,
         comment="Whether publisher is verified"
     )
-    
+
     # Risk analysis
     risk_level: Mapped[RiskLevel] = mapped_column(
         SQLEnum(RiskLevel, name="risk_level_enum"),
@@ -128,7 +128,7 @@ class OAuthAppModel(Base):
         nullable=False,
         comment="Calculated risk score (0-100)"
     )
-    
+
     # Permission analysis
     permission_count: Mapped[int] = mapped_column(
         Integer,
@@ -136,7 +136,7 @@ class OAuthAppModel(Base):
         nullable=False,
         comment="Total number of permissions"
     )
-    high_risk_permissions: Mapped[List[str]] = mapped_column(
+    high_risk_permissions: Mapped[list[str]] = mapped_column(
         ARRAY(String(255)),
         default=list,
         nullable=False,
@@ -178,7 +178,7 @@ class OAuthAppModel(Base):
         nullable=False,
         comment="Whether app has admin consent"
     )
-    
+
     # Consent tracking
     consent_count: Mapped[int] = mapped_column(
         Integer,
@@ -192,7 +192,7 @@ class OAuthAppModel(Base):
         nullable=False,
         comment="Whether admin has consented on behalf of organization"
     )
-    
+
     # Detection flags
     is_new_app: Mapped[bool] = mapped_column(
         Boolean,
@@ -200,15 +200,15 @@ class OAuthAppModel(Base):
         nullable=False,
         comment="Whether this is a newly detected app"
     )
-    detection_reasons: Mapped[List[str]] = mapped_column(
+    detection_reasons: Mapped[list[str]] = mapped_column(
         ARRAY(String(255)),
         default=list,
         nullable=False,
         comment="List of detection reasons"
     )
-    
+
     # Timestamps
-    app_created_at: Mapped[Optional[datetime]] = mapped_column(
+    app_created_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
         comment="When the app was registered in Azure AD"
@@ -236,21 +236,21 @@ class OAuthAppModel(Base):
         onupdate=utc_now,
         nullable=False
     )
-    
+
     # Raw data
-    app_data: Mapped[Dict[str, Any]] = mapped_column(
+    app_data: Mapped[dict[str, Any]] = mapped_column(
         JSONB,
         default=dict,
         nullable=False,
         comment="Raw app data from Graph API"
     )
-    permissions_data: Mapped[Dict[str, Any]] = mapped_column(
+    permissions_data: Mapped[dict[str, Any]] = mapped_column(
         JSONB,
         default=dict,
         nullable=False,
         comment="Raw permissions data from Graph API"
     )
-    
+
     __table_args__ = (
         # Composite index for deduplication lookups
         Index('ix_oauth_apps_tenant_app', 'tenant_id', 'app_id', unique=True),
@@ -261,10 +261,10 @@ class OAuthAppModel(Base):
         # Index for tenant-based queries with time filtering
         Index('ix_oauth_apps_tenant_scan', 'tenant_id', 'last_scan_at'),
     )
-    
+
     def __repr__(self) -> str:
         return f"<OAuthApp(id={self.id}, name={self.display_name}, risk={self.risk_level})>"
-    
+
     def generate_alert_title(self) -> str:
         """Generate alert title based on app characteristics."""
         if self.status == AppStatus.MALICIOUS:
@@ -272,40 +272,40 @@ class OAuthAppModel(Base):
         elif self.status == AppStatus.SUSPICIOUS:
             return f"Suspicious OAuth App Detected: {self.display_name}"
         return f"OAuth App Alert: {self.display_name}"
-    
+
     def generate_alert_description(self) -> str:
         """Generate detailed alert description."""
         parts = []
-        
+
         if self.has_mail_permissions:
             parts.append("Has access to user mailboxes")
-        
+
         if self.has_user_read_all:
             parts.append("Can read all user profiles")
-        
+
         if self.has_group_read_all:
             parts.append("Can read all groups")
-        
+
         if self.has_files_read_all:
             parts.append("Can read all files")
-        
+
         if not self.is_microsoft_publisher and not self.is_verified_publisher:
             parts.append(f"Unverified publisher: {self.publisher_name or 'Unknown'}")
-        
+
         if self.consent_count > 0:
             parts.append(f"Consented by {self.consent_count} user(s)")
-        
+
         if self.detection_reasons:
             parts.append(f"Risk factors: {', '.join(self.detection_reasons)}")
-        
+
         return "; ".join(parts) if parts else "OAuth application requires review"
 
 
 class OAuthAppConsentModel(Base):
     """Tracks individual user consents for OAuth applications."""
-    
+
     __tablename__ = "oauth_app_consents"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -335,7 +335,7 @@ class OAuthAppConsentModel(Base):
         index=True,
         comment="User email address"
     )
-    user_display_name: Mapped[Optional[str]] = mapped_column(
+    user_display_name: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="User display name"
@@ -356,12 +356,12 @@ class OAuthAppConsentModel(Base):
         nullable=False,
         comment="Consent state (Consented, Revoked)"
     )
-    consented_at: Mapped[Optional[datetime]] = mapped_column(
+    consented_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
         comment="When the user consented"
     )
-    expires_at: Mapped[Optional[datetime]] = mapped_column(
+    expires_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
         comment="When the consent expires"
@@ -377,31 +377,31 @@ class OAuthAppConsentModel(Base):
         onupdate=utc_now,
         nullable=False
     )
-    
+
     # Raw data
-    consent_data: Mapped[Dict[str, Any]] = mapped_column(
+    consent_data: Mapped[dict[str, Any]] = mapped_column(
         JSONB,
         default=dict,
         nullable=False,
         comment="Raw consent data from Graph API"
     )
-    
+
     __table_args__ = (
         # Composite index for user consent lookups
         Index('ix_oauth_consents_app_user', 'app_id', 'user_id', unique=True),
         # Index for tenant-based queries
         Index('ix_oauth_consents_tenant_user', 'tenant_id', 'user_email'),
     )
-    
+
     def __repr__(self) -> str:
         return f"<OAuthAppConsent(app={self.app_id}, user={self.user_email})>"
 
 
 class OAuthAppAlertModel(Base):
     """Alerts specifically for OAuth application violations."""
-    
+
     __tablename__ = "oauth_app_alerts"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -441,15 +441,15 @@ class OAuthAppAlertModel(Base):
         default=False,
         nullable=False
     )
-    acknowledged_by: Mapped[Optional[str]] = mapped_column(
+    acknowledged_by: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True
     )
-    acknowledged_at: Mapped[Optional[datetime]] = mapped_column(
+    acknowledged_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True
     )
-    alert_metadata: Mapped[Dict[str, Any]] = mapped_column(
+    alert_metadata: Mapped[dict[str, Any]] = mapped_column(
         JSONB,
         default=dict,
         nullable=False
@@ -459,20 +459,20 @@ class OAuthAppAlertModel(Base):
         default=utc_now,
         nullable=False
     )
-    
+
     __table_args__ = (
         Index('ix_oauth_app_alerts_unack', 'tenant_id', 'is_acknowledged', 'created_at'),
     )
-    
+
     def __repr__(self) -> str:
         return f"<OAuthAppAlert(id={self.id}, type={self.alert_type}, severity={self.severity})>"
 
 
 class OAuthAppPermissionModel(Base):
     """Detailed permission information for OAuth applications."""
-    
+
     __tablename__ = "oauth_app_permissions"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -506,12 +506,12 @@ class OAuthAppPermissionModel(Base):
         nullable=False,
         comment="Permission value/name"
     )
-    display_name: Mapped[Optional[str]] = mapped_column(
+    display_name: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         comment="Permission display name"
     )
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
         comment="Permission description"
@@ -522,7 +522,7 @@ class OAuthAppPermissionModel(Base):
         nullable=False,
         comment="Whether this is a high-risk permission"
     )
-    risk_category: Mapped[Optional[str]] = mapped_column(
+    risk_category: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         comment="Category of risk (mail, user, files, etc.)"
@@ -550,11 +550,11 @@ class OAuthAppPermissionModel(Base):
         onupdate=utc_now,
         nullable=False
     )
-    
+
     __table_args__ = (
         Index('ix_oauth_permissions_app_perm', 'app_id', 'permission_value', unique=True),
         Index('ix_oauth_permissions_high_risk', 'is_high_risk', 'risk_category'),
     )
-    
+
     def __repr__(self) -> str:
         return f"<OAuthAppPermission(app={self.app_id}, perm={self.permission_value})>"

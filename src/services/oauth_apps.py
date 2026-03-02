@@ -1,34 +1,34 @@
 """OAuth application monitoring service for SpecterDefence."""
 
 import logging
-from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Any
 
+from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, desc, func
 
+from src.alerts.engine import AlertEngine
 from src.clients.ms_graph import MSGraphClient
 from src.clients.oauth_apps import OAuthAppsClient
-from src.models.oauth_apps import (
-    OAuthAppModel,
-    OAuthAppConsentModel,
-    OAuthAppAlertModel,
-    OAuthAppPermissionModel,
-    RiskLevel,
-    AppStatus,
-    PublisherType,
-)
-from src.models.alerts import SeverityLevel, EventType
+from src.models.alerts import EventType, SeverityLevel
 from src.models.db import TenantModel
+from src.models.oauth_apps import (
+    AppStatus,
+    OAuthAppAlertModel,
+    OAuthAppConsentModel,
+    OAuthAppModel,
+    OAuthAppPermissionModel,
+    PublisherType,
+    RiskLevel,
+)
 from src.services.encryption import encryption_service
-from src.alerts.engine import AlertEngine
 
 logger = logging.getLogger(__name__)
 
 
 class OAuthAppsService:
     """Service for monitoring and managing OAuth applications."""
-    
+
     # Event types for OAuth app alerts
     EVENT_TYPE_NEW_APP = "oauth_new_app"
     EVENT_TYPE_HIGH_RISK_PERMISSIONS = "oauth_high_risk_permissions"
@@ -36,7 +36,7 @@ class OAuthAppsService:
     EVENT_TYPE_MAIL_ACCESS = "oauth_mail_access"
     EVENT_TYPE_EXCESSIVE_PERMISSIONS = "oauth_excessive_permissions"
     EVENT_TYPE_SUSPICIOUS_CONSENT = "oauth_suspicious_consent"
-    
+
     def __init__(self, db_session: AsyncSession) -> None:
         """Initialize the service.
         
@@ -44,12 +44,12 @@ class OAuthAppsService:
             db_session: Async database session
         """
         self.db = db_session
-    
+
     async def scan_tenant_oauth_apps(
         self,
         tenant_id: str,
         trigger_alerts: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Scan all OAuth applications for a tenant.
         
         Args:
@@ -63,24 +63,24 @@ class OAuthAppsService:
         tenant = await self._get_tenant(tenant_id)
         if not tenant:
             raise ValueError(f"Tenant {tenant_id} not found")
-        
+
         # Decrypt credentials
         client_secret = encryption_service.decrypt(tenant.client_secret)
-        
+
         # Create Graph client
         graph_client = MSGraphClient(
             tenant_id=tenant.tenant_id,
             client_id=tenant.client_id,
             client_secret=client_secret
         )
-        
+
         # Create OAuth apps client
         oauth_client = OAuthAppsClient(graph_client)
-        
+
         # Fetch all service principals (enterprise apps)
         logger.info(f"Scanning OAuth apps for tenant {tenant.name}")
         service_principals = await oauth_client.get_service_principals()
-        
+
         results = {
             "total_apps": len(service_principals),
             "new_apps": 0,
@@ -89,20 +89,20 @@ class OAuthAppsService:
             "malicious_apps": 0,
             "alerts_triggered": 0,
         }
-        
+
         # Process each app
         for sp in service_principals:
             try:
                 # Get permissions for this app
                 sp_id = sp.get("id")
                 permissions = await oauth_client.get_app_permissions(sp_id)
-                
+
                 # Analyze permissions
                 perm_analysis = oauth_client.analyze_permissions(permissions)
-                
+
                 # Get OAuth grants (consents)
                 consents = await oauth_client.get_oauth_permission_grants(sp_id)
-                
+
                 app_result = await self._process_app(
                     tenant_id=tenant_id,
                     app_data=sp,
@@ -112,36 +112,36 @@ class OAuthAppsService:
                     oauth_client=oauth_client,
                     trigger_alerts=trigger_alerts
                 )
-                
+
                 if app_result.get("is_new"):
                     results["new_apps"] += 1
                 elif app_result.get("is_updated"):
                     results["updated_apps"] += 1
-                
+
                 if app_result.get("status") == AppStatus.SUSPICIOUS:
                     results["suspicious_apps"] += 1
                 elif app_result.get("status") == AppStatus.MALICIOUS:
                     results["malicious_apps"] += 1
-                
+
                 if app_result.get("alert_triggered"):
                     results["alerts_triggered"] += 1
-                    
+
             except Exception as e:
                 logger.error(f"Error processing app {sp.get('id')}: {e}")
                 continue
-        
+
         return results
-    
+
     async def _process_app(
         self,
         tenant_id: str,
-        app_data: Dict[str, Any],
-        permissions: List[Dict[str, Any]],
-        consents: List[Dict[str, Any]],
-        perm_analysis: Dict[str, Any],
+        app_data: dict[str, Any],
+        permissions: list[dict[str, Any]],
+        consents: list[dict[str, Any]],
+        perm_analysis: dict[str, Any],
         oauth_client: OAuthAppsClient,
         trigger_alerts: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Process a single OAuth application.
         
         Args:
@@ -158,17 +158,17 @@ class OAuthAppsService:
         """
         app_id = app_data.get("appId", "")
         display_name = app_data.get("displayName", "Unknown App")
-        
+
         # Analyze app for risk
         app_analysis = oauth_client.analyze_app(app_data, perm_analysis)
-        
+
         # Check if app already exists
         existing_app = await self._get_existing_app(tenant_id, app_id)
-        
+
         is_new = False
         is_updated = False
         alert_triggered = False
-        
+
         if existing_app:
             # Update existing app
             await self._update_app(existing_app, app_data, permissions, consents, perm_analysis, app_analysis)
@@ -181,35 +181,35 @@ class OAuthAppsService:
             )
             is_new = True
             app_analysis["is_new_app"] = True
-        
+
         # Store detailed permissions
         await self._store_permissions(app_model.id, tenant_id, permissions)
-        
+
         # Store consents
         await self._store_consents(app_model.id, tenant_id, consents)
-        
+
         # Trigger alerts if needed
         if trigger_alerts and app_model.status in [AppStatus.SUSPICIOUS, AppStatus.MALICIOUS]:
             await self._trigger_alert(app_model)
             alert_triggered = True
-        
+
         # Trigger alert for new apps with high-risk permissions
         if trigger_alerts and is_new and app_model.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]:
             await self._trigger_alert(app_model, alert_type=self.EVENT_TYPE_NEW_APP)
             alert_triggered = True
-        
+
         return {
             "is_new": is_new,
             "is_updated": is_updated,
             "status": app_model.status,
             "alert_triggered": alert_triggered,
         }
-    
+
     async def _get_existing_app(
         self,
         tenant_id: str,
         app_id: str
-    ) -> Optional[OAuthAppModel]:
+    ) -> OAuthAppModel | None:
         """Get existing app from database.
         
         Args:
@@ -228,15 +228,15 @@ class OAuthAppsService:
             )
         )
         return result.scalar_one_or_none()
-    
+
     async def _create_app(
         self,
         tenant_id: str,
-        app_data: Dict[str, Any],
-        permissions: List[Dict[str, Any]],
-        consents: List[Dict[str, Any]],
-        perm_analysis: Dict[str, Any],
-        app_analysis: Dict[str, Any]
+        app_data: dict[str, Any],
+        permissions: list[dict[str, Any]],
+        consents: list[dict[str, Any]],
+        perm_analysis: dict[str, Any],
+        app_analysis: dict[str, Any]
     ) -> OAuthAppModel:
         """Create a new OAuth app record.
         
@@ -253,7 +253,7 @@ class OAuthAppsService:
         """
         verified_publisher = app_data.get("verifiedPublisher", {})
         publisher_name = app_data.get("publisherName", "")
-        
+
         # Parse creation date
         app_created_at = None
         if app_data.get("createdDateTime"):
@@ -263,13 +263,13 @@ class OAuthAppsService:
                 )
             except (ValueError, AttributeError):
                 pass
-        
+
         # Count consents
         consent_count = len(consents)
         admin_consented = any(
             consent.get("consentType") == "AllPrincipals" for consent in consents
         )
-        
+
         app = OAuthAppModel(
             tenant_id=tenant_id,
             app_id=app_data.get("appId", ""),
@@ -299,21 +299,21 @@ class OAuthAppsService:
             app_data=app_data,
             permissions_data={"permissions": permissions},
         )
-        
+
         self.db.add(app)
         await self.db.commit()
         await self.db.refresh(app)
-        
+
         return app
-    
+
     async def _update_app(
         self,
         app: OAuthAppModel,
-        app_data: Dict[str, Any],
-        permissions: List[Dict[str, Any]],
-        consents: List[Dict[str, Any]],
-        perm_analysis: Dict[str, Any],
-        app_analysis: Dict[str, Any]
+        app_data: dict[str, Any],
+        permissions: list[dict[str, Any]],
+        consents: list[dict[str, Any]],
+        perm_analysis: dict[str, Any],
+        app_analysis: dict[str, Any]
     ) -> None:
         """Update an existing OAuth app record.
         
@@ -327,13 +327,13 @@ class OAuthAppsService:
         """
         verified_publisher = app_data.get("verifiedPublisher", {})
         publisher_name = app_data.get("publisherName", "")
-        
+
         # Count consents
         consent_count = len(consents)
         admin_consented = any(
             consent.get("consentType") == "AllPrincipals" for consent in consents
         )
-        
+
         app.display_name = app_data.get("displayName", app.display_name)
         app.description = app_data.get("description") or app.description
         app.publisher_name = publisher_name or verified_publisher.get("displayName") or app.publisher_name
@@ -359,14 +359,14 @@ class OAuthAppsService:
         app.app_data = app_data
         app.permissions_data = {"permissions": permissions}
         app.last_scan_at = datetime.utcnow()
-        
+
         await self.db.commit()
-    
+
     async def _store_permissions(
         self,
         app_internal_id: Any,
         tenant_id: str,
-        permissions: List[Dict[str, Any]]
+        permissions: list[dict[str, Any]]
     ) -> None:
         """Store detailed permission records.
         
@@ -377,7 +377,7 @@ class OAuthAppsService:
         """
         for perm in permissions:
             perm_value = perm.get("value") or perm.get("appRoleId", "")
-            
+
             # Check if permission already exists
             result = await self.db.execute(
                 select(OAuthAppPermissionModel).where(
@@ -388,7 +388,7 @@ class OAuthAppsService:
                 )
             )
             existing = result.scalar_one_or_none()
-            
+
             if existing:
                 # Update existing
                 existing.consent_state = perm.get("consentState", existing.consent_state)
@@ -400,7 +400,7 @@ class OAuthAppsService:
                 risk_category = None
                 if is_high_risk:
                     risk_category = OAuthAppsClient.HIGH_RISK_PERMISSIONS[perm_value].get("category")
-                
+
                 new_perm = OAuthAppPermissionModel(
                     app_id=app_internal_id,
                     tenant_id=tenant_id,
@@ -415,14 +415,14 @@ class OAuthAppsService:
                     consent_state=perm.get("consentState", "NotConsented"),
                 )
                 self.db.add(new_perm)
-        
+
         await self.db.commit()
-    
+
     async def _store_consents(
         self,
         app_internal_id: Any,
         tenant_id: str,
-        consents: List[Dict[str, Any]]
+        consents: list[dict[str, Any]]
     ) -> None:
         """Store consent records.
         
@@ -433,11 +433,11 @@ class OAuthAppsService:
         """
         for consent in consents:
             user_id = consent.get("principalId", "")
-            
+
             # Skip if no user ID (admin consents don't always have principalId)
             if not user_id:
                 continue
-            
+
             # Check if consent already exists
             result = await self.db.execute(
                 select(OAuthAppConsentModel).where(
@@ -448,11 +448,11 @@ class OAuthAppsService:
                 )
             )
             existing = result.scalar_one_or_none()
-            
+
             # Parse dates
             consented_at = None
             expires_at = None
-            
+
             if consent.get("startTime"):
                 try:
                     consented_at = datetime.fromisoformat(
@@ -460,7 +460,7 @@ class OAuthAppsService:
                     )
                 except (ValueError, AttributeError):
                     pass
-            
+
             if consent.get("expiryTime"):
                 try:
                     expires_at = datetime.fromisoformat(
@@ -468,7 +468,7 @@ class OAuthAppsService:
                     )
                 except (ValueError, AttributeError):
                     pass
-            
+
             if existing:
                 # Update existing
                 existing.scope = consent.get("scope", existing.scope)
@@ -490,9 +490,9 @@ class OAuthAppsService:
                     consent_data=consent,
                 )
                 self.db.add(new_consent)
-        
+
         await self.db.commit()
-    
+
     async def _trigger_alert(
         self,
         app: OAuthAppModel,
@@ -507,7 +507,7 @@ class OAuthAppsService:
         try:
             if not alert_type:
                 alert_type = self._get_alert_type(app)
-            
+
             # Create alert record
             alert = OAuthAppAlertModel(
                 app_id=app.id,
@@ -525,16 +525,16 @@ class OAuthAppsService:
                     "detection_reasons": app.detection_reasons,
                 }
             )
-            
+
             self.db.add(alert)
             await self.db.commit()
-            
+
             # Also trigger through alert engine for webhook notifications
             engine = AlertEngine(self.db)
             try:
                 event_type = self._map_to_event_type(app)
                 severity = self._map_to_severity_level(app.risk_level)
-                
+
                 await engine.process_event(
                     event_type=event_type,
                     severity=severity,
@@ -545,10 +545,10 @@ class OAuthAppsService:
                 )
             finally:
                 await engine.close()
-                
+
         except Exception as e:
             logger.error(f"Error triggering alert for app {app.id}: {e}")
-    
+
     def _get_alert_type(self, app: OAuthAppModel) -> str:
         """Determine alert type based on app characteristics.
         
@@ -567,7 +567,7 @@ class OAuthAppsService:
         elif app.is_new_app:
             return self.EVENT_TYPE_NEW_APP
         return self.EVENT_TYPE_HIGH_RISK_PERMISSIONS
-    
+
     def _map_to_event_type(self, app: OAuthAppModel) -> EventType:
         """Map app to event type for alert engine.
         
@@ -580,7 +580,7 @@ class OAuthAppsService:
         # OAuth apps map to ADMIN_ACTION for now
         # Could extend EventType enum in the future
         return EventType.ADMIN_ACTION
-    
+
     def _map_to_severity_level(self, risk_level: RiskLevel) -> SeverityLevel:
         """Map app risk level to alert severity level.
         
@@ -597,8 +597,8 @@ class OAuthAppsService:
             RiskLevel.CRITICAL: SeverityLevel.CRITICAL,
         }
         return mapping.get(risk_level, SeverityLevel.MEDIUM)
-    
-    async def _get_tenant(self, tenant_id: str) -> Optional[TenantModel]:
+
+    async def _get_tenant(self, tenant_id: str) -> TenantModel | None:
         """Get tenant by internal ID.
         
         Args:
@@ -611,16 +611,16 @@ class OAuthAppsService:
             select(TenantModel).where(TenantModel.id == tenant_id)
         )
         return result.scalar_one_or_none()
-    
+
     async def get_apps(
         self,
-        tenant_id: Optional[str] = None,
-        status: Optional[AppStatus] = None,
-        risk_level: Optional[RiskLevel] = None,
-        publisher_type: Optional[PublisherType] = None,
+        tenant_id: str | None = None,
+        status: AppStatus | None = None,
+        risk_level: RiskLevel | None = None,
+        publisher_type: PublisherType | None = None,
         limit: int = 100,
         offset: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get OAuth apps with filtering.
         
         Args:
@@ -635,7 +635,7 @@ class OAuthAppsService:
             Dictionary with items and total count
         """
         query = select(OAuthAppModel)
-        
+
         # Apply filters
         if tenant_id:
             query = query.where(OAuthAppModel.tenant_id == tenant_id)
@@ -645,27 +645,27 @@ class OAuthAppsService:
             query = query.where(OAuthAppModel.risk_level == risk_level)
         if publisher_type:
             query = query.where(OAuthAppModel.publisher_type == publisher_type)
-        
+
         # Get total count
         count_query = select(OAuthAppModel.id).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
         total = len(count_result.scalars().all())
-        
+
         # Apply pagination and ordering
         query = query.order_by(desc(OAuthAppModel.risk_score), desc(OAuthAppModel.created_at))
         query = query.offset(offset).limit(limit)
-        
+
         result = await self.db.execute(query)
         items = result.scalars().all()
-        
+
         return {
             "items": list(items),
             "total": total,
             "limit": limit,
             "offset": offset,
         }
-    
-    async def get_app_by_id(self, app_id: str) -> Optional[OAuthAppModel]:
+
+    async def get_app_by_id(self, app_id: str) -> OAuthAppModel | None:
         """Get a specific OAuth app by internal ID.
         
         Args:
@@ -678,8 +678,8 @@ class OAuthAppsService:
             select(OAuthAppModel).where(OAuthAppModel.id == app_id)
         )
         return result.scalar_one_or_none()
-    
-    async def get_app_by_app_id(self, tenant_id: str, app_id: str) -> Optional[OAuthAppModel]:
+
+    async def get_app_by_app_id(self, tenant_id: str, app_id: str) -> OAuthAppModel | None:
         """Get an OAuth app by Microsoft app ID.
         
         Args:
@@ -698,12 +698,12 @@ class OAuthAppsService:
             )
         )
         return result.scalar_one_or_none()
-    
+
     async def get_suspicious_apps(
         self,
-        tenant_id: Optional[str] = None,
+        tenant_id: str | None = None,
         limit: int = 100
-    ) -> List[OAuthAppModel]:
+    ) -> list[OAuthAppModel]:
         """Get suspicious and malicious apps.
         
         Args:
@@ -716,21 +716,21 @@ class OAuthAppsService:
         query = select(OAuthAppModel).where(
             OAuthAppModel.status.in_([AppStatus.SUSPICIOUS, AppStatus.MALICIOUS])
         )
-        
+
         if tenant_id:
             query = query.where(OAuthAppModel.tenant_id == tenant_id)
-        
+
         query = query.order_by(desc(OAuthAppModel.risk_score))
         query = query.limit(limit)
-        
+
         result = await self.db.execute(query)
         return list(result.scalars().all())
-    
+
     async def get_high_risk_apps(
         self,
-        tenant_id: Optional[str] = None,
+        tenant_id: str | None = None,
         limit: int = 100
-    ) -> List[OAuthAppModel]:
+    ) -> list[OAuthAppModel]:
         """Get high-risk and critical apps.
         
         Args:
@@ -743,20 +743,20 @@ class OAuthAppsService:
         query = select(OAuthAppModel).where(
             OAuthAppModel.risk_level.in_([RiskLevel.HIGH, RiskLevel.CRITICAL])
         )
-        
+
         if tenant_id:
             query = query.where(OAuthAppModel.tenant_id == tenant_id)
-        
+
         query = query.order_by(desc(OAuthAppModel.risk_score))
         query = query.limit(limit)
-        
+
         result = await self.db.execute(query)
         return list(result.scalars().all())
-    
+
     async def get_app_permissions_detail(
         self,
         app_id: str
-    ) -> List[OAuthAppPermissionModel]:
+    ) -> list[OAuthAppPermissionModel]:
         """Get detailed permissions for an app.
         
         Args:
@@ -771,11 +771,11 @@ class OAuthAppsService:
             ).order_by(desc(OAuthAppPermissionModel.is_high_risk))
         )
         return list(result.scalars().all())
-    
+
     async def get_app_consents(
         self,
         app_id: str
-    ) -> List[OAuthAppConsentModel]:
+    ) -> list[OAuthAppConsentModel]:
         """Get consents for an app.
         
         Args:
@@ -790,12 +790,12 @@ class OAuthAppsService:
             ).order_by(desc(OAuthAppConsentModel.consented_at))
         )
         return list(result.scalars().all())
-    
+
     async def revoke_app(
         self,
         app_id: str,
         revoke_type: str = "disable"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Revoke/suspend an OAuth application.
         
         Args:
@@ -809,68 +809,68 @@ class OAuthAppsService:
         app = await self.get_app_by_id(app_id)
         if not app:
             return {"success": False, "error": "App not found"}
-        
+
         # Get tenant credentials
         tenant = await self._get_tenant(app.tenant_id)
         if not tenant:
             return {"success": False, "error": "Tenant not found"}
-        
+
         try:
             # Decrypt credentials
             client_secret = encryption_service.decrypt(tenant.client_secret)
-            
+
             # Create Graph client
             graph_client = MSGraphClient(
                 tenant_id=tenant.tenant_id,
                 client_id=tenant.client_id,
                 client_secret=client_secret
             )
-            
+
             # Create OAuth apps client
             oauth_client = OAuthAppsClient(graph_client)
-            
+
             # Find service principal ID
             # We need to query by appId
             token = await graph_client.get_access_token()
             import httpx
-            
+
             async with httpx.AsyncClient() as client:
                 response = await client.get(
                     f"https://graph.microsoft.com/v1.0/servicePrincipals(appId='{app.app_id}')",
                     headers={"Authorization": f"Bearer {token}"}
                 )
-                
+
                 if response.status_code != 200:
                     return {"success": False, "error": f"Failed to find service principal: {response.status_code}"}
-                
+
                 sp_data = response.json()
                 sp_id = sp_data.get("id")
-                
+
                 # Perform revocation
                 if revoke_type == "delete":
                     success = await oauth_client.delete_service_principal(sp_id)
                 else:
                     success = await oauth_client.disable_service_principal(sp_id)
-                
+
                 if success:
                     app.status = AppStatus.REVOKED
                     await self.db.commit()
                     return {"success": True, "message": f"App {revoke_type}d successfully"}
                 else:
                     return {"success": False, "error": f"Failed to {revoke_type} app"}
-                    
+
         except Exception as e:
             logger.error(f"Error revoking app {app_id}: {e}")
             return {"success": False, "error": str(e)}
-    
+
     async def get_alerts(
         self,
-        tenant_id: Optional[str] = None,
-        acknowledged: Optional[bool] = None,
-        severity: Optional[RiskLevel] = None,
+        tenant_id: str | None = None,
+        acknowledged: bool | None = None,
+        severity: RiskLevel | None = None,
         limit: int = 100,
         offset: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get OAuth app alerts.
         
         Args:
@@ -884,38 +884,38 @@ class OAuthAppsService:
             Dictionary with items and total count
         """
         query = select(OAuthAppAlertModel)
-        
+
         if tenant_id:
             query = query.where(OAuthAppAlertModel.tenant_id == tenant_id)
         if acknowledged is not None:
             query = query.where(OAuthAppAlertModel.is_acknowledged == acknowledged)
         if severity:
             query = query.where(OAuthAppAlertModel.severity == severity)
-        
+
         # Get total count
         count_query = select(OAuthAppAlertModel.id).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
         total = len(count_result.scalars().all())
-        
+
         # Apply pagination and ordering
         query = query.order_by(desc(OAuthAppAlertModel.created_at))
         query = query.offset(offset).limit(limit)
-        
+
         result = await self.db.execute(query)
         items = result.scalars().all()
-        
+
         return {
             "items": list(items),
             "total": total,
             "limit": limit,
             "offset": offset,
         }
-    
+
     async def acknowledge_alert(
         self,
         alert_id: str,
         acknowledged_by: str
-    ) -> Optional[OAuthAppAlertModel]:
+    ) -> OAuthAppAlertModel | None:
         """Acknowledge an OAuth app alert.
         
         Args:
@@ -929,23 +929,23 @@ class OAuthAppsService:
             select(OAuthAppAlertModel).where(OAuthAppAlertModel.id == alert_id)
         )
         alert = result.scalar_one_or_none()
-        
+
         if not alert:
             return None
-        
+
         alert.is_acknowledged = True
         alert.acknowledged_by = acknowledged_by
         alert.acknowledged_at = datetime.utcnow()
-        
+
         await self.db.commit()
         await self.db.refresh(alert)
-        
+
         return alert
-    
+
     async def get_apps_summary(
         self,
         tenant_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get summary of OAuth apps for a tenant.
         
         Args:
@@ -966,7 +966,7 @@ class OAuthAppsService:
                 )
             )
             risk_counts[risk.value] = count_result.scalar()
-        
+
         # Get counts by status
         status_counts = {}
         for status in AppStatus:
@@ -979,7 +979,7 @@ class OAuthAppsService:
                 )
             )
             status_counts[status.value] = count_result.scalar()
-        
+
         # Get high-risk apps with mail access
         mail_apps_result = await self.db.execute(
             select(func.count(OAuthAppModel.id)).where(
@@ -991,7 +991,7 @@ class OAuthAppsService:
             )
         )
         mail_apps_count = mail_apps_result.scalar()
-        
+
         # Get unverified publisher apps
         unverified_result = await self.db.execute(
             select(func.count(OAuthAppModel.id)).where(
@@ -1002,7 +1002,7 @@ class OAuthAppsService:
             )
         )
         unverified_count = unverified_result.scalar()
-        
+
         # Get recent alerts count
         alerts_result = await self.db.execute(
             select(func.count(OAuthAppAlertModel.id)).where(
@@ -1010,7 +1010,7 @@ class OAuthAppsService:
             )
         )
         alerts_count = alerts_result.scalar()
-        
+
         # Get unacknowledged alerts count
         unack_result = await self.db.execute(
             select(func.count(OAuthAppAlertModel.id)).where(
@@ -1021,7 +1021,7 @@ class OAuthAppsService:
             )
         )
         unack_count = unack_result.scalar()
-        
+
         return {
             "total_apps": sum(risk_counts.values()),
             "by_risk_level": risk_counts,

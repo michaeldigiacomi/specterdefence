@@ -1,15 +1,17 @@
 """SQLAlchemy models for SpecterDefence."""
 
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import String, Boolean, DateTime
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
+
 from src.database import Base
 
 
 def utc_now() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class TenantModel(Base):

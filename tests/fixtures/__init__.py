@@ -1,8 +1,7 @@
 """Mock data fixtures for SpecterDefence tests."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any
-
 
 # =============================================================================
 # Microsoft Graph API Mock Responses
@@ -10,7 +9,7 @@ from typing import Any
 
 class MSGraphFixtures:
     """Microsoft Graph API mock response fixtures."""
-    
+
     @staticmethod
     def organization(tenant_id: str = "12345678-1234-1234-1234-123456789012") -> dict[str, Any]:
         """Return a mock organization response."""
@@ -42,7 +41,7 @@ class MSGraphFixtures:
                 "preferredLanguage": "en",
             }]
         }
-    
+
     @staticmethod
     def users(count: int = 2) -> dict[str, Any]:
         """Return mock users response."""
@@ -60,9 +59,9 @@ class MSGraphFixtures:
                 "department": "Engineering",
                 "officeLocation": "New York",
             })
-        
+
         return {"value": users}
-    
+
     @staticmethod
     def sign_in_logs(count: int = 2) -> dict[str, Any]:
         """Return mock sign-in logs response."""
@@ -79,15 +78,15 @@ class MSGraphFixtures:
                 "geoCoordinates": {"latitude": 35.6762, "longitude": 139.6503},
             },
         ]
-        
+
         signins = []
-        base_time = datetime(2026, 3, 1, 10, 0, 0, tzinfo=timezone.utc)
-        
+        base_time = datetime(2026, 3, 1, 10, 0, 0, tzinfo=UTC)
+
         for i in range(count):
             signins.append({
                 "id": f"signin-{i+1}",
                 "createdDateTime": base_time.isoformat().replace("+00:00", "Z"),
-                "userPrincipalName": f"user@example.com",
+                "userPrincipalName": "user@example.com",
                 "userId": "user-1-id",
                 "appDisplayName": "Office 365 Exchange Online",
                 "appId": "00000002-0000-0ff1-ce00-000000000000",
@@ -104,15 +103,15 @@ class MSGraphFixtures:
                 "riskLevelDuringSignIn": "low",
                 "riskState": "none",
             })
-        
+
         return {"value": signins}
-    
+
     @staticmethod
     def audit_logs(count: int = 2) -> dict[str, Any]:
         """Return mock audit logs response."""
         logs = []
-        base_time = datetime(2026, 3, 1, 10, 0, 0, tzinfo=timezone.utc)
-        
+        base_time = datetime(2026, 3, 1, 10, 0, 0, tzinfo=UTC)
+
         operations = [
             {
                 "activityDisplayName": "Add user",
@@ -125,13 +124,13 @@ class MSGraphFixtures:
                 "result": "success",
             },
         ]
-        
+
         for i in range(count):
             op = operations[i % len(operations)]
             logs.append({
                 "id": f"audit-{i+1}",
                 "createdDateTime": base_time.isoformat().replace("+00:00", "Z"),
-                "userPrincipalName": f"admin@example.com",
+                "userPrincipalName": "admin@example.com",
                 "activityDisplayName": op["activityDisplayName"],
                 "category": op["category"],
                 "result": op["result"],
@@ -154,9 +153,9 @@ class MSGraphFixtures:
                     }
                 ],
             })
-        
+
         return {"value": logs}
-    
+
     @staticmethod
     def token_response(access_token: str = "mock-token") -> dict[str, Any]:
         """Return a mock token response."""
@@ -166,7 +165,7 @@ class MSGraphFixtures:
             "expires_in": 3600,
             "ext_expires_in": 3600,
         }
-    
+
     @staticmethod
     def error_response(error_code: str = "invalid_client", description: str = "Invalid credentials") -> dict[str, Any]:
         """Return a mock error response."""
@@ -174,7 +173,7 @@ class MSGraphFixtures:
             "error": error_code,
             "error_description": description,
             "error_codes": [50034],
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "trace_id": "test-trace-id",
             "correlation_id": "test-correlation-id",
         }
@@ -186,7 +185,7 @@ class MSGraphFixtures:
 
 class TenantFixtures:
     """Tenant mock data fixtures."""
-    
+
     @staticmethod
     def create_payload(
         name: str = "Test Tenant",
@@ -201,7 +200,7 @@ class TenantFixtures:
             "client_id": client_id,
             "client_secret": client_secret,
         }
-    
+
     @staticmethod
     def update_payload(
         name: str = "Updated Tenant Name",
@@ -212,7 +211,7 @@ class TenantFixtures:
             "name": name,
             "is_active": is_active,
         }
-    
+
     @staticmethod
     def response_payload(
         id: str = "test-tenant-uuid",
@@ -228,11 +227,11 @@ class TenantFixtures:
             "tenant_id": tenant_id,
             "client_id": f"{client_id[:8]}...{client_id[-4:]}",  # Masked
             "is_active": is_active,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
             "ms_tenant_name": None,
         }
-    
+
     @staticmethod
     def validation_response(
         valid: bool = True,
@@ -263,12 +262,12 @@ class TenantFixtures:
 
 class DiscordFixtures:
     """Discord webhook mock data fixtures."""
-    
+
     @staticmethod
     def webhook_url() -> str:
         """Return a mock Discord webhook URL."""
         return "https://discord.com/api/webhooks/123456789/test-webhook-token"
-    
+
     @staticmethod
     def embed_payload(
         title: str = "Test Alert",
@@ -280,13 +279,13 @@ class DiscordFixtures:
             "title": title,
             "description": description,
             "color": color,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "fields": [
                 {"name": "Test Field", "value": "Test Value", "inline": True},
             ],
             "footer": {"text": "SpecterDefence"},
         }
-    
+
     @staticmethod
     def alert_payload(
         content: str = "",
@@ -295,19 +294,19 @@ class DiscordFixtures:
         """Return a full Discord webhook payload."""
         if embeds is None:
             embeds = [DiscordFixtures.embed_payload()]
-        
+
         return {
             "content": content,
             "embeds": embeds,
             "username": "SpecterDefence",
             "avatar_url": None,
         }
-    
+
     @staticmethod
     def success_response() -> dict[str, Any]:
         """Return a successful webhook response."""
         return {"id": "123456789", "type": 1}
-    
+
     @staticmethod
     def error_response(message: str = "Invalid Webhook Token") -> dict[str, Any]:
         """Return an error webhook response."""
@@ -323,7 +322,7 @@ class DiscordFixtures:
 
 class SecurityEventFixtures:
     """Security event mock data fixtures."""
-    
+
     @staticmethod
     def impossible_travel(
         user_email: str = "user@example.com",
@@ -358,7 +357,7 @@ class SecurityEventFixtures:
                 "risk_score": 95,
             },
         }
-    
+
     @staticmethod
     def new_country_login(
         user_email: str = "user@example.com",
@@ -381,7 +380,7 @@ class SecurityEventFixtures:
                 "ip_address": "203.0.113.50",
             },
         }
-    
+
     @staticmethod
     def brute_force_attempt(
         user_email: str = "admin@example.com",
@@ -401,7 +400,7 @@ class SecurityEventFixtures:
                 "time_window_minutes": 15,
             },
         }
-    
+
     @staticmethod
     def admin_action(
         admin_email: str = "admin@example.com",

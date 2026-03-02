@@ -1,23 +1,22 @@
 """MFA Enrollment Tracking service for SpecterDefence."""
 
 import logging
-from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
+from typing import Any
 
+from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, desc, func, cast, Float
 
-from src.clients.ms_graph import MSGraphClient
 from src.clients.mfa_report import MFAReportClient
-from src.models.mfa_report import (
-    MFAUserModel,
-    MFAEnrollmentHistoryModel,
-    MFAComplianceAlertModel,
-    MFAMethodType,
-    MFAStrengthLevel,
-    ComplianceStatus,
-)
+from src.clients.ms_graph import MSGraphClient
 from src.models.db import TenantModel
+from src.models.mfa_report import (
+    ComplianceStatus,
+    MFAComplianceAlertModel,
+    MFAEnrollmentHistoryModel,
+    MFAStrengthLevel,
+    MFAUserModel,
+)
 from src.services.encryption import encryption_service
 
 logger = logging.getLogger(__name__)
@@ -25,11 +24,11 @@ logger = logging.getLogger(__name__)
 
 class MFAReportService:
     """Service for MFA enrollment tracking and reporting."""
-    
+
     # Compliance thresholds
     ADMIN_MFA_REQUIRED = True
     USER_MFA_TARGET_PERCENTAGE = 95.0
-    
+
     # MFA strength priority for comparison
     STRENGTH_PRIORITY = {
         MFAStrengthLevel.STRONG: 3,
@@ -37,7 +36,7 @@ class MFAReportService:
         MFAStrengthLevel.WEAK: 1,
         MFAStrengthLevel.NONE: 0,
     }
-    
+
     def __init__(self, db_session: AsyncSession) -> None:
         """Initialize the service.
         
@@ -45,13 +44,13 @@ class MFAReportService:
             db_session: Async database session
         """
         self.db = db_session
-    
+
     async def scan_tenant_mfa(
         self,
         tenant_id: str,
         full_scan: bool = True,
         check_compliance: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Scan all users for MFA enrollment status.
         
         Args:
@@ -66,22 +65,22 @@ class MFAReportService:
         tenant = await self._get_tenant(tenant_id)
         if not tenant:
             raise ValueError(f"Tenant {tenant_id} not found")
-        
+
         # Decrypt credentials
         client_secret = encryption_service.decrypt(tenant.client_secret)
-        
+
         # Create Graph client
         graph_client = MSGraphClient(
             tenant_id=tenant.tenant_id,
             client_id=tenant.client_id,
             client_secret=client_secret
         )
-        
+
         # Create MFA report client
         mfa_client = MFAReportClient(graph_client)
-        
+
         logger.info(f"Starting MFA scan for tenant {tenant.name}")
-        
+
         # Scan all users
         results = {
             "users_scanned": 0,
@@ -89,12 +88,12 @@ class MFAReportService:
             "compliance_violations": 0,
             "critical_findings": 0,
         }
-        
+
         try:
             # Get all users with MFA data
             users_data = await mfa_client.scan_all_users_mfa()
             results["users_scanned"] = len(users_data)
-            
+
             # Process each user
             for user_data in users_data:
                 try:
@@ -102,24 +101,24 @@ class MFAReportService:
                         tenant_id=tenant_id,
                         user_data=user_data
                     )
-                    
+
                     if user_result.get("is_new_registration"):
                         results["new_mfa_registrations"] += 1
                     if user_result.get("is_critical_finding"):
                         results["critical_findings"] += 1
-                        
+
                 except Exception as e:
                     logger.error(f"Error processing user {user_data.get('user_principal_name')}: {e}")
                     continue
-            
+
             # Check compliance if requested
             if check_compliance:
                 compliance_result = await self._check_tenant_compliance(tenant_id)
                 results["compliance_violations"] = compliance_result["total_violations"]
-            
+
             # Create enrollment snapshot
             await self._create_enrollment_snapshot(tenant_id)
-            
+
             results["success"] = True
             results["message"] = (
                 f"Scan completed. {results['users_scanned']} users scanned, "
@@ -127,19 +126,19 @@ class MFAReportService:
                 f"{results['critical_findings']} critical findings, "
                 f"{results['compliance_violations']} compliance violations."
             )
-            
+
         except Exception as e:
             logger.error(f"Error during MFA scan: {e}")
             results["success"] = False
             results["message"] = f"Scan failed: {str(e)}"
-        
+
         return results
-    
+
     async def _process_user_mfa_data(
         self,
         tenant_id: str,
-        user_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        user_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Process and store MFA data for a user.
         
         Args:
@@ -151,21 +150,21 @@ class MFAReportService:
         """
         user_id = user_data.get("user_id")
         user_principal_name = user_data.get("user_principal_name")
-        
+
         # Check if user already exists
         existing_user = await self._get_existing_user(tenant_id, user_id)
-        
+
         # Determine MFA strength
         strength_str = user_data.get("strength", "none")
         try:
             mfa_strength = MFAStrengthLevel(strength_str)
         except ValueError:
             mfa_strength = MFAStrengthLevel.NONE
-        
+
         # Determine compliance status
         is_admin = user_data.get("is_admin", False)
         is_mfa_registered = user_data.get("is_mfa_registered", False)
-        
+
         if existing_user and existing_user.compliance_exempt:
             compliance_status = ComplianceStatus.EXEMPT
         elif is_admin:
@@ -182,17 +181,17 @@ class MFAReportService:
                 if is_mfa_registered
                 else ComplianceStatus.NON_COMPLIANT
             )
-        
+
         result = {
             "is_new_registration": False,
             "is_critical_finding": False,
         }
-        
+
         # Track new registrations
         if is_mfa_registered:
             if existing_user and not existing_user.is_mfa_registered:
                 result["is_new_registration"] = True
-        
+
         # Track critical findings (admin without MFA)
         if is_admin and not is_mfa_registered:
             result["is_critical_finding"] = True
@@ -205,7 +204,7 @@ class MFAReportService:
                 title=f"Critical: Admin without MFA - {user_principal_name}",
                 description=f"Admin user {user_principal_name} does not have MFA registered. This is a critical security risk.",
             )
-        
+
         # Track weak MFA for admins
         if is_admin and is_mfa_registered and mfa_strength == MFAStrengthLevel.WEAK:
             await self._create_compliance_alert(
@@ -216,20 +215,20 @@ class MFAReportService:
                 title=f"High: Admin with weak MFA - {user_principal_name}",
                 description=f"Admin user {user_principal_name} is using weak MFA (SMS/Voice). Consider upgrading to Authenticator app or FIDO2.",
             )
-        
+
         if existing_user:
             # Update existing user
             await self._update_user_mfa_data(existing_user, user_data, mfa_strength, compliance_status)
         else:
             # Create new user
             await self._create_user_mfa_data(tenant_id, user_data, mfa_strength, compliance_status)
-        
+
         return result
-    
+
     async def _create_user_mfa_data(
         self,
         tenant_id: str,
-        user_data: Dict[str, Any],
+        user_data: dict[str, Any],
         mfa_strength: MFAStrengthLevel,
         compliance_status: ComplianceStatus
     ) -> MFAUserModel:
@@ -261,22 +260,22 @@ class MFAReportService:
             user_type=user_data.get("user_type", "Member"),
             user_data=user_data.get("raw_user_data", {}),
         )
-        
+
         # Set first registration date if MFA is registered
         if user.is_mfa_registered:
             user.first_mfa_registration = datetime.utcnow()
             user.last_mfa_update = datetime.utcnow()
-        
+
         self.db.add(user)
         await self.db.commit()
         await self.db.refresh(user)
-        
+
         return user
-    
+
     async def _update_user_mfa_data(
         self,
         user: MFAUserModel,
-        user_data: Dict[str, Any],
+        user_data: dict[str, Any],
         mfa_strength: MFAStrengthLevel,
         compliance_status: ComplianceStatus
     ) -> None:
@@ -290,7 +289,7 @@ class MFAReportService:
         """
         # Track if MFA was just registered
         was_mfa_registered = user.is_mfa_registered
-        
+
         user.display_name = user_data.get("display_name", user.display_name)
         user.is_mfa_registered = user_data.get("is_mfa_registered", False)
         user.mfa_methods = user_data.get("mfa_methods", [])
@@ -304,17 +303,17 @@ class MFAReportService:
         user.user_type = user_data.get("user_type", user.user_type)
         user.user_data = user_data.get("raw_user_data", {})
         user.last_scan_at = datetime.utcnow()
-        
+
         # Set first registration date if newly registered
         if user.is_mfa_registered and not was_mfa_registered:
             user.first_mfa_registration = datetime.utcnow()
             user.last_mfa_update = datetime.utcnow()
         elif user.is_mfa_registered:
             user.last_mfa_update = datetime.utcnow()
-        
+
         await self.db.commit()
-    
-    async def _check_tenant_compliance(self, tenant_id: str) -> Dict[str, Any]:
+
+    async def _check_tenant_compliance(self, tenant_id: str) -> dict[str, Any]:
         """Check compliance status for a tenant.
         
         Args:
@@ -334,27 +333,27 @@ class MFAReportService:
             )
         )
         non_compliant_users = result.scalars().all()
-        
+
         # Check for admins without MFA
         admin_no_mfa_count = sum(
             1 for u in non_compliant_users if u.is_admin
         )
-        
+
         return {
             "total_violations": len(non_compliant_users),
             "admin_violations": admin_no_mfa_count,
             "user_violations": len(non_compliant_users) - admin_no_mfa_count,
         }
-    
+
     async def _create_compliance_alert(
         self,
         tenant_id: str,
-        user_id: Optional[Any],
+        user_id: Any | None,
         alert_type: str,
         severity: str,
         title: str,
         description: str
-    ) -> Optional[MFAComplianceAlertModel]:
+    ) -> MFAComplianceAlertModel | None:
         """Create a compliance alert.
         
         Args:
@@ -382,7 +381,7 @@ class MFAReportService:
                 )
                 if result.scalar_one_or_none():
                     return None  # Alert already exists
-            
+
             alert = MFAComplianceAlertModel(
                 user_id=user_id,
                 tenant_id=tenant_id,
@@ -395,17 +394,17 @@ class MFAReportService:
                     "auto_generated": True,
                 }
             )
-            
+
             self.db.add(alert)
             await self.db.commit()
             await self.db.refresh(alert)
-            
+
             return alert
         except Exception as e:
             logger.error(f"Error creating compliance alert: {e}")
             return None
-    
-    async def _create_enrollment_snapshot(self, tenant_id: str) -> Optional[MFAEnrollmentHistoryModel]:
+
+    async def _create_enrollment_snapshot(self, tenant_id: str) -> MFAEnrollmentHistoryModel | None:
         """Create an enrollment snapshot for historical tracking.
         
         Args:
@@ -420,22 +419,22 @@ class MFAReportService:
             mfa_registered = await self._get_mfa_registered_count(tenant_id)
             total_admins = await self._get_admin_count(tenant_id)
             admins_with_mfa = await self._get_admin_with_mfa_count(tenant_id)
-            
+
             # Get method counts
             fido2_count = await self._get_method_count(tenant_id, MFAStrengthLevel.STRONG)
             auth_app_count = await self._get_method_count(tenant_id, MFAStrengthLevel.MODERATE)
             sms_count = await self._get_method_count(tenant_id, MFAStrengthLevel.WEAK)
-            
+
             # Get strength counts
             strong_count = await self._get_strength_count(tenant_id, MFAStrengthLevel.STRONG)
             moderate_count = await self._get_strength_count(tenant_id, MFAStrengthLevel.MODERATE)
             weak_count = await self._get_strength_count(tenant_id, MFAStrengthLevel.WEAK)
             exempt_count = await self._get_exempt_count(tenant_id)
-            
+
             # Calculate percentages
             mfa_coverage = (mfa_registered / total_users * 100) if total_users > 0 else 0
             admin_mfa_coverage = (admins_with_mfa / total_admins * 100) if total_admins > 0 else 0
-            
+
             # Create snapshot
             snapshot = MFAEnrollmentHistoryModel(
                 tenant_id=tenant_id,
@@ -457,7 +456,7 @@ class MFAReportService:
                 mfa_coverage_percentage=round(mfa_coverage, 2),
                 admin_mfa_coverage_percentage=round(admin_mfa_coverage, 2),
             )
-            
+
             # Check for existing snapshot for today
             result = await self.db.execute(
                 select(MFAEnrollmentHistoryModel).where(
@@ -468,7 +467,7 @@ class MFAReportService:
                 )
             )
             existing = result.scalar_one_or_none()
-            
+
             if existing:
                 # Update existing snapshot
                 existing.total_users = snapshot.total_users
@@ -488,14 +487,14 @@ class MFAReportService:
                 existing.admin_mfa_coverage_percentage = snapshot.admin_mfa_coverage_percentage
             else:
                 self.db.add(snapshot)
-            
+
             await self.db.commit()
-            
+
             return snapshot if not existing else existing
         except Exception as e:
             logger.error(f"Error creating enrollment snapshot: {e}")
             return None
-    
+
     # Count helper methods
     async def _get_count(self, tenant_id: str) -> int:
         """Get total user count."""
@@ -505,7 +504,7 @@ class MFAReportService:
             )
         )
         return result.scalar() or 0
-    
+
     async def _get_mfa_registered_count(self, tenant_id: str) -> int:
         """Get MFA registered user count."""
         result = await self.db.execute(
@@ -517,7 +516,7 @@ class MFAReportService:
             )
         )
         return result.scalar() or 0
-    
+
     async def _get_admin_count(self, tenant_id: str) -> int:
         """Get admin user count."""
         result = await self.db.execute(
@@ -529,7 +528,7 @@ class MFAReportService:
             )
         )
         return result.scalar() or 0
-    
+
     async def _get_admin_with_mfa_count(self, tenant_id: str) -> int:
         """Get admin users with MFA count."""
         result = await self.db.execute(
@@ -542,7 +541,7 @@ class MFAReportService:
             )
         )
         return result.scalar() or 0
-    
+
     async def _get_strength_count(self, tenant_id: str, strength: MFAStrengthLevel) -> int:
         """Get users by MFA strength count."""
         result = await self.db.execute(
@@ -554,11 +553,11 @@ class MFAReportService:
             )
         )
         return result.scalar() or 0
-    
+
     async def _get_method_count(self, tenant_id: str, strength: MFAStrengthLevel) -> int:
         """Get users by method strength (approximation)."""
         return await self._get_strength_count(tenant_id, strength)
-    
+
     async def _get_exempt_count(self, tenant_id: str) -> int:
         """Get exempt user count."""
         result = await self.db.execute(
@@ -570,12 +569,12 @@ class MFAReportService:
             )
         )
         return result.scalar() or 0
-    
+
     async def _get_existing_user(
         self,
         tenant_id: str,
         user_id: str
-    ) -> Optional[MFAUserModel]:
+    ) -> MFAUserModel | None:
         """Get existing user from database.
         
         Args:
@@ -594,8 +593,8 @@ class MFAReportService:
             )
         )
         return result.scalar_one_or_none()
-    
-    async def _get_tenant(self, tenant_id: str) -> Optional[TenantModel]:
+
+    async def _get_tenant(self, tenant_id: str) -> TenantModel | None:
         """Get tenant by internal ID.
         
         Args:
@@ -608,20 +607,20 @@ class MFAReportService:
             select(TenantModel).where(TenantModel.id == tenant_id)
         )
         return result.scalar_one_or_none()
-    
+
     # Public API methods
-    
+
     async def get_users(
         self,
-        tenant_id: Optional[str] = None,
-        is_mfa_registered: Optional[bool] = None,
-        is_admin: Optional[bool] = None,
-        compliance_status: Optional[ComplianceStatus] = None,
-        mfa_strength: Optional[MFAStrengthLevel] = None,
-        needs_attention: Optional[bool] = None,
+        tenant_id: str | None = None,
+        is_mfa_registered: bool | None = None,
+        is_admin: bool | None = None,
+        compliance_status: ComplianceStatus | None = None,
+        mfa_strength: MFAStrengthLevel | None = None,
+        needs_attention: bool | None = None,
         limit: int = 100,
         offset: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get MFA users with filtering.
         
         Args:
@@ -638,7 +637,7 @@ class MFAReportService:
             Dictionary with items and total count
         """
         query = select(MFAUserModel)
-        
+
         if tenant_id:
             query = query.where(MFAUserModel.tenant_id == tenant_id)
         if is_mfa_registered is not None:
@@ -679,34 +678,34 @@ class MFAReportService:
                         )
                     )
                 )
-        
+
         # Get total count
         count_result = await self.db.execute(
             select(func.count(MFAUserModel.id)).select_from(query.subquery())
         )
         total = count_result.scalar()
-        
+
         # Apply pagination and ordering
         query = query.order_by(desc(MFAUserModel.is_admin), MFAUserModel.user_principal_name)
         query = query.offset(offset).limit(limit)
-        
+
         result = await self.db.execute(query)
         items = result.scalars().all()
-        
+
         return {
             "items": list(items),
             "total": total,
             "limit": limit,
             "offset": offset,
         }
-    
+
     async def get_users_without_mfa(
         self,
         tenant_id: str,
         include_exempt: bool = False,
         limit: int = 100,
         offset: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get users without MFA registration.
         
         Args:
@@ -723,37 +722,37 @@ class MFAReportService:
             MFAUserModel.is_mfa_registered == False,
             MFAUserModel.account_enabled == True,
         ]
-        
+
         if not include_exempt:
             conditions.append(MFAUserModel.compliance_exempt == False)
-        
+
         query = select(MFAUserModel).where(and_(*conditions))
-        
+
         # Get total count
         count_result = await self.db.execute(
             select(func.count(MFAUserModel.id)).select_from(query.subquery())
         )
         total = count_result.scalar()
-        
+
         # Apply ordering: admins first, then by name
         query = query.order_by(desc(MFAUserModel.is_admin), MFAUserModel.user_principal_name)
         query = query.offset(offset).limit(limit)
-        
+
         result = await self.db.execute(query)
         items = result.scalars().all()
-        
+
         return {
             "items": list(items),
             "total": total,
             "limit": limit,
             "offset": offset,
         }
-    
+
     async def get_admins_without_mfa(
         self,
         tenant_id: str,
         limit: int = 100
-    ) -> List[MFAUserModel]:
+    ) -> list[MFAUserModel]:
         """Get admin users without MFA (critical findings).
         
         Args:
@@ -772,14 +771,14 @@ class MFAReportService:
                 MFAUserModel.account_enabled == True,
             )
         )
-        
+
         query = query.order_by(MFAUserModel.user_principal_name)
         query = query.limit(limit)
-        
+
         result = await self.db.execute(query)
         return list(result.scalars().all())
-    
-    async def get_enrollment_summary(self, tenant_id: str) -> Dict[str, Any]:
+
+    async def get_enrollment_summary(self, tenant_id: str) -> dict[str, Any]:
         """Get MFA enrollment summary for a tenant.
         
         Args:
@@ -794,25 +793,25 @@ class MFAReportService:
         total_admins = await self._get_admin_count(tenant_id)
         admins_with_mfa = await self._get_admin_with_mfa_count(tenant_id)
         admins_without_mfa = total_admins - admins_with_mfa
-        
+
         # Get method counts
         fido2_count = await self._get_strength_count(tenant_id, MFAStrengthLevel.STRONG)
         auth_app_count = await self._get_strength_count(tenant_id, MFAStrengthLevel.MODERATE)
         sms_count = await self._get_strength_count(tenant_id, MFAStrengthLevel.WEAK)
-        
+
         # Get strength counts
         strong_count = fido2_count
         moderate_count = auth_app_count
         weak_count = sms_count
-        
+
         exempt_count = await self._get_exempt_count(tenant_id)
         non_compliant = total_users - mfa_registered - exempt_count
-        
+
         # Calculate percentages
         mfa_coverage = (mfa_registered / total_users * 100) if total_users > 0 else 0
         admin_mfa_coverage = (admins_with_mfa / total_admins * 100) if total_admins > 0 else 0
         compliance_rate = ((mfa_registered + exempt_count) / total_users * 100) if total_users > 0 else 0
-        
+
         return {
             "tenant_id": tenant_id,
             "snapshot_date": datetime.utcnow(),
@@ -835,12 +834,12 @@ class MFAReportService:
             "meets_admin_requirement": admin_mfa_coverage >= 100 if total_admins > 0 else True,
             "meets_user_target": mfa_coverage >= self.USER_MFA_TARGET_PERCENTAGE,
         }
-    
+
     async def get_enrollment_trends(
         self,
         tenant_id: str,
         days: int = 30
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get MFA enrollment trends over time.
         
         Args:
@@ -851,7 +850,7 @@ class MFAReportService:
             Trend data
         """
         since_date = datetime.utcnow() - timedelta(days=days)
-        
+
         result = await self.db.execute(
             select(MFAEnrollmentHistoryModel).where(
                 and_(
@@ -860,9 +859,9 @@ class MFAReportService:
                 )
             ).order_by(MFAEnrollmentHistoryModel.snapshot_date)
         )
-        
+
         snapshots = result.scalars().all()
-        
+
         trends = [
             {
                 "date": s.snapshot_date,
@@ -873,14 +872,14 @@ class MFAReportService:
             }
             for s in snapshots
         ]
-        
+
         return {
             "tenant_id": tenant_id,
             "trends": trends,
             "period_days": days,
         }
-    
-    async def get_mfa_method_distribution(self, tenant_id: str) -> Dict[str, Any]:
+
+    async def get_mfa_method_distribution(self, tenant_id: str) -> dict[str, Any]:
         """Get distribution of MFA methods used.
         
         Args:
@@ -897,15 +896,15 @@ class MFAReportService:
                 )
             )
         )
-        
+
         users = result.scalars().all()
-        
+
         # Count methods
-        method_counts: Dict[str, int] = {}
+        method_counts: dict[str, int] = {}
         for user in users:
             for method in user.mfa_methods:
                 method_counts[method] = method_counts.get(method, 0) + 1
-        
+
         # Calculate percentages
         total_mfa_users = len(users)
         distribution = []
@@ -915,14 +914,14 @@ class MFAReportService:
                 "count": count,
                 "percentage": round(count / total_mfa_users * 100, 2) if total_mfa_users > 0 else 0,
             })
-        
+
         return {
             "tenant_id": tenant_id,
             "total_mfa_users": total_mfa_users,
             "distribution": distribution,
         }
-    
-    async def get_mfa_strength_distribution(self, tenant_id: str) -> Dict[str, Any]:
+
+    async def get_mfa_strength_distribution(self, tenant_id: str) -> dict[str, Any]:
         """Get distribution of MFA strength levels.
         
         Args:
@@ -936,7 +935,7 @@ class MFAReportService:
         moderate_count = await self._get_strength_count(tenant_id, MFAStrengthLevel.MODERATE)
         weak_count = await self._get_strength_count(tenant_id, MFAStrengthLevel.WEAK)
         no_mfa_count = total_users - strong_count - moderate_count - weak_count
-        
+
         distribution = [
             {
                 "strength_level": MFAStrengthLevel.STRONG,
@@ -959,7 +958,7 @@ class MFAReportService:
                 "percentage": round(no_mfa_count / total_users * 100, 2) if total_users > 0 else 0,
             },
         ]
-        
+
         return {
             "tenant_id": tenant_id,
             "distribution": distribution,
@@ -968,14 +967,14 @@ class MFAReportService:
             "weak_mfa_percentage": round(weak_count / total_users * 100, 2) if total_users > 0 else 0,
             "no_mfa_percentage": round(no_mfa_count / total_users * 100, 2) if total_users > 0 else 0,
         }
-    
+
     async def set_user_exemption(
         self,
         user_id: str,
         exempt: bool,
-        reason: Optional[str] = None,
-        expires_at: Optional[datetime] = None
-    ) -> Optional[MFAUserModel]:
+        reason: str | None = None,
+        expires_at: datetime | None = None
+    ) -> MFAUserModel | None:
         """Set or remove MFA exemption for a user.
         
         Args:
@@ -991,14 +990,14 @@ class MFAReportService:
             select(MFAUserModel).where(MFAUserModel.id == user_id)
         )
         user = result.scalar_one_or_none()
-        
+
         if not user:
             return None
-        
+
         user.compliance_exempt = exempt
         user.exemption_reason = reason if exempt else None
         user.exemption_expires_at = expires_at if exempt else None
-        
+
         # Update compliance status
         if exempt:
             user.compliance_status = ComplianceStatus.EXEMPT
@@ -1006,17 +1005,17 @@ class MFAReportService:
             user.compliance_status = ComplianceStatus.COMPLIANT
         else:
             user.compliance_status = ComplianceStatus.NON_COMPLIANT
-        
+
         await self.db.commit()
         await self.db.refresh(user)
-        
+
         return user
-    
+
     async def resolve_alert(
         self,
         alert_id: str,
         resolved_by: str
-    ) -> Optional[MFAComplianceAlertModel]:
+    ) -> MFAComplianceAlertModel | None:
         """Resolve a compliance alert.
         
         Args:
@@ -1030,27 +1029,27 @@ class MFAReportService:
             select(MFAComplianceAlertModel).where(MFAComplianceAlertModel.id == alert_id)
         )
         alert = result.scalar_one_or_none()
-        
+
         if not alert:
             return None
-        
+
         alert.is_resolved = True
         alert.resolved_at = datetime.utcnow()
         alert.resolved_by = resolved_by
-        
+
         await self.db.commit()
         await self.db.refresh(alert)
-        
+
         return alert
-    
+
     async def get_alerts(
         self,
-        tenant_id: Optional[str] = None,
-        resolved: Optional[bool] = None,
-        severity: Optional[str] = None,
+        tenant_id: str | None = None,
+        resolved: bool | None = None,
+        severity: str | None = None,
         limit: int = 100,
         offset: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get MFA compliance alerts.
         
         Args:
@@ -1064,27 +1063,27 @@ class MFAReportService:
             Dictionary with items and total count
         """
         query = select(MFAComplianceAlertModel)
-        
+
         if tenant_id:
             query = query.where(MFAComplianceAlertModel.tenant_id == tenant_id)
         if resolved is not None:
             query = query.where(MFAComplianceAlertModel.is_resolved == resolved)
         if severity:
             query = query.where(MFAComplianceAlertModel.severity == severity)
-        
+
         # Get total count
         count_result = await self.db.execute(
             select(func.count(MFAComplianceAlertModel.id)).select_from(query.subquery())
         )
         total = count_result.scalar()
-        
+
         # Apply pagination and ordering
         query = query.order_by(desc(MFAComplianceAlertModel.created_at))
         query = query.offset(offset).limit(limit)
-        
+
         result = await self.db.execute(query)
         items = result.scalars().all()
-        
+
         return {
             "items": list(items),
             "total": total,
