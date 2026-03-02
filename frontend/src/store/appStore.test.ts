@@ -6,18 +6,32 @@ describe('appStore', () => {
     const initialState: AppState = {
       theme: 'light',
       sidebarOpen: true,
+      user: null,
+      token: null,
+      isAuthenticated: false,
       setTheme: vi.fn(),
       toggleTheme: vi.fn(),
       toggleSidebar: vi.fn(),
       setSidebarOpen: vi.fn(),
+      setUser: vi.fn(),
+      setToken: vi.fn(),
+      login: vi.fn(),
+      logout: vi.fn(),
     };
 
     expect(initialState.theme).toBe('light');
     expect(initialState.sidebarOpen).toBe(true);
+    expect(initialState.user).toBeNull();
+    expect(initialState.token).toBeNull();
+    expect(initialState.isAuthenticated).toBe(false);
     expect(typeof initialState.setTheme).toBe('function');
     expect(typeof initialState.toggleTheme).toBe('function');
     expect(typeof initialState.toggleSidebar).toBe('function');
     expect(typeof initialState.setSidebarOpen).toBe('function');
+    expect(typeof initialState.setUser).toBe('function');
+    expect(typeof initialState.setToken).toBe('function');
+    expect(typeof initialState.login).toBe('function');
+    expect(typeof initialState.logout).toBe('function');
   });
 
   it('supports theme toggling', () => {
