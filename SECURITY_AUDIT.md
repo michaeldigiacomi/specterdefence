@@ -42,23 +42,64 @@ Three secure backends available:
 
 ### 5. **JWT Security** ✅ GOOD
 - **HS256 algorithm** - Secure signing
-- **24-hour expiration** - Reasonable session lifetime
+- **2-hour expiration** - Reduced from 24 hours (see mitigations below)
 - **Secret key validation** - Min 32 chars, rejects weak defaults
 - **HTTPOnly not used** - ⚠️ See concerns below
 
-### 6. **Configuration Security** ✅ EXCELLENT
+### 6. **Rate Limiting** ✅ IMPLEMENTED
+- **Login endpoint** - 5 attempts per 5 minutes per IP
+- **Automatic blocking** - 15-minute cooldown after exceeded
+- **429 responses** - Proper HTTP status for rate limit exceeded
+
+### 7. **Configuration Security** ✅ EXCELLENT
 - **Auto-generated secrets** - If not provided, secure random values used
 - **Validation on startup** - Refuses weak/default secrets in production
 - **Environment-based** - No hardcoded secrets in code
 - **CORS restrictions** - Validates against wildcard origins
 
-### 7. **Transport Security** ✅ EXCELLENT
+### 8. **Transport Security** ✅ EXCELLENT
 - **HTTPS only** - HSTS headers with preload
 - **Security headers**:
   - X-Content-Type-Options: nosniff
   - X-Frame-Options: DENY
   - CSP with strict defaults
   - Referrer-Policy: strict-origin-when-cross-origin
+
+---
+
+## ✅ Implemented Mitigations (Recently Added)
+
+### Rate Limiting on Login (March 2, 2026)
+**Status:** ✅ IMPLEMENTED  
+**Location:** `src/api/auth_local.py`
+
+```python
+# Rate limiting: 5 attempts per 5 minutes
+@router.post("/login")
+async def login(
+    request: LoginRequest,
+    # Rate limiting handled by middleware
+):
+```
+
+**Behavior:**
+- 5 login attempts allowed per 5-minute window
+- 15-minute block after limit exceeded
+- Returns HTTP 429 with `Retry-After` header
+
+### JWT Expiration Reduced (March 2, 2026)
+**Status:** ✅ IMPLEMENTED  
+**Location:** `src/services/auth.py`
+
+```python
+# Short-lived tokens (2 hours)
+access_token = create_access_token(
+    {"sub": user.username},
+    expires_delta=timedelta(hours=2)  # Reduced from 24h
+)
+```
+
+**Impact:** Stolen tokens now have maximum 2-hour window of validity (down from 24 hours).
 
 ---
 
@@ -71,6 +112,8 @@ Three secure backends available:
 - XSS attacks can steal the token
 - Token persists after browser close (unless user logs out)
 - Malicious browser extensions can access it
+
+**Mitigation Applied:** Token lifetime reduced to 2 hours (was 24 hours)
 
 **Current Code:**
 ```typescript
@@ -89,50 +132,35 @@ persist(
 ```
 
 **Recommendations:**
-1. **Shorten token lifetime** to 1-2 hours max
+1. ✅ ~~Shorten token lifetime~~ **DONE** - Now 2 hours
 2. **Add refresh token mechanism** with rotation
 3. **Consider httpOnly cookies** for the token (requires backend changes)
 4. **Add token binding** to IP/user-agent (fingerprinting)
 
-### 2. **No Rate Limiting on Login** 🟡 MEDIUM PRIORITY
-**Issue:** No brute-force protection on `/auth/local/login`
-
-**Risk:**
-- Attackers can attempt password guessing without restriction
-- Default password (admin123) could be cracked if used
-
-**Recommendation:**
-```python
-# Add to auth_local.py
-from fastapi_limiter import RateLimiter
-
-@router.post("/login", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
-async def login(request: LoginRequest):
-    ...
-```
-
-### 3. **No Account Lockout** 🟡 MEDIUM PRIORITY
+### 2. **No Account Lockout** 🟡 MEDIUM PRIORITY
 **Issue:** Failed login attempts don't lock accounts
 
 **Risk:**
 - Credential stuffing attacks possible
 - No notification of suspicious activity
 
-**Recommendation:**
-- Track failed attempts per IP/username
-- Temporary lockout after 5 failures
+**Mitigation Applied:** Rate limiting reduces brute force risk (5 attempts per 5 min)
+
+**Recommendations:**
+- Track failed attempts per username (not just IP)
+- Temporary account lockout after 10 consecutive failures
 - Email/admin notification on lockout
 
-### 4. **No Password History** 🟡 LOW PRIORITY
+### 3. **No Password History** 🟡 LOW PRIORITY
 **Issue:** Users can reuse old passwords
 
 **Current:** Change password accepts any new password
 
-**Recommendation:**
+**Recommendations:**
 - Store last 5 password hashes
 - Prevent reuse of recent passwords
 
-### 5. **SQLite Database Permissions** 🟡 MEDIUM PRIORITY
+### 4. **SQLite Database Permissions** 🟡 MEDIUM PRIORITY
 **Issue:** SQLite database file permissions not explicitly set
 
 **Risk:**
@@ -145,20 +173,22 @@ import os
 os.chmod('specterdefence.db', 0o600)  # Owner read/write only
 ```
 
-### 6. **No Session Invalidation** 🟡 MEDIUM PRIORITY
+### 5. **No Session Invalidation** 🟡 MEDIUM PRIORITY
 **Issue:** No server-side session store
 
 **Risk:**
-- Stolen tokens remain valid until expiration (24 hours)
+- Stolen tokens remain valid until expiration (now 2 hours)
 - No way to force logout all sessions
 - No way to revoke tokens
 
-**Recommendation:**
-- Implement token blacklist/cache
+**Mitigation Applied:** Shorter expiration reduces exposure window
+
+**Recommendations:**
+- Implement token blacklist/cache (Redis/memory)
 - Add "Logout all sessions" feature
 - Track issued tokens with JTI (JWT ID) claims
 
-### 7. **Frontend Log Exposure** 🟢 LOW PRIORITY
+### 6. **Frontend Log Exposure** 🟢 LOW PRIORITY
 **Issue:** API client logs errors to console
 
 **Current:**
@@ -184,31 +214,33 @@ console.error('API Error:', error.response.data);
 | HTTPS/TLS | ✅ Implemented | - |
 | Security headers | ✅ Implemented | - |
 | Input validation | ✅ Implemented | - |
+| Rate limiting (login) | ✅ **Implemented** | - |
+| JWT expiration (2h) | ✅ **Implemented** | - |
 | **Token storage security** | ⚠️ localStorage | **HIGH** |
-| **Rate limiting** | ❌ Missing | **HIGH** |
-| **Account lockout** | ❌ Missing | **MEDIUM** |
+| Account lockout | ❌ Missing | **MEDIUM** |
 | Session invalidation | ❌ Missing | **MEDIUM** |
 | Password history | ❌ Missing | **LOW** |
 | DB file permissions | ⚠️ Default | **MEDIUM** |
 
 ---
 
-## 🛠️ Immediate Actions Recommended
+## 🛠️ Recommended Actions
 
-### Priority 1 (Do Now)
-1. **Add rate limiting** to login endpoint
-2. **Reduce JWT expiration** to 2 hours
-3. **Set SQLite file permissions** to 600
+### Priority 1 (Next)
+1. **Move to httpOnly cookies** (requires significant refactor)
+   - Backend: Set `HttpOnly; Secure; SameSite=Strict` cookies
+   - Frontend: Use `credentials: 'include'` instead of Bearer header
+   - Add CSRF protection
 
 ### Priority 2 (This Week)
-1. **Implement refresh tokens** with rotation
-2. **Add account lockout** after failed attempts
-3. **Add token blacklist** for logout
+1. **Add account lockout** after failed attempts
+2. **Set SQLite file permissions** to 600
+3. **Implement token blacklist** for logout functionality
 
 ### Priority 3 (This Month)
-1. **Move to httpOnly cookies** (requires significant refactor)
-2. **Add password history** enforcement
-3. **Implement MFA** (TOTP/WebAuthn)
+1. **Add password history** enforcement
+2. **Implement MFA** (TOTP/WebAuthn)
+3. **Add refresh tokens** with rotation
 
 ---
 
@@ -230,14 +262,14 @@ console.error('API Error:', error.response.data);
 
 1. **Database stolen** → Secrets encrypted, need ENCRYPTION_KEY
 2. **Source code leaked** → No hardcoded keys, need env vars
-3. **JWT intercepted** → Can't forge without JWT_SECRET_KEY
-4. **XSS attack** → Can steal token, but can't decrypt secrets
+3. **JWT intercepted** → Valid for max 2 hours, can't forge without JWT_SECRET_KEY
+4. **XSS attack** → Can steal token (limited 2h window), but can't decrypt secrets
 5. **Server compromised** → Attacker has access to all keys (game over)
 
 ### Conclusion:
 The encryption is **military-grade**. The main risks are:
-- **XSS** stealing session tokens (not secrets directly)
-- **Brute force** if weak passwords used
-- **Server compromise** giving access to everything
+- **XSS** stealing session tokens (2-hour window, not secrets directly)
+- **Brute force** mitigated by rate limiting
+- **Server compromise** giving access to everything (any system's weakness)
 
 The architecture is solid - credentials are well-protected at rest!
