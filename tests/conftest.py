@@ -49,9 +49,9 @@ def event_loop():
     loop.close()
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def test_engine():
-    """Create a test database engine (session-scoped)."""
+    """Create a test database engine (function-scoped to avoid scope mismatch)."""
     engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
     
     async with engine.begin() as conn:
@@ -65,7 +65,7 @@ async def test_engine():
     await engine.dispose()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="function")
 async def test_db(test_engine):
     """Create a fresh database session for each test."""
     # Create a connection that we'll use to wrap in a transaction
@@ -107,17 +107,45 @@ async def async_db_session(test_db) -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture
 async def test_client(test_db) -> AsyncGenerator[AsyncClient, None]:
     """Create an async test client with database override."""
+    from httpx import ASGITransport
+    
     async def override_get_db():
         yield test_db
     
     # Override the dependency
     app.dependency_overrides[get_db] = override_get_db
     
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
     
     # Clean up override
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def async_client(test_db) -> AsyncGenerator[AsyncClient, None]:
+    """Alias for test_client fixture."""
+    from httpx import ASGITransport
+    
+    async def override_get_db():
+        yield test_db
+    
+    # Override the dependency
+    app.dependency_overrides[get_db] = override_get_db
+    
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+    
+    # Clean up override
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def mock_db():
+    """Create a mock database session."""
+    return MagicMock(spec=AsyncSession)
 
 
 @pytest.fixture
