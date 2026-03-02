@@ -17,13 +17,22 @@ def test_health_check():
 
 
 def test_root_endpoint():
-    """Test root endpoint."""
+    """Test root endpoint - serves SPA if built, otherwise API info."""
     response = client.get("/")
     assert response.status_code == 200
-    data = response.json()
-    assert "name" in data
-    assert "version" in data
-    assert "docs" in data
+    
+    # If frontend is built, root serves HTML (SPA)
+    # Otherwise, it serves JSON API info
+    content_type = response.headers.get("content-type", "")
+    if "text/html" in content_type:
+        # SPA mode - check for HTML content
+        assert b"SpecterDefence" in response.content or b"<!doctype html>" in response.content.lower()
+    else:
+        # API-only mode - check for JSON
+        data = response.json()
+        assert "name" in data
+        assert "version" in data
+        assert "docs" in data
 
 
 def test_api_v1_health():

@@ -108,26 +108,26 @@ class TenantService:
         Returns:
             Validation response
         """
-        try:
-            client = MSGraphClient(
-                tenant_id=tenant_id,
-                client_id=client_id,
-                client_secret=client_secret,
-                timeout=timeout
+        # Use standalone function for testability
+        result = await validate_tenant_credentials(
+            tenant_id=tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            timeout=timeout
+        )
+        
+        if result.get("valid"):
+            return TenantValidationResponse(
+                valid=True,
+                tenant_id=result.get("tenant_id"),
+                display_name=result.get("display_name"),
+                domains=result.get("domains")
             )
-            validation_result = await client.validate_credentials()
-            return TenantValidationResponse(**validation_result)
-        except MSGraphAuthError as e:
+        else:
             return TenantValidationResponse(
                 valid=False,
-                error=str(e),
-                error_code=getattr(e, 'error_code', 'auth_error')
-            )
-        except Exception as e:
-            return TenantValidationResponse(
-                valid=False,
-                error=f"Validation error: {str(e)}",
-                error_code="unknown_error"
+                error=result.get("error"),
+                error_code=result.get("error_type", "unknown_error")
             )
 
     async def health_check_tenant(
@@ -483,3 +483,64 @@ class TenantValidationError(Exception):
 class TenantNotFoundError(Exception):
     """Raised when a tenant is not found."""
     pass
+
+
+# Standalone function for backward compatibility with tests
+async def validate_tenant_credentials(
+    tenant_id: str,
+    client_id: str,
+    client_secret: str,
+    timeout: float = 30.0
+) -> Dict[str, Any]:
+    """Validate tenant credentials against Microsoft Graph.
+    
+    This is a standalone wrapper for backward compatibility with tests.
+    In production, use TenantService.validate_tenant() instead.
+    
+    Args:
+        tenant_id: Azure AD tenant ID
+        client_id: Azure AD application ID
+        client_secret: Azure AD client secret
+        timeout: Request timeout in seconds
+        
+    Returns:
+        Dictionary with validation results
+    """
+    client = MSGraphClient(
+        tenant_id=tenant_id,
+        client_id=client_id,
+        client_secret=client_secret,
+    )
+    
+    try:
+        # Try to get an access token
+        token = await client.get_access_token()
+        
+        # Try to get organization info
+        async with client as c:
+            org_info = await c.get_organization()
+        
+        return {
+            "valid": True,
+            "tenant_id": tenant_id,
+            "display_name": org_info.get("displayName", "Unknown"),
+            "domains": org_info.get("verifiedDomains", []),
+        }
+    except MSGraphAuthError as e:
+        return {
+            "valid": False,
+            "error": f"Authentication failed: {str(e)}",
+            "error_type": "auth_error",
+        }
+    except MSGraphAPIError as e:
+        return {
+            "valid": False,
+            "error": f"API error: {str(e)}",
+            "error_type": "api_error",
+        }
+    except Exception as e:
+        return {
+            "valid": False,
+            "error": f"Validation failed: {str(e)}",
+            "error_type": "unknown_error",
+        }

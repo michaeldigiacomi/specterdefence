@@ -114,6 +114,12 @@ async def health_check():
     return {"status": "healthy", "version": "0.1.0"}
 
 
+@app.get("/ready")
+async def ready_check():
+    """Readiness check endpoint."""
+    return {"status": "ready"}
+
+
 # Mount static files from frontend dist directory
 static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
 
