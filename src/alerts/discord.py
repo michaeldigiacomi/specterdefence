@@ -104,13 +104,13 @@ class DiscordWebhookClient:
 
         except httpx.HTTPStatusError as e:
             logger.error(f"Discord webhook HTTP error: {e.response.status_code} - {e.response.text}")
-            raise DiscordWebhookError(f"HTTP {e.response.status_code}: {e.response.text}")
+            raise DiscordWebhookError(f"HTTP {e.response.status_code}: {e.response.text}") from e
         except httpx.RequestError as e:
             logger.error(f"Discord webhook request error: {e}")
-            raise DiscordWebhookError(f"Request failed: {e}")
+            raise DiscordWebhookError(f"Request failed: {e}") from e
         except Exception as e:
             logger.error(f"Discord webhook unexpected error: {e}")
-            raise DiscordWebhookError(f"Unexpected error: {e}")
+            raise DiscordWebhookError(f"Unexpected error: {e}") from e
 
     def _build_embed(
         self,

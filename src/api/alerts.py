@@ -154,7 +154,7 @@ async def create_webhook(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create webhook: {str(e)}"
-        )
+        ) from e
 
 
 @router.get(
@@ -245,7 +245,7 @@ async def test_webhook(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Webhook test failed: {str(e)}"
-        )
+        ) from e
 
 
 @router.delete(
@@ -321,7 +321,7 @@ async def create_rule(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create rule: {str(e)}"
-        )
+        ) from e
 
 
 @router.get(
