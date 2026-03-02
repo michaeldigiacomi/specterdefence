@@ -51,19 +51,16 @@ class TestTenantService:
     @pytest.mark.asyncio
     async def test_create_tenant_success(self, tenant_service):
         """Test successful tenant creation with valid credentials."""
-        # Mock the MSGraphClient class
+        # Mock the validate_tenant_credentials function
         with patch(
-            "src.services.tenant.MSGraphClient"
-        ) as mock_client_class:
-            # Setup mock instance
-            mock_client = MagicMock()
-            mock_client.validate_credentials = AsyncMock(return_value={
+            "src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock
+        ) as mock_validate:
+            mock_validate.return_value = {
                 "valid": True,
                 "display_name": "Test Org",
                 "tenant_id": "12345678-1234-1234-1234-123456789012",
                 "verified_domains": [{"name": "test.com"}]
-            })
-            mock_client_class.return_value = mock_client
+            }
             
             tenant_data = TenantCreate(
                 name="Test Tenant",
@@ -80,7 +77,7 @@ class TestTenantService:
             assert result["tenant"].tenant_id == "12345678-1234-1234-1234-123456789012"
             assert result["tenant"].is_active is True
             assert result["validation"].valid is True
-            mock_client_class.assert_called_once()
+            mock_validate.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_tenant_without_validation(self, tenant_service):
@@ -119,15 +116,13 @@ class TestTenantService:
     async def test_create_tenant_validation_failure(self, tenant_service):
         """Test that validation failure raises error."""
         with patch(
-            "src.services.tenant.MSGraphClient"
-        ) as mock_client_class:
+            "src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock
+        ) as mock_validate:
             # Setup mock to return invalid credentials
-            mock_client = MagicMock()
-            mock_client.validate_credentials = AsyncMock(return_value={
+            mock_validate.return_value = {
                 "valid": False,
                 "error": "Invalid credentials"
-            })
-            mock_client_class.return_value = mock_client
+            }
             
             tenant_data = TenantCreate(
                 name="Invalid Tenant",
@@ -334,17 +329,14 @@ class TestTenantService:
     async def test_validate_tenant(self, tenant_service):
         """Test tenant credential validation with valid credentials."""
         with patch(
-            "src.services.tenant.MSGraphClient"
-        ) as mock_client_class:
-            # Setup mock instance
-            mock_client = MagicMock()
-            mock_client.validate_credentials = AsyncMock(return_value={
+            "src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock
+        ) as mock_validate:
+            mock_validate.return_value = {
                 "valid": True,
                 "display_name": "Validated Org",
                 "tenant_id": "55555555-6666-7777-8888-999999999999",
                 "verified_domains": []
-            })
-            mock_client_class.return_value = mock_client
+            }
             
             result = await tenant_service.validate_tenant(
                 tenant_id="55555555-6666-7777-8888-999999999999",
@@ -354,22 +346,19 @@ class TestTenantService:
             
             assert result.valid is True
             assert result.display_name == "Validated Org"
-            mock_client_class.assert_called_once()
+            mock_validate.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_validate_tenant_failure(self, tenant_service):
         """Test tenant credential validation failure with invalid credentials."""
         with patch(
-            "src.services.tenant.MSGraphClient"
-        ) as mock_client_class:
-            from src.clients.ms_graph import MSGraphAuthError
-            
-            # Setup mock to raise auth error
-            mock_client = MagicMock()
-            mock_client.validate_credentials = AsyncMock(
-                side_effect=MSGraphAuthError("Invalid credentials", error_code="invalid_client")
-            )
-            mock_client_class.return_value = mock_client
+            "src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock
+        ) as mock_validate:
+            mock_validate.return_value = {
+                "valid": False,
+                "error": "Invalid credentials",
+                "error_type": "auth_error"
+            }
             
             result = await tenant_service.validate_tenant(
                 tenant_id="test-tenant-id",
@@ -379,4 +368,4 @@ class TestTenantService:
             
             assert result.valid is False
             assert "Invalid credentials" in result.error
-            assert result.error_code == "invalid_client"
+            assert result.error_code == "auth_error"
