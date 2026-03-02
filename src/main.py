@@ -95,7 +95,13 @@ import os
 if not settings.DEBUG and os.getenv('TESTING') != 'true':
     app.add_middleware(
         TrustedHostMiddleware, 
-        allowed_hosts=["specterdefence.digitaladrenalin.net", "*.digitaladrenalin.net"]
+        allowed_hosts=[
+            "specterdefence.digitaladrenalin.net", 
+            "*.digitaladrenalin.net",
+            "localhost",
+            "127.0.0.1",
+            "*"  # Allow internal cluster traffic for health probes
+        ]
     )
 
 # Include API routers BEFORE static file mounting
