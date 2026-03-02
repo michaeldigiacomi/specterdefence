@@ -191,12 +191,11 @@ class TestMSGraphClientHealthCheck:
     @pytest.mark.asyncio
     async def test_health_check_throttled(self, client, mock_msal_app):
         """Test health check when MSAL request is throttled."""
-        import msal
-        
         mock_app = mock_msal_app.return_value
         mock_app.acquire_token_silent.return_value = None
-        mock_app.acquire_token_for_client.side_effect = msal.ThrottledRequest(
-            "Request throttled"
+        # Simulate throttling with a generic exception containing throttle message
+        mock_app.acquire_token_for_client.side_effect = Exception(
+            "Request throttled - 429 Too Many Requests"
         )
         
         result = await client.health_check(required_permissions=["AuditLog.Read.All"])
