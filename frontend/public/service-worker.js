@@ -1,0 +1,248 @@
+// Service Worker for SpecterDefence PWA
+// Provides offline support, push notifications, and background sync
+
+const CACHE_NAME = 'specterdefence-v1';
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/logo.svg',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+];
+
+// API routes to cache with network-first strategy
+const API_ROUTES = [
+  '/api/v1/dashboard/stats',
+  '/api/v1/alerts',
+  '/api/v1/tenants',
+];
+
+// Install event - cache static assets
+self.addEventListener('install', (event) => {
+  console.log('[SW] Installing service worker...');
+  
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('[SW] Caching static assets');
+      return cache.addAll(STATIC_ASSETS);
+    }).catch((err) => {
+      console.error('[SW] Failed to cache static assets:', err);
+    })
+  );
+  
+  self.skipWaiting();
+});
+
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating service worker...');
+  
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          })
+      );
+    }).then(() => {
+      console.log('[SW] Service worker activated');
+      return self.clients.claim();
+    })
+  );
+});
+
+// Fetch event - handle caching strategies
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+  
+  if (request.method !== 'GET') {
+    return;
+  }
+  
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+  
+  // API routes - Network first
+  if (API_ROUTES.some((route) => url.pathname.startsWith(route))) {
+    event.respondWith(networkFirstStrategy(request));
+    return;
+  }
+  
+  // Static assets - Cache first
+  if (STATIC_ASSETS.includes(url.pathname) || 
+      url.pathname.startsWith('/assets/') ||
+      url.pathname.startsWith('/icons/')) {
+    event.respondWith(cacheFirstStrategy(request));
+    return;
+  }
+  
+  // Default - Stale while revalidate
+  event.respondWith(staleWhileRevalidateStrategy(request));
+});
+
+// Network first strategy
+async function networkFirstStrategy(request) {
+  try {
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    console.log('[SW] Network failed, trying cache:', request.url);
+    const cachedResponse = await caches.match(request);
+    
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    return new Response(
+      JSON.stringify({
+        error: 'Offline',
+        message: 'You are currently offline. Data may be outdated.',
+        cached: true,
+        timestamp: new Date().toISOString(),
+      }),
+      {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+}
+
+// Cache first strategy
+async function cacheFirstStrategy(request) {
+  const cachedResponse = await caches.match(request);
+  
+  if (cachedResponse) {
+    fetch(request).then((networkResponse) => {
+      if (networkResponse.ok) {
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(request, networkResponse);
+        });
+      }
+    }).catch(() => {});
+    
+    return cachedResponse;
+  }
+  
+  const networkResponse = await fetch(request);
+  
+  if (networkResponse.ok) {
+    const cache = await caches.open(CACHE_NAME);
+    cache.put(request, networkResponse.clone());
+  }
+  
+  return networkResponse;
+}
+
+// Stale while revalidate strategy
+async function staleWhileRevalidateStrategy(request) {
+  const cachedResponse = await caches.match(request);
+  
+  const networkFetch = fetch(request).then((networkResponse) => {
+    if (networkResponse.ok) {
+      caches.open(CACHE_NAME).then((cache) => {
+        cache.put(request, networkResponse.clone());
+      });
+    }
+    return networkResponse;
+  }).catch((error) => {
+    console.log('[SW] Network fetch failed:', error);
+    return null;
+  });
+  
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+  
+  const networkResponse = await networkFetch;
+  
+  if (networkResponse) {
+    return networkResponse;
+  }
+  
+  return caches.match('/index.html').then((response) => {
+    return response || new Response('Offline', { status: 503 });
+  });
+}
+
+// Push notification event
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push notification received:', event);
+  
+  if (!event.data) {
+    return;
+  }
+  
+  let data;
+  try {
+    data = event.data.json();
+  } catch {
+    data = {
+      title: 'SpecterDefence Alert',
+      body: event.data.text(),
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png',
+      tag: 'default',
+    };
+  }
+  
+  const options = {
+    body: data.body,
+    icon: data.icon || '/icons/icon-192x192.png',
+    badge: data.badge || '/icons/icon-72x72.png',
+    tag: data.tag || 'default',
+    requireInteraction: data.requireInteraction ?? true,
+    actions: data.actions || [
+      { action: 'view', title: 'View Alert' },
+      { action: 'dismiss', title: 'Dismiss' },
+    ],
+    data: data.data || {},
+    timestamp: Date.now(),
+    vibrate: data.vibrate || [200, 100, 200],
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// Notification click event
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event);
+  event.notification.close();
+  
+  const notificationData = event.notification.data;
+  const action = event.action;
+  
+  if (action === 'dismiss') {
+    return;
+  }
+  
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      const url = notificationData?.url || '/';
+      
+      for (const client of clientList) {
+        if (client.url === url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url);
+      }
+    })
+  );
+});

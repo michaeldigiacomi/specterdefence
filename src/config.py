@@ -30,5 +30,11 @@ class Settings(BaseSettings):
     # Microsoft Graph
     MS_GRAPH_API_URL: str = "https://graph.microsoft.com/v1.0"
     MS_LOGIN_URL: str = "https://login.microsoftonline.com"
+    
+    # Authentication
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD_HASH: str = "$2b$12$qaI.IhS84lIGdfXRFU8aZOhLqJqsZbhJt1UFx8rWSjzlHynm53.kK"  # Default: "admin123"
+    JWT_SECRET_KEY: str = "change-me-in-production-specterdefence-secret-key"
+    JWT_EXPIRATION_HOURS: int = 24
 
 settings = Settings()

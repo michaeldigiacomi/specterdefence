@@ -10,9 +10,12 @@ import {
   Moon,
   Shield,
   Bell,
-  Settings
+  Settings,
+  LogOut,
+  User
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
+import { useLogout } from '@/hooks/useAuth';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -31,7 +34,12 @@ const navItems = [
 ];
 
 export default function Sidebar() {
-  const { sidebarOpen, toggleSidebar, theme, toggleTheme } = useAppStore();
+  const { sidebarOpen, toggleSidebar, theme, toggleTheme, user } = useAppStore();
+  const logoutMutation = useLogout();
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   return (
     <aside
@@ -90,6 +98,25 @@ export default function Sidebar() {
 
       {/* Bottom Actions */}
       <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+        {/* User Info (when expanded) */}
+        {user && sidebarOpen && (
+          <div className="mb-3 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {user.username}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  Administrator
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <button
           onClick={toggleTheme}
           className="flex items-center gap-3 w-full px-3 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -127,6 +154,43 @@ export default function Sidebar() {
           >
             Collapse
           </span>
+        </button>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          disabled={logoutMutation.isPending}
+          className="flex items-center gap-3 w-full px-3 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors mt-1 disabled:opacity-50"
+          title="Logout"
+        >
+          {logoutMutation.isPending ? (
+            <>
+              <svg className="animate-spin h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span 
+                className={cn(
+                  'whitespace-nowrap transition-opacity duration-300',
+                  sidebarOpen ? 'opacity-100' : 'opacity-0'
+                )}
+              >
+                Logging out...
+              </span>
+            </>
+          ) : (
+            <>
+              <LogOut className="w-5 h-5 flex-shrink-0" />
+              <span 
+                className={cn(
+                  'whitespace-nowrap transition-opacity duration-300',
+                  sidebarOpen ? 'opacity-100' : 'opacity-0'
+                )}
+              >
+                Logout
+              </span>
+            </>
+          )}
         </button>
       </div>
     </aside>

@@ -34,6 +34,9 @@ import {
   WebhookConfig,
   WebhookCreate,
   WebhookUpdate,
+  LoginRequest,
+  LoginResponse,
+  User,
 } from '@/types';
 import type { 
   TimeRange,
@@ -61,11 +64,35 @@ class ApiService {
       timeout: 30000,
     });
 
+    // Add request interceptor to include auth token
+    this.client.interceptors.request.use(
+      (config) => {
+        const token = localStorage.getItem('specterdefence-storage');
+        if (token) {
+          try {
+            const parsed = JSON.parse(token);
+            if (parsed.state?.token) {
+              config.headers.Authorization = `Bearer ${parsed.state.token}`;
+            }
+          } catch {
+            // Ignore parse errors
+          }
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
     // Add response interceptor for error handling
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError) => {
         if (error.response) {
+          // Handle 401 Unauthorized - redirect to login
+          if (error.response.status === 401) {
+            localStorage.removeItem('specterdefence-storage');
+            window.location.href = '/login';
+          }
           console.error('API Error:', error.response.data);
         } else if (error.request) {
           console.error('Network Error:', error.message);
@@ -438,6 +465,28 @@ class ApiService {
   // Tenant Settings
   async getTenantSettings(tenantId: string): Promise<Record<string, unknown>> {
     const response = await this.client.get(`/settings/tenants/${tenantId}`);
+    return response.data;
+  }
+
+  // ============== Authentication ==============
+
+  async login(data: LoginRequest): Promise<LoginResponse> {
+    const response = await this.client.post('/auth/local/login', data);
+    return response.data;
+  }
+
+  async logout(): Promise<{ message: string }> {
+    const response = await this.client.post('/auth/local/logout');
+    return response.data;
+  }
+
+  async getCurrentUser(): Promise<User> {
+    const response = await this.client.get('/auth/local/me');
+    return response.data;
+  }
+
+  async checkAuth(): Promise<{ authenticated: boolean; username: string }> {
+    const response = await this.client.get('/auth/local/check');
     return response.data;
   }
 }

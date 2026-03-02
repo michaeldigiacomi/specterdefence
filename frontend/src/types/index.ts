@@ -171,14 +171,40 @@ export interface MapLocation {
 /** Theme type */
 export type Theme = 'light' | 'dark';
 
+/** User authentication */
+export interface User {
+  username: string;
+  is_authenticated: boolean;
+}
+
+/** Login request */
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+/** Login response */
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
 /** App state */
 export interface AppState {
   theme: Theme;
   sidebarOpen: boolean;
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
+  setUser: (user: User | null) => void;
+  setToken: (token: string | null) => void;
+  login: (token: string) => void;
+  logout: () => void;
 }
 
 // ============================================
