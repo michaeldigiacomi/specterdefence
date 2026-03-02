@@ -1,6 +1,7 @@
 """Pytest configuration and shared fixtures for SpecterDefence tests."""
 
 import asyncio
+import os
 from datetime import datetime, timezone
 from typing import AsyncGenerator, Generator
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
@@ -11,6 +12,14 @@ import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+
+# Set testing environment variables before importing app
+os.environ['TESTING'] = 'true'
+os.environ['SECRET_KEY'] = 'test-secret-key-32-chars-long-for-testing'
+os.environ['JWT_SECRET_KEY'] = 'test-jwt-secret-key-32-chars-for-testing'
+os.environ['ADMIN_PASSWORD_HASH'] = '$2b$12$qaI.IhS84lIGdfXRFU8aZOhLqJqsZbhJt1UFx8rWSjzlHynm53.kK'  # Default: "admin123"
+os.environ['ENCRYPTION_KEY'] = 'test-encryption-key-32-chars-for-tests='
+os.environ['ENCRYPTION_SALT'] = 'test-salt-for-encryption-32chars'
 
 from src.database import Base, get_db
 from src.main import app

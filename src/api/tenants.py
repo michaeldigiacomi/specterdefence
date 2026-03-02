@@ -225,8 +225,8 @@ async def validate_tenant_credentials(
             detail=f"Tenant with ID {tenant_id} not found"
         )
     
-    # Get decrypted secret
-    client_secret = service.get_decrypted_secret(tenant)
+    # Get decrypted secret with audit logging
+    client_secret = service.get_decrypted_secret(tenant, user_id="api_validate_endpoint")
     
     # Validate credentials
     validation = await service.validate_tenant(

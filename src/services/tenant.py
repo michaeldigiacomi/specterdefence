@@ -1,5 +1,7 @@
 """Tenant service for business logic."""
 
+import logging
+import hashlib
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy import select
@@ -19,6 +21,16 @@ from src.models.tenant import (
 )
 from src.services.encryption import encryption_service
 from src.clients.ms_graph import MSGraphClient, MSGraphAuthError, MSGraphAPIError
+
+# Audit logger for credential access
+audit_logger = logging.getLogger('specterdefence.audit')
+if not audit_logger.handlers:
+    audit_handler = logging.StreamHandler()
+    audit_handler.setFormatter(logging.Formatter(
+        '%(asctime)s - AUDIT - %(message)s'
+    ))
+    audit_logger.addHandler(audit_handler)
+    audit_logger.setLevel(logging.WARNING)
 
 
 class TenantService:
@@ -147,8 +159,8 @@ class TenantService:
         if required_permissions is None:
             required_permissions = ["AuditLog.Read.All"]
         
-        # Get decrypted secret
-        client_secret = self.get_decrypted_secret(tenant)
+        # Get decrypted secret with audit logging
+        client_secret = self.get_decrypted_secret(tenant, user_id="health_check")
         
         # Perform health check
         try:
@@ -435,15 +447,26 @@ class TenantService:
             updated_at=tenant.updated_at,
         )
 
-    def get_decrypted_secret(self, tenant: TenantModel) -> str:
+    def get_decrypted_secret(self, tenant: TenantModel, user_id: str = "system") -> str:
         """Get decrypted client secret for a tenant.
         
         Args:
             tenant: Tenant model
+            user_id: Identifier of user/system accessing the credential
             
         Returns:
             Decrypted client secret
         """
+        # Hash the tenant ID for audit log (privacy-preserving)
+        tenant_id_hash = hashlib.sha256(tenant.id.encode()).hexdigest()[:16]
+        
+        # Log credential access for security auditing
+        audit_logger.warning(
+            f"CREDENTIAL_ACCESS: user={user_id} tenant_hash={tenant_id_hash} "
+            f"tenant_name={tenant.name} action=decrypt_client_secret "
+            f"timestamp={datetime.now(timezone.utc).isoformat()}"
+        )
+        
         return encryption_service.decrypt(tenant.client_secret)
 
 

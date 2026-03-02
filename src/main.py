@@ -2,12 +2,65 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 import os
 
 from src.config import settings
 from src.api import router
 from src.database import init_db
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to all responses."""
+    
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        
+        # Prevent MIME type sniffing
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        
+        # Prevent clickjacking
+        response.headers['X-Frame-Options'] = 'DENY'
+        
+        # XSS Protection (legacy but still useful)
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        
+        # HSTS (only in production)
+        if not settings.DEBUG:
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+        
+        # Content Security Policy
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "font-src 'self'; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self';"
+        )
+        
+        # Referrer Policy
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        
+        # Permissions Policy
+        response.headers['Permissions-Policy'] = (
+            'geolocation=(), '
+            'microphone=(), '
+            'camera=(), '
+            'payment=(), '
+            'usb=(), '
+            'magnetometer=(), '
+            'gyroscope=(), '
+            'speaker=()'
+        )
+        
+        return response
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,14 +77,26 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Add security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+# CORS middleware - only if origins are configured
+if settings.CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
+
+# Trusted host middleware in production (skip in testing)
+import os
+if not settings.DEBUG and os.getenv('TESTING') != 'true':
+    app.add_middleware(
+        TrustedHostMiddleware, 
+        allowed_hosts=["specterdefence.digitaladrenalin.net", "*.digitaladrenalin.net"]
+    )
 
 # Include API routers BEFORE static file mounting
 app.include_router(router, prefix="/api/v1")

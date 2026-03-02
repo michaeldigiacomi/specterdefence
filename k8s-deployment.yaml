@@ -128,11 +128,22 @@ spec:
                 secretKeyRef:
                   name: specterdefence-secrets
                   key: ENCRYPTION_KEY
+            - name: ENCRYPTION_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: ENCRYPTION_SALT
+            - name: ADMIN_PASSWORD_HASH
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: ADMIN_PASSWORD_HASH
             - name: KIMI_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: specterdefence-secrets
                   key: KIMI_API_KEY
+                  optional: true
             - name: PYTHONDONTWRITEBYTECODE
               value: "1"
             - name: PYTHONUNBUFFERED
@@ -204,8 +215,26 @@ metadata:
   name: specterdefence
   namespace: specterdefence
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+    # Traefik v2 - HTTPS only
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+    # Redirect HTTP to HTTPS
+    traefik.ingress.kubernetes.io/router.middlewares: default-redirectscheme@kubernetescrd
+    # Security headers
+    traefik.ingress.kubernetes.io/response-headers: |
+      Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+      X-Frame-Options: DENY
+      X-Content-Type-Options: nosniff
+      X-XSS-Protection: 1; mode=block
+      Referrer-Policy: strict-origin-when-cross-origin
+    # Rate limiting
+    traefik.ingress.kubernetes.io/ratelimit: "100"
 spec:
+  tls:
+    - hosts:
+        - specterdefence.digitaladrenalin.net
+      secretName: specterdefence-tls
   rules:
     - host: specterdefence.digitaladrenalin.net
       http:
