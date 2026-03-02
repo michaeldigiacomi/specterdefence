@@ -225,8 +225,7 @@ export default function AlertRuleBuilder() {
                   <div className={cn(
                     "p-2 rounded-lg",
                     rule.is_active ? "bg-primary-100 dark:bg-primary-900/30" : "bg-gray-100 dark:bg-gray-700"
-                  )}
-003e
+                  )}>
                     <Bell className="w-5 h-5 text-primary-500" />
                   </div>
                   

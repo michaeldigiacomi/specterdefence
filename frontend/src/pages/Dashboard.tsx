@@ -157,8 +157,8 @@ export default function Dashboard() {
           color="amber"
           loading={isLoading}
           trend={
-            summary?.anomalies_today > 0
-              ? { value: summary.anomalies_today, label: 'today', positive: false }
+            (summary?.anomalies_today || 0) > 0
+              ? { value: summary?.anomalies_today || 0, label: 'today', positive: false }
               : undefined
           }
         />

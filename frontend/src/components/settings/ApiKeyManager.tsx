@@ -242,7 +242,7 @@ export default function ApiKeyManager() {
       </div>
 
       {/* Create Modal */}
-      {isModalOpen && !showNewKey &< (
+      {isModalOpen && !showNewKey && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">

@@ -133,7 +133,7 @@ Hooks configured:
 ### k3s Deployment (Production)
 
 The application is deployed at:
-- **URL**: http://specterdefence.k3s.digitaladrenalin.net
+- **URL**: http://specterdefence.digitaladrenalin.net
 - **Cluster**: k3s @ k3s.digitaladrenalin.net (57.129.132.176)
 
 #### Quick Deploy

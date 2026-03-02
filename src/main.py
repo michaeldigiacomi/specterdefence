@@ -1,6 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
+import os
 
 from src.config import settings
 from src.api import router
@@ -30,19 +33,78 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Include API routers BEFORE static file mounting
 app.include_router(router, prefix="/api/v1")
+
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "version": "0.1.0"}
 
-@app.get("/")
-async def root():
-    """Root endpoint with API info."""
-    return {
-        "name": "SpecterDefence API",
-        "version": "0.1.0",
-        "docs": "/docs",
-    }
+
+# Mount static files from frontend dist directory
+static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+
+if os.path.exists(static_dir):
+    # Serve static assets directly
+    assets_dir = os.path.join(static_dir, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    
+    # Serve other static files (icons, manifest, etc.)
+    @app.get("/logo.svg")
+    async def serve_logo():
+        return FileResponse(os.path.join(static_dir, "logo.svg"))
+    
+    @app.get("/manifest.json")
+    async def serve_manifest():
+        return FileResponse(os.path.join(static_dir, "manifest.json"))
+    
+    @app.get("/service-worker.js")
+    async def serve_service_worker():
+        return FileResponse(os.path.join(static_dir, "service-worker.js"))
+    
+    # Serve icons
+    @app.get("/icons/{icon_name}")
+    async def serve_icon(icon_name: str):
+        icon_path = os.path.join(static_dir, "icons", icon_name)
+        if os.path.exists(icon_path):
+            return FileResponse(icon_path)
+        raise HTTPException(status_code=404, detail="Icon not found")
+    
+    # Root path serves index.html
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(os.path.join(static_dir, "index.html"))
+    
+    # All other non-API paths serve index.html for SPA routing
+    # This must be registered AFTER all other routes
+    @app.get("/{path:path}")
+    async def serve_spa(path: str):
+        """
+        Serve index.html for all non-API routes to support client-side routing.
+        This is a catch-all that must be registered last.
+        """
+        # Skip API routes - they should have been handled above
+        if path.startswith("api/") or path == "docs" or path == "openapi.json" or path == "health":
+            raise HTTPException(status_code=404, detail="Not found")
+        
+        # Check if it's a static file request
+        file_path = os.path.join(static_dir, path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        
+        # Otherwise serve index.html for SPA routing
+        return FileResponse(os.path.join(static_dir, "index.html"))
+
+else:
+    # No built frontend - serve API-only root endpoint
+    @app.get("/")
+    async def root():
+        """Root endpoint with API info."""
+        return {
+            "name": "SpecterDefence API",
+            "version": "0.1.0",
+            "docs": "/docs",
+        }

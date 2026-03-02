@@ -29,10 +29,30 @@ const tabs = [
 // Mock user email - in a real app, this would come from auth context
 const CURRENT_USER_EMAIL = 'admin@specterdefence.local';
 
+// Component renderer that handles props for components that need them
+function renderActiveComponent(activeTab: string) {
+  switch (activeTab) {
+    case 'notifications':
+      return <UserPreferences userEmail={CURRENT_USER_EMAIL} />;
+    case 'general':
+      return <SystemSettings />;
+    case 'detection':
+      return <DetectionSettings />;
+    case 'rules':
+      return <AlertRuleBuilder />;
+    case 'webhooks':
+      return <WebhookManager />;
+    case 'apikeys':
+      return <ApiKeyManager />;
+    case 'backup':
+      return <ConfigImportExport />;
+    default:
+      return <SystemSettings />;
+  }
+}
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
-
-  const ActiveComponent = tabs.find(t => t.id === activeTab)?.component || SystemSettings;
 
   return (
     <div className="space-y-6">
@@ -84,11 +104,7 @@ export default function SettingsPage() {
               </h2>
             </div>
             
-            {activeTab === 'notifications' ? (
-              <UserPreferences userEmail={CURRENT_USER_EMAIL} />
-            ) : (
-              <ActiveComponent />
-            )}
+            {renderActiveComponent(activeTab)}
           </div>
         </main>
       </div>

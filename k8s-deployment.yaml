@@ -1,5 +1,5 @@
-# SpecterDefence k3s Deployment
-# This deployment uses a Python base image with all dependencies pre-installed
+# SpecterDefence k3s Deployment with Frontend Support
+# This deployment mounts both the backend source and built frontend
 
 apiVersion: v1
 kind: ConfigMap
@@ -89,14 +89,14 @@ spec:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 30
             failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 180
+            initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 6
           resources:
@@ -140,6 +140,8 @@ spec:
           volumeMounts:
             - name: app-source
               mountPath: /app/src
+            - name: frontend-dist
+              mountPath: /app/frontend/dist
             - name: data
               mountPath: /app/data
             - name: local-deps
@@ -151,6 +153,10 @@ spec:
         - name: app-source
           hostPath:
             path: /opt/specterdefence/src
+            type: Directory
+        - name: frontend-dist
+          hostPath:
+            path: /opt/specterdefence/frontend/dist
             type: Directory
         - name: data
           persistentVolumeClaim:
@@ -201,7 +207,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
   rules:
-    - host: specterdefence.k3s.digitaladrenalin.net
+    - host: specterdefence.digitaladrenalin.net
       http:
         paths:
           - path: /

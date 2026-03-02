@@ -2,7 +2,7 @@
 
 import pytest
 from datetime import datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 import uuid
 
 import pytest_asyncio
@@ -65,17 +65,19 @@ class TestTenantAPI:
 
     @pytest.mark.asyncio
     async def test_create_tenant_success(self, async_client):
-        """Test creating a tenant successfully."""
+        """Test creating a tenant successfully with valid credentials."""
         with patch(
-            "src.services.tenant.validate_tenant_credentials",
-            new_callable=AsyncMock
-        ) as mock_validate:
-            mock_validate.return_value = {
+            "src.services.tenant.MSGraphClient"
+        ) as mock_client_class:
+            # Setup mock instance
+            mock_client = MagicMock()
+            mock_client.validate_credentials = AsyncMock(return_value={
                 "valid": True,
                 "display_name": "Test Organization",
                 "tenant_id": "12345678-1234-1234-1234-123456789012",
                 "verified_domains": [{"name": "test.com", "isDefault": True}]
-            }
+            })
+            mock_client_class.return_value = mock_client
             
             tenant_data = {
                 "name": "Test Tenant",
@@ -93,7 +95,7 @@ class TestTenantAPI:
             assert data["tenant"]["tenant_id"] == "12345678-1234-1234-1234-123456789012"
             assert "validation" in data
             assert data["validation"]["valid"] is True
-            mock_validate.assert_called_once()
+            mock_client_class.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_tenant_without_validation(self, async_client):
@@ -117,15 +119,17 @@ class TestTenantAPI:
 
     @pytest.mark.asyncio
     async def test_create_tenant_validation_error(self, async_client):
-        """Test creating a tenant with invalid credentials."""
+        """Test creating a tenant with invalid credentials fails."""
         with patch(
-            "src.services.tenant.validate_tenant_credentials",
-            new_callable=AsyncMock
-        ) as mock_validate:
-            mock_validate.return_value = {
+            "src.services.tenant.MSGraphClient"
+        ) as mock_client_class:
+            # Setup mock to return invalid credentials
+            mock_client = MagicMock()
+            mock_client.validate_credentials = AsyncMock(return_value={
                 "valid": False,
                 "error": "Invalid client secret"
-            }
+            })
+            mock_client_class.return_value = mock_client
             
             tenant_data = {
                 "name": "Invalid Tenant",
@@ -319,15 +323,16 @@ class TestTenantAPI:
         
         # Mock the validation at the service layer
         with patch(
-            "src.services.tenant.validate_tenant_credentials",
-            new_callable=AsyncMock
-        ) as mock_validate:
-            mock_validate.return_value = {
+            "src.services.tenant.MSGraphClient"
+        ) as mock_client_class:
+            mock_client = MagicMock()
+            mock_client.validate_credentials = AsyncMock(return_value={
                 "valid": True,
                 "display_name": "Test Org",
                 "tenant_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
                 "verified_domains": []
-            }
+            })
+            mock_client_class.return_value = mock_client
             
             response = await async_client.post(f"/api/v1/tenants/{tenant_id}/validate")
             

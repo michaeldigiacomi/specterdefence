@@ -3,7 +3,7 @@
 **Date**: 2024-03-01
 **Cluster**: k3s.digitaladrenalin.net (57.129.132.176)
 **Namespace**: specterdefence
-**Deployment URL**: http://specterdefence.k3s.digitaladrenalin.net
+**Deployment URL**: http://specterdefence.digitaladrenalin.net
 
 ## Deployment Status
 
@@ -30,7 +30,7 @@ KIMI_API_KEY=placeholder-to-be-updated-by-mike
 ### Access Information
 
 - **Internal Service**: `specterdefence.specterdefence.svc.cluster.local:80`
-- **External URL**: http://specterdefence.k3s.digitaladrenalin.net
+- **External URL**: http://specterdefence.digitaladrenalin.net
 - **Health Endpoint**: `/health`
 
 ## Deployment Steps Performed

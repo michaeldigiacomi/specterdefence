@@ -46,14 +46,14 @@ ingress:
     traefik.ingress.kubernetes.io/router.tls: "true"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
   hosts:
-    - host: specterdefence.k3s.digitaladrenalin.net
+    - host: specterdefence.digitaladrenalin.net
       paths:
         - path: /
           pathType: Prefix
   tls:
     - secretName: specterdefence-tls
       hosts:
-        - specterdefence.k3s.digitaladrenalin.net
+        - specterdefence.digitaladrenalin.net
 
 resources:
   limits:

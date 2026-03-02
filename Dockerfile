@@ -1,7 +1,29 @@
 # Multi-stage Dockerfile for SpecterDefence
+# Builds both the React frontend and Python backend
 
-# Build stage
-FROM python:3.12-slim AS builder
+# ============================================
+# Stage 1: Build the React frontend
+# ============================================
+FROM node:20-slim AS frontend-builder
+
+WORKDIR /app/frontend
+
+# Copy package files first for better layer caching
+COPY frontend/package.json frontend/package-lock.json* ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy frontend source code
+COPY frontend/ ./
+
+# Build the frontend for production
+RUN npm run build
+
+# ============================================
+# Stage 2: Build Python dependencies
+# ============================================
+FROM python:3.12-slim AS python-builder
 
 WORKDIR /app
 
@@ -14,7 +36,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Production stage
+# ============================================
+# Stage 3: Production image
+# ============================================
 FROM python:3.12-slim AS production
 
 WORKDIR /app
@@ -23,11 +47,14 @@ WORKDIR /app
 RUN useradd --create-home --shell /bin/bash app && \
     chown -R app:app /app
 
-# Copy dependencies from builder
-COPY --from=builder /root/.local /home/app/.local
+# Copy Python dependencies from builder
+COPY --from=python-builder /root/.local /home/app/.local
 
 # Copy application code
 COPY --chown=app:app src/ ./src/
+
+# Copy built frontend from frontend-builder
+COPY --from=frontend-builder --chown=app:app /app/frontend/dist ./frontend/dist/
 
 # Set environment
 ENV PATH=/home/app/.local/bin:$PATH \
@@ -44,7 +71,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
-# Development stage
+# ============================================
+# Stage 4: Development image
+# ============================================
 FROM python:3.12-slim AS development
 
 WORKDIR /app
