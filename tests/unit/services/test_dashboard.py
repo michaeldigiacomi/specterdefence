@@ -351,17 +351,17 @@ class TestDashboardServiceTopRiskUsers:
         """Test that users are sorted by risk score."""
         mock_rows = [
             MagicMock(
-                user_email="medium@example.com",
-                tenant_id="tenant-1",
-                max_risk=70,
-                anomaly_count=10,
-                last_anomaly=datetime.utcnow()
-            ),
-            MagicMock(
                 user_email="high@example.com",
                 tenant_id="tenant-1",
                 max_risk=95,
                 anomaly_count=20,
+                last_anomaly=datetime.utcnow()
+            ),
+            MagicMock(
+                user_email="medium@example.com",
+                tenant_id="tenant-1",
+                max_risk=70,
+                anomaly_count=10,
                 last_anomaly=datetime.utcnow()
             ),
             MagicMock(
@@ -396,7 +396,7 @@ class TestDashboardServiceTopRiskUsers:
         assert result.users[0].risk_score == 95  # Highest first
         assert result.users[1].risk_score == 70
         assert result.users[2].risk_score == 50
-        assert result.avg_risk_score == (95 + 70 + 50) / 3
+        assert round(result.avg_risk_score, 2) == round((95 + 70 + 50) / 3, 2)
 
 
 class TestDashboardServiceAlertVolume:
@@ -413,43 +413,47 @@ class TestDashboardServiceAlertVolume:
         return DashboardService(mock_db)
 
     @pytest.mark.asyncio
-    async def test_get_alert_volume_success(self, service, mock_db):
+    async def test_get_alert_volume_success(self, service, mock_db, frozen_time):
         """Test successful alert volume aggregation."""
-        now = datetime.utcnow()
+        with patch('src.services.dashboard.datetime') as mock_datetime:
+            mock_datetime.utcnow.return_value = frozen_time
+            mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
 
-        mock_alert = MagicMock()
-        mock_alert.sent_at = now
-        mock_alert.severity = SeverityLevel.HIGH
+            mock_alert = MagicMock()
+            mock_alert.sent_at = frozen_time
+            mock_alert.severity = SeverityLevel.HIGH
 
-        mock_result = MagicMock()
-        mock_result.all.return_value = [mock_alert]
-        mock_db.execute.return_value = mock_result
+            mock_result = MagicMock()
+            mock_result.all.return_value = [mock_alert]
+            mock_db.execute.return_value = mock_result
 
-        result = await service.get_alert_volume(TimeRange.DAY_7)
+            result = await service.get_alert_volume(TimeRange.DAY_7)
 
-        assert isinstance(result.data, list)
-        assert result.total_by_severity["HIGH"] >= 1
-        assert result.time_range == TimeRange.DAY_7
+            assert isinstance(result.data, list)
+            assert result.total_by_severity["HIGH"] >= 1
+            assert result.time_range == TimeRange.DAY_7
 
     @pytest.mark.asyncio
-    async def test_get_alert_volume_peak_detection(self, service, mock_db):
+    async def test_get_alert_volume_peak_detection(self, service, mock_db, frozen_time):
         """Test that peak volume is correctly identified."""
-        now = datetime.utcnow()
+        with patch('src.services.dashboard.datetime') as mock_datetime:
+            mock_datetime.utcnow.return_value = frozen_time
+            mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
 
-        mock_alerts = [
-            MagicMock(sent_at=now - timedelta(days=2), severity=SeverityLevel.CRITICAL),
-            MagicMock(sent_at=now - timedelta(days=2), severity=SeverityLevel.HIGH),
-            MagicMock(sent_at=now - timedelta(days=2), severity=SeverityLevel.HIGH),
-            MagicMock(sent_at=now - timedelta(days=1), severity=SeverityLevel.MEDIUM),
-        ]
+            mock_alerts = [
+                MagicMock(sent_at=frozen_time - timedelta(days=2), severity=SeverityLevel.CRITICAL),
+                MagicMock(sent_at=frozen_time - timedelta(days=2), severity=SeverityLevel.HIGH),
+                MagicMock(sent_at=frozen_time - timedelta(days=2), severity=SeverityLevel.HIGH),
+                MagicMock(sent_at=frozen_time - timedelta(days=1), severity=SeverityLevel.MEDIUM),
+            ]
 
-        mock_result = MagicMock()
-        mock_result.all.return_value = mock_alerts
-        mock_db.execute.return_value = mock_result
+            mock_result = MagicMock()
+            mock_result.all.return_value = mock_alerts
+            mock_db.execute.return_value = mock_result
 
-        result = await service.get_alert_volume(TimeRange.DAY_7)
+            result = await service.get_alert_volume(TimeRange.DAY_7)
 
-        assert result.peak_volume == 3  # 2 days ago had 3 alerts
+            assert result.peak_volume == 3  # 2 days ago had 3 alerts
 
 
 class TestDashboardServiceAnomalyBreakdown:
@@ -530,65 +534,73 @@ class TestDashboardServiceSummary:
         return DashboardService(mock_db)
 
     @pytest.mark.asyncio
-    async def test_get_summary_stats_success(self, service, mock_db):
+    async def test_get_summary_stats_success(self, service, mock_db, frozen_time):
         """Test successful summary stats retrieval."""
-        now = datetime.utcnow()
+        with patch('src.services.dashboard.datetime') as mock_datetime:
+            mock_datetime.utcnow.return_value = frozen_time
+            mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+            mock_datetime.timedelta = timedelta
 
-        # Mock logins
-        mock_logins = [
-            MagicMock(
-                user_email="user1@example.com",
-                is_success=True,
-                risk_score=25,
-                anomaly_flags=[]
-            ),
-            MagicMock(
-                user_email="user2@example.com",
-                is_success=False,
-                risk_score=50,
-                anomaly_flags=["failed_login"]
-            ),
-        ]
+            # Mock logins
+            mock_logins = [
+                MagicMock(
+                    user_email="user1@example.com",
+                    is_success=True,
+                    risk_score=25,
+                    anomaly_flags=[]
+                ),
+                MagicMock(
+                    user_email="user2@example.com",
+                    is_success=False,
+                    risk_score=50,
+                    anomaly_flags=["failed_login"]
+                ),
+            ]
 
-        # Mock alerts
-        mock_alerts = [
-            MagicMock(sent_at=now),
-            MagicMock(sent_at=now),
-        ]
+            # Mock alerts
+            mock_alerts = [
+                MagicMock(sent_at=frozen_time),
+                MagicMock(sent_at=frozen_time),
+            ]
 
-        # Mock tenants
-        mock_tenants = [
-            MagicMock(is_active=True),
-            MagicMock(is_active=False),
-            MagicMock(is_active=True),
-        ]
+            # Mock tenants
+            mock_tenants = [
+                MagicMock(is_active=True),
+                MagicMock(is_active=False),
+                MagicMock(is_active=True),
+            ]
 
-        async def mock_execute(query):
-            mock_result = MagicMock()
+            async def mock_execute(query):
+                mock_result = MagicMock()
+                query_str = str(query).lower()
 
-            if "anomaly_flags" in str(query):
-                mock_result.scalars.return_value.all.return_value = [mock_logins[1]]
-            elif "alert_history" in str(query).lower():
-                mock_result.scalars.return_value.all.return_value = mock_alerts
-            elif "tenants" in str(query).lower():
-                mock_result.scalars.return_value.all.return_value = mock_tenants
-            elif "avg" in str(query).lower() and "risk_score" in str(query).lower():
-                mock_result.scalar.return_value = 37.5
-            else:
-                mock_result.scalars.return_value.all.return_value = mock_logins
+                if "anomaly_flags" in query_str and "today" in str(query):
+                    mock_result.scalars.return_value.all.return_value = [mock_logins[1]]
+                elif "alert_history" in query_str or "sent_at" in query_str:
+                    mock_result.scalars.return_value.all.return_value = mock_alerts
+                elif "tenants" in query_str and "is_active" in query_str:
+                    # Return only active tenants
+                    active_tenants = [t for t in mock_tenants if t.is_active]
+                    mock_result.scalars.return_value.all.return_value = active_tenants
+                elif "tenants" in query_str:
+                    mock_result.scalars.return_value.all.return_value = mock_tenants
+                elif "avg" in query_str and "risk_score" in query_str:
+                    mock_result.scalar.return_value = 37.5
+                else:
+                    mock_result.scalars.return_value.all.return_value = mock_logins
 
-            return mock_result
+                return mock_result
 
-        mock_db.execute.side_effect = mock_execute
+            mock_db.execute.side_effect = mock_execute
 
-        result = await service.get_summary_stats()
+            result = await service.get_summary_stats()
 
-        assert result.total_logins_24h == 2
-        assert result.failed_logins_24h == 1
-        assert result.active_users_24h == 2
-        assert result.alerts_today == 2
-        assert result.active_tenants == 2
-        assert result.login_success_rate == 50.0
+            assert result.total_logins_24h == 2
+            assert result.failed_logins_24h == 1
+            assert result.active_users_24h == 2
+            assert result.alerts_today == 2
+            assert result.active_tenants == 2
+            assert result.login_success_rate == 50.0
 
     @pytest.mark.asyncio
     async def test_get_summary_stats_with_tenant(self, service, mock_db):

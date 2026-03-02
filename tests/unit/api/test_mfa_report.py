@@ -120,6 +120,7 @@ class TestMFAReportAPI:
             "fido2_users": 15,
             "authenticator_app_users": 60,
             "sms_users": 10,
+            "voice_users": 0,
             "strong_mfa_users": 15,
             "moderate_mfa_users": 60,
             "weak_mfa_users": 10,
