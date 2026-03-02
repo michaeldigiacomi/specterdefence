@@ -67,10 +67,17 @@ class MSGraphClient:
                 f"Failed to get access token: {error_description}",
                 error_code=error_code
             )
-        except msal.ThrottledRequest as e:
+        except Exception as e:
+            # Handle throttling or other MSAL errors
+            error_msg = str(e).lower()
+            if "throttle" in error_msg or "429" in error_msg:
+                raise MSGraphAuthError(
+                    "Authentication request throttled. Please try again later.",
+                    error_code="throttled"
+                ) from e
             raise MSGraphAuthError(
-                "Authentication request throttled. Please try again later.",
-                error_code="throttled"
+                f"Authentication error: {str(e)}",
+                error_code="auth_error"
             ) from e
 
     async def validate_credentials(self) -> Dict[str, Any]:

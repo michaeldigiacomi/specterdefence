@@ -206,5 +206,5 @@ class TestValidateTenantCredentials:
             assert result["valid"] is True
             assert result["display_name"] == "Test Org"
             mock_client_class.assert_called_once_with(
-                "test-tenant", "test-client", "test-secret"
+                "test-tenant", "test-client", "test-secret", timeout=30.0
             )
