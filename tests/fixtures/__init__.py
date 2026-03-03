@@ -1,6 +1,6 @@
 """Mock data fixtures for SpecterDefence tests."""
 
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 # =============================================================================

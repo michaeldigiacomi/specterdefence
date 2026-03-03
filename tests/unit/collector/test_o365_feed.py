@@ -228,7 +228,7 @@ class TestO365ManagementClient:
                 "nextPageUri": None
             }
 
-            result = await client.get_content_blobs(
+            await client.get_content_blobs(
                 "Audit.General",
                 start_time=start_time,
                 end_time=end_time
@@ -267,7 +267,7 @@ class TestO365ManagementClient:
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_response)
 
-            result = await client.get_content_blobs(
+            await client.get_content_blobs(
                 "Audit.General",
                 next_page_uri=next_page_uri
             )

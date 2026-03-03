@@ -1,5 +1,6 @@
 """Unified credential storage manager supporting multiple backends."""
 
+import contextlib
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -61,7 +62,7 @@ class StoredCredential:
 
 class CredentialStorageManager:
     """Unified manager for tenant credential storage.
-    
+
     Supports multiple storage backends:
     - DATABASE: Credentials encrypted and stored in PostgreSQL/SQLite
     - K8S_SECRETS: Credentials stored in Kubernetes secrets
@@ -76,7 +77,7 @@ class CredentialStorageManager:
         k8s_storage: K8sSecretsStorage | None = None
     ) -> None:
         """Initialize credential storage manager.
-        
+
         Args:
             db: Database session
             default_backend: Default storage backend
@@ -98,7 +99,7 @@ class CredentialStorageManager:
         encrypt: bool = True
     ) -> StoredCredential:
         """Store credentials using specified backend.
-        
+
         Args:
             tenant_id: Azure AD tenant ID
             client_id: Azure AD application ID
@@ -106,7 +107,7 @@ class CredentialStorageManager:
             name: Tenant display name
             backend: Storage backend to use (default: manager default)
             encrypt: Whether to encrypt secrets (for DB backend)
-            
+
         Returns:
             Stored credential information
         """
@@ -269,14 +270,14 @@ class CredentialStorageManager:
         user_id: str = "system"
     ) -> StoredCredential:
         """Retrieve credentials from storage.
-        
+
         Args:
             tenant_id: Azure AD tenant ID
             user_id: Identifier of user/system accessing the credential
-            
+
         Returns:
             Stored credential with decrypted secret
-            
+
         Raises:
             CredentialNotFoundError: If credentials not found
         """
@@ -323,7 +324,7 @@ class CredentialStorageManager:
                 client_secret = self.encryption.decrypt(client_secret)
                 key_version = metadata.get("key_version")
             except Exception as e:
-                raise CredentialStorageError(f"Failed to decrypt credentials: {e}")
+                raise CredentialStorageError(f"Failed to decrypt credentials: {e}") from e
         else:
             # Legacy format or unencrypted
             try:
@@ -355,7 +356,7 @@ class CredentialStorageManager:
         except K8sSecretNotFoundError:
             raise CredentialNotFoundError(
                 f"Credentials for tenant {tenant_id} not found in K8s secrets"
-            )
+            ) from None
 
         return StoredCredential(
             tenant_id=tenant_id,
@@ -372,11 +373,11 @@ class CredentialStorageManager:
         user_id: str = "system"
     ) -> StoredCredential:
         """Rotate encryption key for stored credentials.
-        
+
         Args:
             tenant_id: Azure AD tenant ID
             user_id: Identifier of user performing rotation
-            
+
         Returns:
             Stored credential with new encryption
         """
@@ -438,12 +439,12 @@ class CredentialStorageManager:
         user_id: str = "system"
     ) -> StoredCredential:
         """Migrate credentials to a different storage backend.
-        
+
         Args:
             tenant_id: Azure AD tenant ID
             target_backend: Target storage backend
             user_id: Identifier of user performing migration
-            
+
         Returns:
             Stored credential in new backend
         """
@@ -478,10 +479,8 @@ class CredentialStorageManager:
 
         # Clean up old backend if needed
         if current.backend == StorageBackend.K8S_SECRETS and current.k8s_secret_name:
-            try:
-                self.k8s_storage.delete_credentials(tenant_id, user_id)
-            except Exception:
-                pass  # Best effort cleanup
+            with contextlib.suppress(Exception):
+                self.k8s_storage.delete_credentials(tenant_id, user_id)  # Best effort cleanup
 
         return new_credential
 
@@ -491,11 +490,11 @@ class CredentialStorageManager:
         user_id: str = "system"
     ) -> bool:
         """Delete credentials from all storage backends.
-        
+
         Args:
             tenant_id: Azure AD tenant ID
             user_id: Identifier of user performing deletion
-            
+
         Returns:
             True if deleted, False if not found
         """
@@ -534,11 +533,11 @@ class CredentialStorageManager:
 
     def get_key_metadata(self, tenant_id: str, encrypted_data: str) -> dict[str, Any]:
         """Get encryption key metadata for credentials.
-        
+
         Args:
             tenant_id: Tenant ID
             encrypted_data: Encrypted credential data
-            
+
         Returns:
             Key metadata
         """
@@ -546,7 +545,7 @@ class CredentialStorageManager:
 
     async def health_check(self) -> dict[str, Any]:
         """Check storage backend health.
-        
+
         Returns:
             Health check results for all backends
         """

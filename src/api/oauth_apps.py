@@ -264,7 +264,7 @@ async def list_oauth_apps(
     service: OAuthAppsService = Depends(get_oauth_apps_service)
 ) -> OAuthAppListResponse:
     """List OAuth applications with filtering.
-    
+
     Args:
         tenant_id: Filter by tenant UUID
         status: Filter by status (approved, suspicious, malicious, revoked, pending_review)
@@ -273,7 +273,7 @@ async def list_oauth_apps(
         limit: Maximum results (1-1000)
         offset: Offset for pagination
         service: OAuth apps service
-        
+
     Returns:
         Paginated list of OAuth apps
     """
@@ -337,14 +337,14 @@ async def get_oauth_app(
     service: OAuthAppsService = Depends(get_oauth_apps_service)
 ) -> OAuthAppResponse:
     """Get a specific OAuth application.
-    
+
     Args:
         app_id: App UUID
         service: OAuth apps service
-        
+
     Returns:
         OAuth app details
-        
+
     Raises:
         HTTPException: If app not found
     """
@@ -369,14 +369,14 @@ async def get_app_permissions(
     service: OAuthAppsService = Depends(get_oauth_apps_service)
 ) -> AppPermissionsResponse:
     """Get permissions and consents for an OAuth app.
-    
+
     Args:
         app_id: App UUID
         service: OAuth apps service
-        
+
     Returns:
         App with permissions and consents
-        
+
     Raises:
         HTTPException: If app not found
     """
@@ -440,12 +440,12 @@ async def revoke_oauth_app(
     service: OAuthAppsService = Depends(get_oauth_apps_service)
 ) -> RevokeAppResponse:
     """Revoke/suspend an OAuth application.
-    
+
     Args:
         app_id: App UUID
         request: Revoke request
         service: OAuth apps service
-        
+
     Returns:
         Revoke result
     """
@@ -482,7 +482,7 @@ async def get_tenant_oauth_apps(
     service: OAuthAppsService = Depends(get_oauth_apps_service)
 ) -> OAuthAppListResponse:
     """Get OAuth apps for a specific tenant.
-    
+
     Args:
         tenant_id: Tenant UUID
         status: Filter by status
@@ -490,7 +490,7 @@ async def get_tenant_oauth_apps(
         limit: Maximum results
         offset: Offset for pagination
         service: OAuth apps service
-        
+
     Returns:
         Paginated list of OAuth apps
     """
@@ -544,12 +544,12 @@ async def get_suspicious_apps(
     service: OAuthAppsService = Depends(get_oauth_apps_service)
 ) -> list[OAuthAppResponse]:
     """Get suspicious and malicious OAuth apps.
-    
+
     Args:
         tenant_id: Tenant UUID
         limit: Maximum results
         service: OAuth apps service
-        
+
     Returns:
         List of suspicious/malicious apps
     """
@@ -570,12 +570,12 @@ async def get_high_risk_apps(
     service: OAuthAppsService = Depends(get_oauth_apps_service)
 ) -> list[OAuthAppResponse]:
     """Get high-risk and critical OAuth apps.
-    
+
     Args:
         tenant_id: Tenant UUID
         limit: Maximum results
         service: OAuth apps service
-        
+
     Returns:
         List of high-risk apps
     """
@@ -595,11 +595,11 @@ async def get_oauth_apps_summary(
     service: OAuthAppsService = Depends(get_oauth_apps_service)
 ) -> OAuthAppsSummary:
     """Get summary of OAuth apps.
-    
+
     Args:
         tenant_id: Tenant UUID
         service: OAuth apps service
-        
+
     Returns:
         Summary of OAuth apps
     """
@@ -632,14 +632,14 @@ async def scan_oauth_apps(
     service: OAuthAppsService = Depends(get_oauth_apps_service)
 ) -> ScanResponse:
     """Trigger a manual scan of OAuth applications.
-    
+
     Args:
         request: Scan request parameters
         service: OAuth apps service
-        
+
     Returns:
         Scan results summary
-        
+
     Raises:
         HTTPException: If tenant not found or scan fails
     """
@@ -693,7 +693,7 @@ async def list_oauth_app_alerts(
     service: OAuthAppsService = Depends(get_oauth_apps_service)
 ) -> OAuthAppAlertListResponse:
     """List OAuth app alerts.
-    
+
     Args:
         tenant_id: Filter by tenant
         acknowledged: Filter by acknowledgment status
@@ -701,7 +701,7 @@ async def list_oauth_app_alerts(
         limit: Maximum results
         offset: Offset for pagination
         service: OAuth apps service
-        
+
     Returns:
         Paginated list of alerts
     """
@@ -758,15 +758,15 @@ async def acknowledge_alert(
     service: OAuthAppsService = Depends(get_oauth_apps_service)
 ) -> AcknowledgeAlertResponse:
     """Acknowledge an OAuth app alert.
-    
+
     Args:
         alert_id: Alert UUID
         request: Acknowledgment request
         service: OAuth apps service
-        
+
     Returns:
         Acknowledgment result
-        
+
     Raises:
         HTTPException: If alert not found
     """

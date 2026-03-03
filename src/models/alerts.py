@@ -3,7 +3,7 @@
 import hashlib
 import uuid
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
@@ -19,13 +19,13 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-class WebhookType(str, Enum):
+class WebhookType(StrEnum):
     """Types of webhooks supported."""
     DISCORD = "discord"
     SLACK = "slack"
 
 
-class SeverityLevel(str, Enum):
+class SeverityLevel(StrEnum):
     """Severity levels for alerts."""
     LOW = "LOW"
     MEDIUM = "MEDIUM"
@@ -33,7 +33,7 @@ class SeverityLevel(str, Enum):
     CRITICAL = "CRITICAL"
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     """Types of events that can trigger alerts."""
     IMPOSSIBLE_TRAVEL = "impossible_travel"
     NEW_COUNTRY = "new_country"
@@ -301,13 +301,13 @@ class AlertHistoryModel(Base):
         metadata: dict[str, Any]
     ) -> str:
         """Generate a deduplication hash for an alert.
-        
+
         Args:
             event_type: Type of event
             user_email: User email (optional)
             tenant_id: Tenant ID (optional)
             metadata: Alert metadata
-            
+
         Returns:
             SHA-256 hash string
         """

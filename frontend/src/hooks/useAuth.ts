@@ -73,7 +73,6 @@ export function useLogout() {
 
 export function useAuthCheck() {
   const setUser = useAppStore((state) => state.setUser);
-  const login = useAppStore((state) => state.login);
   const logout = useAppStore((state) => state.logout);
   const token = useAppStore((state) => state.token);
 

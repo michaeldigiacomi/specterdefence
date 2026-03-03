@@ -101,6 +101,7 @@ export function AlertFeed({
       }
     }
     prevAlertsLength.current = alerts.length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alerts.length, soundEnabled, isPaused]);
 
   // Auto-scroll to top when new alerts arrive (if not paused)

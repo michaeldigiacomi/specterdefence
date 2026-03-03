@@ -2,11 +2,9 @@ import { useState } from 'react';
 import { 
   Download, 
   RefreshCw, 
-  TrendingUp,
   TrendingDown,
   Shield,
   AlertTriangle,
-  Users,
   Activity
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';

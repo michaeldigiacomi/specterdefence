@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text
@@ -18,7 +18,7 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-class RuleType(str, Enum):
+class RuleType(StrEnum):
     """Types of mailbox rules."""
     FORWARDING = "forwarding"
     AUTO_REPLY = "auto_reply"
@@ -29,7 +29,7 @@ class RuleType(str, Enum):
     CUSTOM = "custom"
 
 
-class RuleSeverity(str, Enum):
+class RuleSeverity(StrEnum):
     """Severity levels for mailbox rule alerts."""
     LOW = "LOW"
     MEDIUM = "MEDIUM"
@@ -37,7 +37,7 @@ class RuleSeverity(str, Enum):
     CRITICAL = "CRITICAL"
 
 
-class RuleStatus(str, Enum):
+class RuleStatus(StrEnum):
     """Status of mailbox rule analysis."""
     ACTIVE = "active"
     SUSPICIOUS = "suspicious"

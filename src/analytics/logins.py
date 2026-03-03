@@ -27,7 +27,7 @@ class LoginAnalyticsService:
     ):
         """
         Initialize the login analytics service.
-        
+
         Args:
             db: Database session
             geo_ip_client: Geo-IP client (creates default if not provided)
@@ -49,7 +49,7 @@ class LoginAnalyticsService:
     ) -> LoginAnalyticsModel:
         """
         Process a login event and store analytics data.
-        
+
         Args:
             user_email: User's email address
             tenant_id: Internal tenant UUID
@@ -58,7 +58,7 @@ class LoginAnalyticsService:
             is_success: Whether the login was successful
             failure_reason: Reason for failure if applicable
             audit_log_id: Reference to original audit log
-            
+
         Returns:
             Created LoginAnalyticsModel instance
         """
@@ -192,7 +192,7 @@ class LoginAnalyticsService:
                 and_(
                     LoginAnalyticsModel.user_email == user_email,
                     LoginAnalyticsModel.tenant_id == tenant_id,
-                    LoginAnalyticsModel.is_success == True
+                    LoginAnalyticsModel.is_success
                 )
             ).order_by(desc(LoginAnalyticsModel.login_time)).limit(1)
         )
@@ -237,11 +237,10 @@ class LoginAnalyticsService:
                         )
 
             # Update known IPs
-            if login_record.ip_address:
-                if login_record.ip_address not in user_history.known_ips:
-                    user_history.known_ips = (
-                        user_history.known_ips + [login_record.ip_address]
-                    )
+            if login_record.ip_address and login_record.ip_address not in user_history.known_ips:
+                user_history.known_ips = (
+                    user_history.known_ips + [login_record.ip_address]
+                )
 
             # Update last login info
             user_history.last_login_time = login_record.login_time
@@ -281,7 +280,7 @@ class LoginAnalyticsService:
     ) -> tuple[list[LoginAnalyticsModel], int]:
         """
         Query login analytics with filters.
-        
+
         Returns:
             Tuple of (login records list, total count)
         """
@@ -417,11 +416,11 @@ class LoginAnalyticsService:
     async def process_audit_log_signins(self, tenant_id: str, limit: int = 100) -> int:
         """
         Process unprocessed signin audit logs and create login analytics.
-        
+
         Args:
             tenant_id: Tenant ID to process
             limit: Maximum number of logs to process
-            
+
         Returns:
             Number of logs processed
         """
@@ -431,7 +430,7 @@ class LoginAnalyticsService:
                 and_(
                     AuditLogModel.tenant_id == tenant_id,
                     AuditLogModel.log_type == LogType.SIGNIN,
-                    AuditLogModel.processed == False
+                    not AuditLogModel.processed
                 )
             ).order_by(AuditLogModel.o365_created_at).limit(limit)
         )

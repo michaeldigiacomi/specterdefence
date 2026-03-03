@@ -27,7 +27,7 @@ class DiscordWebhookClient:
 
     def __init__(self, webhook_url: str, timeout: float = 30.0):
         """Initialize Discord webhook client.
-        
+
         Args:
             webhook_url: The Discord webhook URL
             timeout: Request timeout in seconds
@@ -60,7 +60,7 @@ class DiscordWebhookClient:
         timestamp: datetime | None = None,
     ) -> bool:
         """Send an alert to Discord.
-        
+
         Args:
             title: Alert title
             description: Alert description
@@ -70,10 +70,10 @@ class DiscordWebhookClient:
             metadata: Additional metadata (optional)
             fields: Additional Discord embed fields (optional)
             timestamp: Alert timestamp (optional, defaults to now)
-            
+
         Returns:
             True if sent successfully, False otherwise
-            
+
         Raises:
             DiscordWebhookError: If the webhook request fails
         """
@@ -124,7 +124,7 @@ class DiscordWebhookClient:
         timestamp: datetime,
     ) -> dict[str, Any]:
         """Build a Discord embed for an alert.
-        
+
         Args:
             title: Alert title
             description: Alert description
@@ -134,7 +134,7 @@ class DiscordWebhookClient:
             metadata: Additional metadata
             fields: Additional fields
             timestamp: Alert timestamp
-            
+
         Returns:
             Discord embed dictionary
         """
@@ -190,11 +190,11 @@ class DiscordWebhookClient:
         metadata: dict[str, Any]
     ) -> list[dict[str, Any]]:
         """Build embed fields based on event metadata.
-        
+
         Args:
             event_type: Type of event
             metadata: Event metadata
-            
+
         Returns:
             List of Discord embed fields
         """
@@ -337,10 +337,10 @@ class DiscordWebhookClient:
     @staticmethod
     def _format_location(location: dict[str, Any]) -> str:
         """Format a location dictionary as a string.
-        
+
         Args:
             location: Location dictionary with city, country, etc.
-            
+
         Returns:
             Formatted location string
         """
@@ -358,7 +358,7 @@ class DiscordWebhookClient:
 
     async def test_webhook(self) -> bool:
         """Test the webhook by sending a test message.
-        
+
         Returns:
             True if webhook is working, False otherwise
         """

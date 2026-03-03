@@ -1,5 +1,6 @@
 """Mailbox rule monitoring service for SpecterDefence."""
 
+import contextlib
 import logging
 from datetime import datetime
 from typing import Any
@@ -36,7 +37,7 @@ class MailboxRuleService:
 
     def __init__(self, db_session: AsyncSession) -> None:
         """Initialize the service.
-        
+
         Args:
             db_session: Async database session
         """
@@ -48,11 +49,11 @@ class MailboxRuleService:
         trigger_alerts: bool = True
     ) -> dict[str, Any]:
         """Scan all mailbox rules for a tenant.
-        
+
         Args:
             tenant_id: Internal tenant UUID
             trigger_alerts: Whether to trigger alerts for suspicious rules
-            
+
         Returns:
             Scan results summary
         """
@@ -124,13 +125,13 @@ class MailboxRuleService:
         trigger_alerts: bool
     ) -> dict[str, Any]:
         """Process a single mailbox rule.
-        
+
         Args:
             tenant_id: Internal tenant UUID
             rule_data: Rule data from Graph API
             rule_client: MailboxRuleClient instance
             trigger_alerts: Whether to trigger alerts
-            
+
         Returns:
             Processing results
         """
@@ -176,12 +177,12 @@ class MailboxRuleService:
         rule_id: str
     ) -> MailboxRuleModel | None:
         """Get existing rule from database.
-        
+
         Args:
             tenant_id: Internal tenant UUID
             user_email: User email address
             rule_id: Microsoft Graph rule ID
-            
+
         Returns:
             Existing rule or None
         """
@@ -204,13 +205,13 @@ class MailboxRuleService:
         analysis: dict[str, Any]
     ) -> MailboxRuleModel:
         """Create a new mailbox rule record.
-        
+
         Args:
             tenant_id: Internal tenant UUID
             user_email: User email address
             rule_data: Rule data from Graph API
             analysis: Analysis results
-            
+
         Returns:
             Created rule model
         """
@@ -219,20 +220,16 @@ class MailboxRuleService:
         rule_modified_at = None
 
         if rule_data.get("createdDateTime"):
-            try:
+            with contextlib.suppress(ValueError, AttributeError):
                 rule_created_at = datetime.fromisoformat(
                     rule_data["createdDateTime"].replace("Z", "+00:00")
                 )
-            except (ValueError, AttributeError):
-                pass
 
         if rule_data.get("lastModifiedDateTime"):
-            try:
+            with contextlib.suppress(ValueError, AttributeError):
                 rule_modified_at = datetime.fromisoformat(
                     rule_data["lastModifiedDateTime"].replace("Z", "+00:00")
                 )
-            except (ValueError, AttributeError):
-                pass
 
         rule = MailboxRuleModel(
             tenant_id=tenant_id,
@@ -271,7 +268,7 @@ class MailboxRuleService:
         analysis: dict[str, Any]
     ) -> None:
         """Update an existing mailbox rule record.
-        
+
         Args:
             rule: Existing rule model
             rule_data: Updated rule data from Graph API
@@ -297,7 +294,7 @@ class MailboxRuleService:
 
     async def _trigger_alert(self, rule: MailboxRuleModel) -> None:
         """Trigger an alert for a suspicious/malicious rule.
-        
+
         Args:
             rule: Mailbox rule that triggered the alert
         """
@@ -347,10 +344,10 @@ class MailboxRuleService:
 
     def _get_alert_type(self, rule: MailboxRuleModel) -> str:
         """Determine alert type based on rule characteristics.
-        
+
         Args:
             rule: Mailbox rule model
-            
+
         Returns:
             Alert type string
         """
@@ -368,10 +365,10 @@ class MailboxRuleService:
 
     def _map_to_event_type(self, rule: MailboxRuleModel) -> EventType:
         """Map rule to event type for alert engine.
-        
+
         Args:
             rule: Mailbox rule model
-            
+
         Returns:
             EventType enum value
         """
@@ -381,10 +378,10 @@ class MailboxRuleService:
 
     def _map_to_severity_level(self, severity: RuleSeverity) -> SeverityLevel:
         """Map rule severity to alert severity level.
-        
+
         Args:
             severity: Rule severity
-            
+
         Returns:
             SeverityLevel enum value
         """
@@ -398,10 +395,10 @@ class MailboxRuleService:
 
     async def _get_tenant(self, tenant_id: str) -> TenantModel | None:
         """Get tenant by internal ID.
-        
+
         Args:
             tenant_id: Internal tenant UUID
-            
+
         Returns:
             Tenant model or None
         """
@@ -421,7 +418,7 @@ class MailboxRuleService:
         offset: int = 0
     ) -> dict[str, Any]:
         """Get mailbox rules with filtering.
-        
+
         Args:
             tenant_id: Filter by tenant
             user_email: Filter by user
@@ -430,7 +427,7 @@ class MailboxRuleService:
             rule_type: Filter by rule type
             limit: Maximum results
             offset: Pagination offset
-            
+
         Returns:
             Dictionary with items and total count
         """
@@ -469,10 +466,10 @@ class MailboxRuleService:
 
     async def get_rule_by_id(self, rule_id: str) -> MailboxRuleModel | None:
         """Get a specific mailbox rule by ID.
-        
+
         Args:
             rule_id: Rule UUID
-            
+
         Returns:
             Rule model or None
         """
@@ -487,11 +484,11 @@ class MailboxRuleService:
         limit: int = 100
     ) -> list[MailboxRuleModel]:
         """Get suspicious and malicious rules.
-        
+
         Args:
             tenant_id: Optional tenant filter
             limit: Maximum results
-            
+
         Returns:
             List of suspicious/malicious rules
         """
@@ -517,14 +514,14 @@ class MailboxRuleService:
         offset: int = 0
     ) -> dict[str, Any]:
         """Get mailbox rule alerts.
-        
+
         Args:
             tenant_id: Filter by tenant
             acknowledged: Filter by acknowledgment status
             severity: Filter by severity
             limit: Maximum results
             offset: Pagination offset
-            
+
         Returns:
             Dictionary with items and total count
         """
@@ -562,11 +559,11 @@ class MailboxRuleService:
         acknowledged_by: str
     ) -> MailboxRuleAlertModel | None:
         """Acknowledge a mailbox rule alert.
-        
+
         Args:
             alert_id: Alert UUID
             acknowledged_by: User acknowledging the alert
-            
+
         Returns:
             Updated alert or None if not found
         """

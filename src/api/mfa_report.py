@@ -106,11 +106,11 @@ async def get_mfa_summary(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> MFAEnrollmentSummary:
     """Get MFA enrollment summary for a tenant.
-    
+
     Args:
         tenant_id: Tenant UUID
         service: MFA report service
-        
+
     Returns:
         MFA enrollment summary
     """
@@ -128,6 +128,7 @@ async def get_mfa_summary(
         fido2_users=summary["fido2_users"],
         authenticator_app_users=summary["authenticator_app_users"],
         sms_users=summary["sms_users"],
+        voice_users=summary.get("voice_users", 0),
         strong_mfa_users=summary["strong_mfa_users"],
         moderate_mfa_users=summary["moderate_mfa_users"],
         weak_mfa_users=summary["weak_mfa_users"],
@@ -157,7 +158,7 @@ async def list_mfa_users(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> MFAUserListResponse:
     """List MFA users with filtering.
-    
+
     Args:
         tenant_id: Tenant UUID
         is_mfa_registered: Filter by MFA registration status
@@ -167,13 +168,13 @@ async def list_mfa_users(
         limit: Maximum results
         offset: Pagination offset
         service: MFA report service
-        
+
     Returns:
         Paginated list of MFA users
     """
     # Convert string strength to enum
     strength_enum = None
-    if mfa_strength:
+    if mfa_strength and isinstance(mfa_strength, str):
         try:
             strength_enum = MFAStrengthLevel(mfa_strength.lower())
         except ValueError:
@@ -214,14 +215,14 @@ async def get_users_without_mfa(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> UsersWithoutMFAResponse:
     """Get users without MFA registration.
-    
+
     Args:
         tenant_id: Tenant UUID
         include_exempt: Whether to include exempt users
         limit: Maximum results
         offset: Pagination offset
         service: MFA report service
-        
+
     Returns:
         List of users without MFA
     """
@@ -256,12 +257,12 @@ async def get_admins_without_mfa(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> AdminsWithoutMFAResponse:
     """Get admin users without MFA (critical findings).
-    
+
     Args:
         tenant_id: Tenant UUID
         limit: Maximum results
         service: MFA report service
-        
+
     Returns:
         List of admin users without MFA
     """
@@ -296,12 +297,12 @@ async def get_mfa_trends(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> MFAEnrollmentTrendsResponse:
     """Get MFA enrollment trends over time.
-    
+
     Args:
         tenant_id: Tenant UUID
         days: Number of days to look back
         service: MFA report service
-        
+
     Returns:
         MFA enrollment trends
     """
@@ -328,11 +329,11 @@ async def get_method_distribution(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> MFAMethodsDistributionResponse:
     """Get distribution of MFA methods.
-    
+
     Args:
         tenant_id: Tenant UUID
         service: MFA report service
-        
+
     Returns:
         MFA method distribution
     """
@@ -356,11 +357,11 @@ async def get_strength_distribution(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> MFAStrengthDistributionResponse:
     """Get distribution of MFA strength levels.
-    
+
     Args:
         tenant_id: Tenant UUID
         service: MFA report service
-        
+
     Returns:
         MFA strength distribution
     """
@@ -387,11 +388,11 @@ async def get_compliance_report(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> MFAComplianceReport:
     """Get comprehensive MFA compliance report.
-    
+
     Args:
         tenant_id: Tenant UUID
         service: MFA report service
-        
+
     Returns:
         MFA compliance report
     """
@@ -465,6 +466,7 @@ async def get_compliance_report(
             fido2_users=summary["fido2_users"],
             authenticator_app_users=summary["authenticator_app_users"],
             sms_users=summary["sms_users"],
+            voice_users=summary.get("voice_users", 0),
             strong_mfa_users=summary["strong_mfa_users"],
             moderate_mfa_users=summary["moderate_mfa_users"],
             weak_mfa_users=summary["weak_mfa_users"],
@@ -498,11 +500,11 @@ async def scan_mfa(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> MFAScanResponse:
     """Trigger a manual MFA scan.
-    
+
     Args:
         request: Scan request parameters
         service: MFA report service
-        
+
     Returns:
         Scan results summary
     """
@@ -550,12 +552,12 @@ async def set_user_exemption(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> MFAExemptionResponse:
     """Set MFA exemption for a user.
-    
+
     Args:
         user_id: User UUID
         request: Exemption request
         service: MFA report service
-        
+
     Returns:
         Exemption result
     """
@@ -604,7 +606,7 @@ async def list_mfa_alerts(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> dict[str, Any]:
     """List MFA compliance alerts.
-    
+
     Args:
         tenant_id: Filter by tenant
         resolved: Filter by resolution status
@@ -612,7 +614,7 @@ async def list_mfa_alerts(
         limit: Maximum results
         offset: Pagination offset
         service: MFA report service
-        
+
     Returns:
         Paginated list of alerts
     """
@@ -659,12 +661,12 @@ async def resolve_alert(
     service: MFAReportService = Depends(get_mfa_report_service)
 ) -> MFAResolveAlertResponse:
     """Resolve an MFA compliance alert.
-    
+
     Args:
         alert_id: Alert UUID
         request: Resolution request
         service: MFA report service
-        
+
     Returns:
         Resolution result
     """

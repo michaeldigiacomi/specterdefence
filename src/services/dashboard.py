@@ -627,8 +627,8 @@ class DashboardService:
         logins = login_result.scalars().all()
 
         total_logins = len(logins)
-        failed_logins = sum(1 for l in logins if not l.is_success)
-        active_users = len(set(l.user_email for l in logins))
+        failed_logins = sum(1 for login in logins if not login.is_success)
+        active_users = len({login.user_email for login in logins})
 
         # Anomalies today
         anomaly_query = select(LoginAnalyticsModel).where(
@@ -655,7 +655,7 @@ class DashboardService:
 
         # Active tenants
         from src.models.db import TenantModel
-        tenant_query = select(TenantModel).where(TenantModel.is_active == True)
+        tenant_query = select(TenantModel).where(TenantModel.is_active)
         tenant_result = await self.db.execute(tenant_query)
         active_tenants = len(tenant_result.scalars().all())
 

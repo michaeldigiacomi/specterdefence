@@ -1,12 +1,12 @@
 """Dashboard data models for SpecterDefence."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class TimeRange(str, Enum):
+class TimeRange(StrEnum):
     """Time range options for dashboard data."""
     DAY_7 = "7d"
     DAY_30 = "30d"

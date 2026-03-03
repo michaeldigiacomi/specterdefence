@@ -36,7 +36,7 @@ class CAPoliciesClient:
 
     def __init__(self, graph_client: MSGraphClient) -> None:
         """Initialize with existing MS Graph client.
-        
+
         Args:
             graph_client: Authenticated MSGraphClient instance
         """
@@ -44,7 +44,7 @@ class CAPoliciesClient:
 
     async def get_policies(self) -> list[dict[str, Any]]:
         """Get all Conditional Access policies in the tenant.
-        
+
         Returns:
             List of Conditional Access policy objects
         """
@@ -82,10 +82,10 @@ class CAPoliciesClient:
 
     async def get_policy(self, policy_id: str) -> dict[str, Any] | None:
         """Get a specific Conditional Access policy.
-        
+
         Args:
             policy_id: The Conditional Access policy ID
-            
+
         Returns:
             Policy object or None if not found
         """
@@ -112,7 +112,7 @@ class CAPoliciesClient:
 
     async def get_named_locations(self) -> list[dict[str, Any]]:
         """Get all named locations (trusted locations) configured in the tenant.
-        
+
         Returns:
             List of named location objects
         """
@@ -146,10 +146,10 @@ class CAPoliciesClient:
 
     def analyze_policy(self, policy: dict[str, Any]) -> dict[str, Any]:
         """Analyze a Conditional Access policy for security characteristics.
-        
+
         Args:
             policy: Policy object from Graph API
-            
+
         Returns:
             Analysis results with security flags
         """
@@ -243,7 +243,7 @@ class CAPoliciesClient:
             # Check if applies to all users
             include_users = users.get("includeUsers", [])
             include_groups = users.get("includeGroups", [])
-            include_roles = users.get("includeRoles", [])
+            users.get("includeRoles", [])
 
             analysis["applies_to_all_users"] = "All" in include_users or \
                                                "All" in include_groups
@@ -315,10 +315,10 @@ class CAPoliciesClient:
 
     def _calculate_security_score(self, analysis: dict[str, Any]) -> int:
         """Calculate a security score for the policy.
-        
+
         Args:
             analysis: Policy analysis results
-            
+
         Returns:
             Security score from 0-100
         """
@@ -378,11 +378,11 @@ class CAPoliciesClient:
         new_policy: dict[str, Any]
     ) -> dict[str, Any]:
         """Compare two policy states to detect changes.
-        
+
         Args:
             old_policy: Previous policy state
             new_policy: New policy state
-            
+
         Returns:
             Comparison results with changes detected
         """
@@ -509,23 +509,18 @@ class CAPoliciesClient:
         end_time: datetime | None = None
     ) -> list[dict[str, Any]]:
         """Get audit logs for a specific Conditional Access policy.
-        
+
         Args:
             policy_id: The policy ID to get audit logs for
             start_time: Optional start time filter
             end_time: Optional end time filter
-            
+
         Returns:
             List of audit log entries
         """
         token = await self.graph_client.get_access_token()
 
         # Build filter for CA policy changes
-        filter_parts = [
-            "activityDisplayName eq 'Update conditional access policy'",
-            "or activityDisplayName eq 'Add conditional access policy'",
-            "or activityDisplayName eq 'Delete conditional access policy'"
-        ]
 
         # Add target policy filter if available
         # Note: Graph API doesn't directly filter by policy ID in audit logs
@@ -572,11 +567,11 @@ class CAPoliciesClient:
         baseline_config: dict[str, Any]
     ) -> dict[str, Any]:
         """Check if a policy complies with security baseline.
-        
+
         Args:
             policy: Policy object or analysis
             baseline_config: Baseline configuration
-            
+
         Returns:
             Compliance check results
         """
@@ -600,19 +595,16 @@ class CAPoliciesClient:
             compliance["violations"].append("Policy is disabled")
 
         # Check MFA requirements
-        if baseline_config.get("require_mfa_for_admins") and analysis.get("includes_vip_users"):
-            if not analysis.get("is_mfa_required"):
-                compliance["warnings"].append("Policy affecting VIP users should require MFA")
+        if baseline_config.get("require_mfa_for_admins") and analysis.get("includes_vip_users") and not analysis.get("is_mfa_required"):
+            compliance["warnings"].append("Policy affecting VIP users should require MFA")
 
-        if baseline_config.get("require_mfa_for_all_users") and analysis.get("applies_to_all_users"):
-            if not analysis.get("is_mfa_required"):
-                compliance["is_compliant"] = False
-                compliance["violations"].append("Policy applying to all users must require MFA")
+        if baseline_config.get("require_mfa_for_all_users") and analysis.get("applies_to_all_users") and not analysis.get("is_mfa_required"):
+            compliance["is_compliant"] = False
+            compliance["violations"].append("Policy applying to all users must require MFA")
 
-        if baseline_config.get("require_mfa_for_guests") and analysis.get("includes_guests_or_external"):
-            if not analysis.get("is_mfa_required"):
-                compliance["is_compliant"] = False
-                compliance["violations"].append("Policy including guests must require MFA")
+        if baseline_config.get("require_mfa_for_guests") and analysis.get("includes_guests_or_external") and not analysis.get("is_mfa_required"):
+            compliance["is_compliant"] = False
+            compliance["violations"].append("Policy including guests must require MFA")
 
         # Check legacy auth blocking
         if baseline_config.get("block_legacy_auth"):
@@ -621,19 +613,20 @@ class CAPoliciesClient:
             compliance["recommendations"].append("Consider adding a policy to block legacy authentication")
 
         # Check device compliance
-        if baseline_config.get("require_compliant_or_hybrid_joined"):
-            if not analysis.get("requires_compliant_device") and not analysis.get("requires_hybrid_joined_device"):
-                if analysis.get("applies_to_all_users") or analysis.get("applies_to_all_apps"):
-                    compliance["warnings"].append("Broadly applied policy should require device compliance")
+        if (baseline_config.get("require_compliant_or_hybrid_joined") and
+            not analysis.get("requires_compliant_device") and
+            not analysis.get("requires_hybrid_joined_device") and
+            (analysis.get("applies_to_all_users") or analysis.get("applies_to_all_apps"))):
+            compliance["warnings"].append("Broadly applied policy should require device compliance")
 
         # Check risk-based policies
-        if baseline_config.get("block_high_risk_signins"):
-            if not analysis.get("has_risk_conditions") and analysis.get("applies_to_all_users"):
-                compliance["recommendations"].append("Consider adding risk-based conditions to block high-risk sign-ins")
+        if (baseline_config.get("block_high_risk_signins") and
+            not analysis.get("has_risk_conditions") and
+            analysis.get("applies_to_all_users")):
+            compliance["recommendations"].append("Consider adding risk-based conditions to block high-risk sign-ins")
 
         # Check location-based policies
-        if baseline_config.get("block_unknown_locations"):
-            if not analysis.get("has_location_conditions"):
-                compliance["recommendations"].append("Consider adding location-based conditions to block unknown locations")
+        if baseline_config.get("block_unknown_locations") and not analysis.get("has_location_conditions"):
+            compliance["recommendations"].append("Consider adding location-based conditions to block unknown locations")
 
         return compliance

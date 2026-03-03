@@ -116,7 +116,7 @@ class TestLogCollectionFlow:
         # Verify log type
         assert logs[0].log_type == LogType.SIGNIN
         assert logs[0].raw_data["Id"] == "event-1"
-        assert logs[0].processed == False
+        assert not logs[0].processed
 
     @patch("src.collector.main.O365ManagementClient")
     async def test_store_events_with_different_content_types(self, mock_client_class, test_tenant: TenantModel, db_session):

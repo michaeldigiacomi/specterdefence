@@ -132,12 +132,12 @@ class EnhancedEncryptionService:
         version: int = 1
     ) -> bytes:
         """Derive encryption key using PBKDF2.
-        
+
         Args:
             secret_key: Base secret key
             salt_input: Optional salt input
             version: Key version for salt derivation
-            
+
         Returns:
             32-byte encryption key
         """
@@ -170,12 +170,12 @@ class EnhancedEncryptionService:
         key_version: int | None = None
     ) -> str:
         """Encrypt a string with metadata.
-        
+
         Args:
             plaintext: The string to encrypt
             algorithm: Encryption algorithm (default: fernet)
             key_version: Key version to use (default: current)
-            
+
         Returns:
             JSON string containing encrypted data and metadata
         """
@@ -238,10 +238,10 @@ class EnhancedEncryptionService:
 
     def decrypt(self, encrypted_json: str) -> str:
         """Decrypt an encrypted JSON string.
-        
+
         Args:
             encrypted_json: JSON string from encrypt()
-            
+
         Returns:
             Decrypted plaintext string
         """
@@ -276,13 +276,13 @@ class EnhancedEncryptionService:
             return fernet.decrypt(encrypted).decode()
         except Exception:
             # Try all available keys
-            for version, fernet in self._fernets.items():
+            for _version, fernet in self._fernets.items():
                 try:
                     encrypted = base64.urlsafe_b64decode(encrypted_str.encode())
                     return fernet.decrypt(encrypted).decode()
                 except Exception:
                     continue
-            raise EncryptionError("Failed to decrypt with any available key")
+            raise EncryptionError("Failed to decrypt with any available key") from None
 
     def _decrypt_fernet(self, ciphertext: bytes, key_version: int) -> str:
         """Decrypt using Fernet."""
@@ -310,14 +310,14 @@ class EnhancedEncryptionService:
             plaintext = aesgcm.decrypt(nonce, full_ciphertext, aad)
             return plaintext.decode()
         except Exception as e:
-            raise EncryptionError(f"Decryption failed: {str(e)}")
+            raise EncryptionError(f"Decryption failed: {str(e)}") from e
 
     def rotate_key(self, encrypted_json: str) -> str:
         """Re-encrypt data with the current key version.
-        
+
         Args:
             encrypted_json: Existing encrypted data
-            
+
         Returns:
             Re-encrypted data with current key
         """
@@ -327,14 +327,14 @@ class EnhancedEncryptionService:
             # Re-encrypt with current key
             return self.encrypt(plaintext, key_version=self._current_key_version)
         except Exception as e:
-            raise KeyRotationError(f"Key rotation failed: {str(e)}")
+            raise KeyRotationError(f"Key rotation failed: {str(e)}") from e
 
     def get_key_metadata(self, encrypted_json: str) -> dict[str, Any]:
         """Get metadata about encrypted data without decrypting.
-        
+
         Args:
             encrypted_json: Encrypted data
-            
+
         Returns:
             Metadata dictionary
         """
@@ -357,7 +357,7 @@ class EnhancedEncryptionService:
 
     def generate_new_key(self) -> tuple[str, str]:
         """Generate a new encryption key pair.
-        
+
         Returns:
             Tuple of (key, salt) as base64 strings
         """

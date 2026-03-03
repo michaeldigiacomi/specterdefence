@@ -27,12 +27,6 @@ const formatAnomalyType = (type: string): string => {
     .join(' ');
 };
 
-const getRiskColor = (score: number): string => {
-  if (score >= 70) return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20';
-  if (score >= 40) return 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20';
-  return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20';
-};
-
 const getRiskBadgeColor = (score: number): string => {
   if (score >= 70) return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
   if (score >= 40) return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
@@ -51,17 +45,20 @@ export function TopRiskUsers({
   const sortedUsers = [...users].sort((a, b) => {
     let comparison = 0;
     switch (sortBy) {
-      case 'risk':
+      case 'risk': {
         comparison = a.risk_score - b.risk_score;
         break;
-      case 'anomalies':
+      }
+      case 'anomalies': {
         comparison = a.anomaly_count - b.anomaly_count;
         break;
-      case 'last_seen':
+      }
+      case 'last_seen': {
         const aTime = a.last_anomaly_time ? new Date(a.last_anomaly_time).getTime() : 0;
         const bTime = b.last_anomaly_time ? new Date(b.last_anomaly_time).getTime() : 0;
         comparison = aTime - bTime;
         break;
+      }
     }
     return sortDesc ? -comparison : comparison;
   });

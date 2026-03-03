@@ -127,12 +127,12 @@ async def create_webhook(
     service: AlertRuleService = Depends(get_rule_service)
 ) -> WebhookResponse:
     """Create a new alert webhook.
-    
+
     Args:
         webhook: Webhook creation data
         tenant_id: Optional tenant ID for tenant-specific webhook
         service: Alert rule service
-        
+
     Returns:
         Created webhook details
     """
@@ -169,12 +169,12 @@ async def list_webhooks(
     service: AlertRuleService = Depends(get_rule_service)
 ) -> list[WebhookResponse]:
     """List all alert webhooks.
-    
+
     Args:
         tenant_id: Filter by tenant ID
         include_inactive: Include inactive webhooks
         service: Alert rule service
-        
+
     Returns:
         List of webhook configurations
     """
@@ -206,11 +206,11 @@ async def test_webhook(
     service: AlertRuleService = Depends(get_rule_service)
 ) -> WebhookTestResponse:
     """Test a webhook by sending a test message.
-    
+
     Args:
         webhook_id: Webhook UUID
         service: Alert rule service
-        
+
     Returns:
         Test result
     """
@@ -259,11 +259,11 @@ async def delete_webhook(
     service: AlertRuleService = Depends(get_rule_service)
 ) -> None:
     """Delete an alert webhook.
-    
+
     Args:
         webhook_id: Webhook UUID
         service: Alert rule service
-        
+
     Raises:
         HTTPException: If webhook not found
     """
@@ -290,12 +290,12 @@ async def create_rule(
     service: AlertRuleService = Depends(get_rule_service)
 ) -> RuleResponse:
     """Create a new alert rule.
-    
+
     Args:
         rule: Rule creation data
         tenant_id: Optional tenant ID for tenant-specific rule
         service: Alert rule service
-        
+
     Returns:
         Created rule details
     """
@@ -336,12 +336,12 @@ async def list_rules(
     service: AlertRuleService = Depends(get_rule_service)
 ) -> list[RuleResponse]:
     """List all alert rules.
-    
+
     Args:
         tenant_id: Filter by tenant ID
         include_inactive: Include inactive rules
         service: Alert rule service
-        
+
     Returns:
         List of alert rules
     """
@@ -376,14 +376,14 @@ async def get_rule(
     service: AlertRuleService = Depends(get_rule_service)
 ) -> RuleResponse:
     """Get a specific alert rule.
-    
+
     Args:
         rule_id: Rule UUID
         service: Alert rule service
-        
+
     Returns:
         Rule details
-        
+
     Raises:
         HTTPException: If rule not found
     """
@@ -418,15 +418,15 @@ async def update_rule(
     service: AlertRuleService = Depends(get_rule_service)
 ) -> RuleResponse:
     """Update an alert rule.
-    
+
     Args:
         rule_id: Rule UUID
         updates: Fields to update
         service: Alert rule service
-        
+
     Returns:
         Updated rule details
-        
+
     Raises:
         HTTPException: If rule not found
     """
@@ -468,11 +468,11 @@ async def delete_rule(
     service: AlertRuleService = Depends(get_rule_service)
 ) -> None:
     """Delete an alert rule.
-    
+
     Args:
         rule_id: Rule UUID
         service: Alert rule service
-        
+
     Raises:
         HTTPException: If rule not found
     """
@@ -502,7 +502,7 @@ async def get_alert_history(
     engine: AlertEngine = Depends(get_alert_engine)
 ) -> AlertHistoryList:
     """Get alert history.
-    
+
     Args:
         tenant_id: Filter by tenant
         event_type: Filter by event type
@@ -511,7 +511,7 @@ async def get_alert_history(
         limit: Maximum results (1-1000)
         offset: Offset for pagination
         engine: Alert engine
-        
+
     Returns:
         Paginated alert history
     """

@@ -536,7 +536,7 @@ class TestCollectLogs:
             mock_session_maker.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_maker.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: B017 - Testing generic error propagation
                 await collect_logs()
 
             mock_session.rollback.assert_called_once()

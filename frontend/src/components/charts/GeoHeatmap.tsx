@@ -50,8 +50,9 @@ export function GeoHeatmap({
     return [avgLat, avgLng] as [number, number];
   }, [data]);
 
-  // Find max login count for scaling
-  const maxLoginCount = useMemo(() => {
+  // Find max login count for scaling (used for circle radius calculation)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _maxLoginCount = useMemo(() => {
     if (data.length === 0) return 1;
     return Math.max(...data.map(d => d.login_count));
   }, [data]);

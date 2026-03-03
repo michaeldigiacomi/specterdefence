@@ -15,7 +15,7 @@ from sqlalchemy.dialects.postgresql import UUID as PGUIID
 
 class JSONB(TypeDecorator):
     """Cross-platform JSONB type.
-    
+
     Uses PostgreSQL JSONB in production, falls back to Text/JSON in SQLite.
     """
     impl = Text
@@ -33,15 +33,14 @@ class JSONB(TypeDecorator):
         return value
 
     def process_result_value(self, value: Any, dialect) -> Any:
-        if dialect.name != 'postgresql' and value is not None:
-            if isinstance(value, str):
-                return json.loads(value)
+        if dialect.name != 'postgresql' and value is not None and isinstance(value, str):
+            return json.loads(value)
         return value
 
 
 class UUID(TypeDecorator):
     """Cross-platform UUID type.
-    
+
     Uses PostgreSQL UUID in production, falls back to String(36) in SQLite.
     """
     impl = String(36)
@@ -60,10 +59,9 @@ class UUID(TypeDecorator):
     def process_bind_param(self, value: Any, dialect) -> Any:
         if value is None:
             return None
-        if dialect.name != 'postgresql':
+        if dialect.name != 'postgresql' and hasattr(value, 'hex'):
             # Convert UUID to string for SQLite
-            if hasattr(value, 'hex'):
-                return str(value)
+            return str(value)
         return value
 
     def process_result_value(self, value: Any, dialect) -> Any:
@@ -79,7 +77,7 @@ class UUID(TypeDecorator):
 
 class ARRAY(TypeDecorator):
     """Cross-platform ARRAY type.
-    
+
     Uses PostgreSQL ARRAY in production, falls back to Text/JSON in SQLite.
     """
     impl = Text
@@ -102,7 +100,6 @@ class ARRAY(TypeDecorator):
         return value
 
     def process_result_value(self, value: Any, dialect) -> Any:
-        if dialect.name != 'postgresql' and value is not None:
-            if isinstance(value, str):
-                return json.loads(value)
+        if dialect.name != 'postgresql' and value is not None and isinstance(value, str):
+            return json.loads(value)
         return value

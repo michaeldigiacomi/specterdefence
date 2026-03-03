@@ -32,7 +32,7 @@ class AlertRuleService:
 
     def __init__(self, db: AsyncSession):
         """Initialize the alert rule service.
-        
+
         Args:
             db: Database session
         """
@@ -48,13 +48,13 @@ class AlertRuleService:
         tenant_id: str | None = None,
     ) -> AlertWebhookModel:
         """Create a new alert webhook.
-        
+
         Args:
             name: Display name for the webhook
             webhook_url: The webhook URL
             webhook_type: Type of webhook (discord, slack)
             tenant_id: Optional tenant ID (null for global)
-            
+
         Returns:
             Created webhook model
         """
@@ -78,10 +78,10 @@ class AlertRuleService:
 
     async def get_webhook(self, webhook_id: UUID) -> AlertWebhookModel | None:
         """Get a webhook by ID.
-        
+
         Args:
             webhook_id: Webhook UUID
-            
+
         Returns:
             Webhook model or None if not found
         """
@@ -96,11 +96,11 @@ class AlertRuleService:
         include_inactive: bool = False,
     ) -> list[AlertWebhookModel]:
         """List webhooks.
-        
+
         Args:
             tenant_id: Filter by tenant ID (None for global webhooks)
             include_inactive: Include inactive webhooks
-            
+
         Returns:
             List of webhook models
         """
@@ -125,10 +125,10 @@ class AlertRuleService:
 
     async def delete_webhook(self, webhook_id: UUID) -> bool:
         """Delete a webhook.
-        
+
         Args:
             webhook_id: Webhook UUID
-            
+
         Returns:
             True if deleted, False if not found
         """
@@ -148,11 +148,11 @@ class AlertRuleService:
         updates: dict[str, Any],
     ) -> AlertWebhookModel | None:
         """Update a webhook.
-        
+
         Args:
             webhook_id: Webhook UUID
             updates: Dictionary of fields to update
-            
+
         Returns:
             Updated webhook model or None if not found
         """
@@ -176,10 +176,10 @@ class AlertRuleService:
 
     async def get_decrypted_webhook_url(self, webhook: AlertWebhookModel) -> str:
         """Get the decrypted webhook URL.
-        
+
         Args:
             webhook: Webhook model
-            
+
         Returns:
             Decrypted webhook URL
         """
@@ -196,14 +196,14 @@ class AlertRuleService:
         tenant_id: str | None = None,
     ) -> AlertRuleModel:
         """Create a new alert rule.
-        
+
         Args:
             name: Display name for the rule
             event_types: List of event types to match
             min_severity: Minimum severity level to trigger
             cooldown_minutes: Cooldown period for deduplication
             tenant_id: Optional tenant ID (null for global)
-            
+
         Returns:
             Created rule model
         """
@@ -225,10 +225,10 @@ class AlertRuleService:
 
     async def get_rule(self, rule_id: UUID) -> AlertRuleModel | None:
         """Get a rule by ID.
-        
+
         Args:
             rule_id: Rule UUID
-            
+
         Returns:
             Rule model or None if not found
         """
@@ -243,11 +243,11 @@ class AlertRuleService:
         include_inactive: bool = False,
     ) -> list[AlertRuleModel]:
         """List alert rules.
-        
+
         Args:
             tenant_id: Filter by tenant ID (None for global rules)
             include_inactive: Include inactive rules
-            
+
         Returns:
             List of rule models
         """
@@ -276,11 +276,11 @@ class AlertRuleService:
         updates: dict[str, Any],
     ) -> AlertRuleModel | None:
         """Update an alert rule.
-        
+
         Args:
             rule_id: Rule UUID
             updates: Dictionary of fields to update
-            
+
         Returns:
             Updated rule model or None if not found
         """
@@ -304,10 +304,10 @@ class AlertRuleService:
 
     async def delete_rule(self, rule_id: UUID) -> bool:
         """Delete an alert rule.
-        
+
         Args:
             rule_id: Rule UUID
-            
+
         Returns:
             True if deleted, False if not found
         """
@@ -328,12 +328,12 @@ class AlertRuleService:
         tenant_id: str | None = None,
     ) -> list[AlertRuleModel]:
         """Find rules that match an event.
-        
+
         Args:
             event_type: Type of event
             severity: Severity level of the event
             tenant_id: Optional tenant ID
-            
+
         Returns:
             List of matching rule models
         """

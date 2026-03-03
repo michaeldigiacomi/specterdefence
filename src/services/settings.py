@@ -39,7 +39,7 @@ class SettingsService:
 
     def __init__(self, db: AsyncSession):
         """Initialize the settings service.
-        
+
         Args:
             db: Database session
         """
@@ -49,7 +49,7 @@ class SettingsService:
 
     async def get_system_settings(self) -> SystemSettingsModel:
         """Get system settings (create defaults if not exists).
-        
+
         Returns:
             System settings model
         """
@@ -66,10 +66,10 @@ class SettingsService:
 
     async def update_system_settings(self, updates: dict[str, Any]) -> SystemSettingsModel:
         """Update system settings.
-        
+
         Args:
             updates: Dictionary of fields to update
-            
+
         Returns:
             Updated system settings
         """
@@ -89,10 +89,10 @@ class SettingsService:
 
     async def get_user_preferences(self, user_email: str) -> UserPreferencesModel:
         """Get user preferences (create defaults if not exists).
-        
+
         Args:
             user_email: User email address
-            
+
         Returns:
             User preferences model
         """
@@ -115,11 +115,11 @@ class SettingsService:
         updates: dict[str, Any]
     ) -> UserPreferencesModel:
         """Update user preferences.
-        
+
         Args:
             user_email: User email address
             updates: Dictionary of fields to update
-            
+
         Returns:
             Updated user preferences
         """
@@ -142,10 +142,10 @@ class SettingsService:
         tenant_id: str | None = None
     ) -> DetectionThresholdsModel:
         """Get detection thresholds for a tenant (or global defaults).
-        
+
         Args:
             tenant_id: Optional tenant ID
-            
+
         Returns:
             Detection thresholds model
         """
@@ -181,11 +181,11 @@ class SettingsService:
         tenant_id: str | None = None
     ) -> DetectionThresholdsModel:
         """Update detection thresholds.
-        
+
         Args:
             updates: Dictionary of fields to update
             tenant_id: Optional tenant ID (None for global)
-            
+
         Returns:
             Updated detection thresholds
         """
@@ -212,14 +212,14 @@ class SettingsService:
         expires_days: int | None = None
     ) -> dict[str, str]:
         """Create a new API key.
-        
+
         Args:
             name: Display name for the key
             scopes: List of allowed scopes
             created_by: Email of user creating the key
             tenant_id: Optional tenant restriction
             expires_days: Optional expiration in days
-            
+
         Returns:
             Dictionary with key ID and the full API key (shown only once)
         """
@@ -261,11 +261,11 @@ class SettingsService:
         include_inactive: bool = False
     ) -> list[ApiKeyModel]:
         """List API keys.
-        
+
         Args:
             tenant_id: Filter by tenant
             include_inactive: Include inactive keys
-            
+
         Returns:
             List of API key models
         """
@@ -286,10 +286,10 @@ class SettingsService:
 
     async def get_api_key(self, key_id: str) -> ApiKeyModel | None:
         """Get an API key by ID.
-        
+
         Args:
             key_id: API key UUID
-            
+
         Returns:
             API key model or None
         """
@@ -300,10 +300,10 @@ class SettingsService:
 
     async def revoke_api_key(self, key_id: str) -> bool:
         """Revoke an API key.
-        
+
         Args:
             key_id: API key UUID
-            
+
         Returns:
             True if revoked, False if not found
         """
@@ -322,11 +322,11 @@ class SettingsService:
         updates: dict[str, Any]
     ) -> ApiKeyModel | None:
         """Update an API key.
-        
+
         Args:
             key_id: API key UUID
             updates: Dictionary of fields to update
-            
+
         Returns:
             Updated API key or None
         """
@@ -345,10 +345,10 @@ class SettingsService:
 
     async def validate_api_key(self, api_key: str) -> ApiKeyModel | None:
         """Validate an API key and update last used timestamp.
-        
+
         Args:
             api_key: The API key to validate
-            
+
         Returns:
             API key model if valid, None otherwise
         """
@@ -385,13 +385,13 @@ class SettingsService:
         created_by: str | None = None
     ) -> dict[str, Any]:
         """Export configuration to JSON.
-        
+
         Args:
             categories: List of categories to export
             name: Backup name
             description: Optional description
             created_by: User creating the backup
-            
+
         Returns:
             Configuration export data
         """
@@ -486,11 +486,11 @@ class SettingsService:
         overwrite: bool = False
     ) -> dict[str, Any]:
         """Import configuration from JSON.
-        
+
         Args:
             config_data: Configuration data to import
             overwrite: Whether to overwrite existing settings
-            
+
         Returns:
             Import results summary
         """
@@ -520,7 +520,7 @@ class SettingsService:
 
     async def list_configuration_backups(self) -> list[ConfigurationBackupModel]:
         """List all configuration backups.
-        
+
         Returns:
             List of backup models
         """
@@ -531,10 +531,10 @@ class SettingsService:
 
     async def get_configuration_backup(self, backup_id: str) -> ConfigurationBackupModel | None:
         """Get a specific configuration backup.
-        
+
         Args:
             backup_id: Backup UUID
-            
+
         Returns:
             Backup model or None
         """
@@ -547,10 +547,10 @@ class SettingsService:
 
     async def delete_configuration_backup(self, backup_id: str) -> bool:
         """Delete a configuration backup.
-        
+
         Args:
             backup_id: Backup UUID
-            
+
         Returns:
             True if deleted, False if not found
         """

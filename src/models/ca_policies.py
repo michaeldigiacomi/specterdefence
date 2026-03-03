@@ -2,9 +2,10 @@
 
 import uuid
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
+from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column
@@ -18,14 +19,14 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-class PolicyState(str, Enum):
+class PolicyState(StrEnum):
     """State of a Conditional Access policy."""
     ENABLED = "enabled"
     DISABLED = "disabled"
     REPORT_ONLY = "reportOnly"
 
 
-class PolicyEffect(str, Enum):
+class PolicyEffect(StrEnum):
     """Effect of a Conditional Access policy."""
     BLOCK = "block"
     MFA_REQUIRED = "mfaRequired"
@@ -35,7 +36,7 @@ class PolicyEffect(str, Enum):
     CUSTOM = "custom"
 
 
-class ChangeType(str, Enum):
+class ChangeType(StrEnum):
     """Type of policy change."""
     CREATED = "created"
     UPDATED = "updated"
@@ -45,7 +46,7 @@ class ChangeType(str, Enum):
     BASELINE_DRIFT = "baseline_drift"
 
 
-class AlertSeverity(str, Enum):
+class AlertSeverity(StrEnum):
     """Severity levels for CA policy alerts."""
     LOW = "LOW"
     MEDIUM = "MEDIUM"
@@ -634,8 +635,6 @@ class CABaselineConfigModel(Base):
 
 
 # Pydantic models for API requests/responses
-
-from pydantic import BaseModel, Field
 
 
 class CAPolicyBase(BaseModel):

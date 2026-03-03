@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Boolean, DateTime, Index, String, Text
@@ -21,7 +21,7 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-class LogType(str, Enum):
+class LogType(StrEnum):
     """Types of audit logs from Office 365."""
     SIGNIN = "signin"
     AUDIT_GENERAL = "audit_general"

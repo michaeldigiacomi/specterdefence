@@ -54,7 +54,7 @@ class MFAReportClient:
 
     def __init__(self, graph_client: MSGraphClient) -> None:
         """Initialize MFA report client.
-        
+
         Args:
             graph_client: Initialized MSGraphClient instance
         """
@@ -63,7 +63,7 @@ class MFAReportClient:
 
     async def get_all_users(self) -> list[dict[str, Any]]:
         """Get all users from the tenant.
-        
+
         Returns:
             List of user dictionaries from Microsoft Graph
         """
@@ -102,10 +102,10 @@ class MFAReportClient:
 
     async def get_user_mfa_methods(self, user_id: str) -> list[dict[str, Any]]:
         """Get MFA methods registered for a specific user.
-        
+
         Args:
             user_id: Microsoft Graph user ID
-            
+
         Returns:
             List of MFA methods registered for the user
         """
@@ -136,10 +136,10 @@ class MFAReportClient:
 
     async def get_user_directory_roles(self, user_id: str) -> list[dict[str, Any]]:
         """Get directory roles assigned to a user.
-        
+
         Args:
             user_id: Microsoft Graph user ID
-            
+
         Returns:
             List of directory roles assigned to the user
         """
@@ -169,10 +169,10 @@ class MFAReportClient:
 
     async def get_user_app_role_assignments(self, user_id: str) -> list[dict[str, Any]]:
         """Get app role assignments for a user (indicates admin roles).
-        
+
         Args:
             user_id: Microsoft Graph user ID
-            
+
         Returns:
             List of app role assignments
         """
@@ -195,10 +195,10 @@ class MFAReportClient:
 
     def analyze_mfa_methods(self, methods: list[dict[str, Any]]) -> dict[str, Any]:
         """Analyze MFA methods to determine registration status and strength.
-        
+
         Args:
             methods: List of MFA methods from Graph API
-            
+
         Returns:
             Analysis results including:
             - is_mfa_registered: bool
@@ -264,10 +264,10 @@ class MFAReportClient:
 
     def check_admin_status(self, directory_roles: list[dict[str, Any]]) -> dict[str, Any]:
         """Check if user has admin privileges based on directory roles.
-        
+
         Args:
             directory_roles: List of directory roles from Graph API
-            
+
         Returns:
             Admin status including:
             - is_admin: bool
@@ -290,10 +290,10 @@ class MFAReportClient:
 
     def parse_sign_in_activity(self, user_data: dict[str, Any]) -> datetime | None:
         """Parse sign-in activity from user data.
-        
+
         Args:
             user_data: User data from Graph API
-            
+
         Returns:
             Last sign-in datetime or None
         """
@@ -310,11 +310,11 @@ class MFAReportClient:
 
     async def get_full_user_mfa_data(self, user_id: str, user_data: dict[str, Any]) -> dict[str, Any]:
         """Get complete MFA data for a user.
-        
+
         Args:
             user_id: Microsoft Graph user ID
             user_data: User data from Graph API
-            
+
         Returns:
             Complete MFA analysis for the user
         """
@@ -344,10 +344,10 @@ class MFAReportClient:
 
     async def scan_all_users_mfa(self, progress_callback: Callable | None = None) -> list[dict[str, Any]]:
         """Scan all users and their MFA status.
-        
+
         Args:
             progress_callback: Optional callback function(progress, total)
-            
+
         Returns:
             List of user MFA data
         """

@@ -1,5 +1,6 @@
 """OAuth application monitoring service for SpecterDefence."""
 
+import contextlib
 import logging
 from datetime import datetime
 from typing import Any
@@ -39,7 +40,7 @@ class OAuthAppsService:
 
     def __init__(self, db_session: AsyncSession) -> None:
         """Initialize the service.
-        
+
         Args:
             db_session: Async database session
         """
@@ -51,11 +52,11 @@ class OAuthAppsService:
         trigger_alerts: bool = True
     ) -> dict[str, Any]:
         """Scan all OAuth applications for a tenant.
-        
+
         Args:
             tenant_id: Internal tenant UUID
             trigger_alerts: Whether to trigger alerts for suspicious apps
-            
+
         Returns:
             Scan results summary
         """
@@ -143,7 +144,7 @@ class OAuthAppsService:
         trigger_alerts: bool
     ) -> dict[str, Any]:
         """Process a single OAuth application.
-        
+
         Args:
             tenant_id: Internal tenant UUID
             app_data: App data from Graph API
@@ -152,12 +153,12 @@ class OAuthAppsService:
             perm_analysis: Permission analysis results
             oauth_client: OAuthAppsClient instance
             trigger_alerts: Whether to trigger alerts
-            
+
         Returns:
             Processing results
         """
         app_id = app_data.get("appId", "")
-        display_name = app_data.get("displayName", "Unknown App")
+        app_data.get("displayName", "Unknown App")
 
         # Analyze app for risk
         app_analysis = oauth_client.analyze_app(app_data, perm_analysis)
@@ -211,11 +212,11 @@ class OAuthAppsService:
         app_id: str
     ) -> OAuthAppModel | None:
         """Get existing app from database.
-        
+
         Args:
             tenant_id: Internal tenant UUID
             app_id: Microsoft Graph app ID
-            
+
         Returns:
             Existing app or None
         """
@@ -239,7 +240,7 @@ class OAuthAppsService:
         app_analysis: dict[str, Any]
     ) -> OAuthAppModel:
         """Create a new OAuth app record.
-        
+
         Args:
             tenant_id: Internal tenant UUID
             app_data: App data from Graph API
@@ -247,7 +248,7 @@ class OAuthAppsService:
             consents: OAuth consents
             perm_analysis: Permission analysis results
             app_analysis: App analysis results
-            
+
         Returns:
             Created app model
         """
@@ -257,12 +258,10 @@ class OAuthAppsService:
         # Parse creation date
         app_created_at = None
         if app_data.get("createdDateTime"):
-            try:
+            with contextlib.suppress(ValueError, AttributeError):
                 app_created_at = datetime.fromisoformat(
                     app_data["createdDateTime"].replace("Z", "+00:00")
                 )
-            except (ValueError, AttributeError):
-                pass
 
         # Count consents
         consent_count = len(consents)
@@ -316,7 +315,7 @@ class OAuthAppsService:
         app_analysis: dict[str, Any]
     ) -> None:
         """Update an existing OAuth app record.
-        
+
         Args:
             app: Existing app model
             app_data: Updated app data from Graph API
@@ -369,7 +368,7 @@ class OAuthAppsService:
         permissions: list[dict[str, Any]]
     ) -> None:
         """Store detailed permission records.
-        
+
         Args:
             app_internal_id: Internal app UUID
             tenant_id: Internal tenant UUID
@@ -425,7 +424,7 @@ class OAuthAppsService:
         consents: list[dict[str, Any]]
     ) -> None:
         """Store consent records.
-        
+
         Args:
             app_internal_id: Internal app UUID
             tenant_id: Internal tenant UUID
@@ -454,20 +453,16 @@ class OAuthAppsService:
             expires_at = None
 
             if consent.get("startTime"):
-                try:
+                with contextlib.suppress(ValueError, AttributeError):
                     consented_at = datetime.fromisoformat(
                         consent["startTime"].replace("Z", "+00:00")
                     )
-                except (ValueError, AttributeError):
-                    pass
 
             if consent.get("expiryTime"):
-                try:
+                with contextlib.suppress(ValueError, AttributeError):
                     expires_at = datetime.fromisoformat(
                         consent["expiryTime"].replace("Z", "+00:00")
                     )
-                except (ValueError, AttributeError):
-                    pass
 
             if existing:
                 # Update existing
@@ -499,7 +494,7 @@ class OAuthAppsService:
         alert_type: str = None
     ) -> None:
         """Trigger an alert for a suspicious/malicious app.
-        
+
         Args:
             app: OAuth app that triggered the alert
             alert_type: Specific alert type (optional)
@@ -551,10 +546,10 @@ class OAuthAppsService:
 
     def _get_alert_type(self, app: OAuthAppModel) -> str:
         """Determine alert type based on app characteristics.
-        
+
         Args:
             app: OAuth app model
-            
+
         Returns:
             Alert type string
         """
@@ -570,10 +565,10 @@ class OAuthAppsService:
 
     def _map_to_event_type(self, app: OAuthAppModel) -> EventType:
         """Map app to event type for alert engine.
-        
+
         Args:
             app: OAuth app model
-            
+
         Returns:
             EventType enum value
         """
@@ -583,10 +578,10 @@ class OAuthAppsService:
 
     def _map_to_severity_level(self, risk_level: RiskLevel) -> SeverityLevel:
         """Map app risk level to alert severity level.
-        
+
         Args:
             risk_level: App risk level
-            
+
         Returns:
             SeverityLevel enum value
         """
@@ -600,10 +595,10 @@ class OAuthAppsService:
 
     async def _get_tenant(self, tenant_id: str) -> TenantModel | None:
         """Get tenant by internal ID.
-        
+
         Args:
             tenant_id: Internal tenant UUID
-            
+
         Returns:
             Tenant model or None
         """
@@ -622,7 +617,7 @@ class OAuthAppsService:
         offset: int = 0
     ) -> dict[str, Any]:
         """Get OAuth apps with filtering.
-        
+
         Args:
             tenant_id: Filter by tenant
             status: Filter by status
@@ -630,7 +625,7 @@ class OAuthAppsService:
             publisher_type: Filter by publisher type
             limit: Maximum results
             offset: Pagination offset
-            
+
         Returns:
             Dictionary with items and total count
         """
@@ -667,10 +662,10 @@ class OAuthAppsService:
 
     async def get_app_by_id(self, app_id: str) -> OAuthAppModel | None:
         """Get a specific OAuth app by internal ID.
-        
+
         Args:
             app_id: App UUID
-            
+
         Returns:
             App model or None
         """
@@ -681,11 +676,11 @@ class OAuthAppsService:
 
     async def get_app_by_app_id(self, tenant_id: str, app_id: str) -> OAuthAppModel | None:
         """Get an OAuth app by Microsoft app ID.
-        
+
         Args:
             tenant_id: Internal tenant UUID
             app_id: Microsoft Graph app ID
-            
+
         Returns:
             App model or None
         """
@@ -705,11 +700,11 @@ class OAuthAppsService:
         limit: int = 100
     ) -> list[OAuthAppModel]:
         """Get suspicious and malicious apps.
-        
+
         Args:
             tenant_id: Optional tenant filter
             limit: Maximum results
-            
+
         Returns:
             List of suspicious/malicious apps
         """
@@ -732,11 +727,11 @@ class OAuthAppsService:
         limit: int = 100
     ) -> list[OAuthAppModel]:
         """Get high-risk and critical apps.
-        
+
         Args:
             tenant_id: Optional tenant filter
             limit: Maximum results
-            
+
         Returns:
             List of high-risk apps
         """
@@ -758,10 +753,10 @@ class OAuthAppsService:
         app_id: str
     ) -> list[OAuthAppPermissionModel]:
         """Get detailed permissions for an app.
-        
+
         Args:
             app_id: Internal app UUID
-            
+
         Returns:
             List of permission models
         """
@@ -777,10 +772,10 @@ class OAuthAppsService:
         app_id: str
     ) -> list[OAuthAppConsentModel]:
         """Get consents for an app.
-        
+
         Args:
             app_id: Internal app UUID
-            
+
         Returns:
             List of consent models
         """
@@ -797,11 +792,11 @@ class OAuthAppsService:
         revoke_type: str = "disable"
     ) -> dict[str, Any]:
         """Revoke/suspend an OAuth application.
-        
+
         Args:
             app_id: Internal app UUID
             revoke_type: Type of revocation (disable, delete)
-            
+
         Returns:
             Result dictionary
         """
@@ -872,14 +867,14 @@ class OAuthAppsService:
         offset: int = 0
     ) -> dict[str, Any]:
         """Get OAuth app alerts.
-        
+
         Args:
             tenant_id: Filter by tenant
             acknowledged: Filter by acknowledgment status
             severity: Filter by severity
             limit: Maximum results
             offset: Pagination offset
-            
+
         Returns:
             Dictionary with items and total count
         """
@@ -917,11 +912,11 @@ class OAuthAppsService:
         acknowledged_by: str
     ) -> OAuthAppAlertModel | None:
         """Acknowledge an OAuth app alert.
-        
+
         Args:
             alert_id: Alert UUID
             acknowledged_by: User acknowledging the alert
-            
+
         Returns:
             Updated alert or None if not found
         """
@@ -947,10 +942,10 @@ class OAuthAppsService:
         tenant_id: str
     ) -> dict[str, Any]:
         """Get summary of OAuth apps for a tenant.
-        
+
         Args:
             tenant_id: Tenant UUID
-            
+
         Returns:
             Summary statistics
         """
@@ -985,8 +980,8 @@ class OAuthAppsService:
             select(func.count(OAuthAppModel.id)).where(
                 and_(
                     OAuthAppModel.tenant_id == tenant_id,
-                    OAuthAppModel.has_mail_permissions == True,
-                    OAuthAppModel.is_microsoft_publisher == False
+                    OAuthAppModel.has_mail_permissions,
+                    not OAuthAppModel.is_microsoft_publisher
                 )
             )
         )
@@ -1016,7 +1011,7 @@ class OAuthAppsService:
             select(func.count(OAuthAppAlertModel.id)).where(
                 and_(
                     OAuthAppAlertModel.tenant_id == tenant_id,
-                    OAuthAppAlertModel.is_acknowledged == False
+                    not OAuthAppAlertModel.is_acknowledged
                 )
             )
         )

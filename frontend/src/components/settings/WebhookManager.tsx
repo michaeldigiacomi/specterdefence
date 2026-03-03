@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Plus, Edit2, Trash2, Save, X, Webhook, Send, 
-  CheckCircle, AlertCircle, Loader2 
+  Loader2 
 } from 'lucide-react';
 import { 
   useWebhooks, 

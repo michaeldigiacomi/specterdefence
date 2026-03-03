@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
@@ -17,7 +17,7 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-class TimeZone(str, Enum):
+class TimeZone(StrEnum):
     """Supported timezones."""
     UTC = "UTC"
     US_EASTERN = "America/New_York"
@@ -32,14 +32,14 @@ class TimeZone(str, Enum):
     AUSTRALIA_SYDNEY = "Australia/Sydney"
 
 
-class NotificationChannel(str, Enum):
+class NotificationChannel(StrEnum):
     """Notification channels."""
     EMAIL = "email"
     DISCORD = "discord"
     WEBHOOK = "webhook"
 
 
-class SettingsCategory(str, Enum):
+class SettingsCategory(StrEnum):
     """Settings categories."""
     TENANT = "tenant"
     ALERT_RULES = "alert_rules"

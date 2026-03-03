@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Plus, Edit2, Trash2, Save, X, Bell, AlertTriangle, 
-  Shield, Globe, Lock, Clock, CheckCircle 
+  Shield, Globe, Lock, Clock
 } from 'lucide-react';
 import { 
   useAlertRules, 

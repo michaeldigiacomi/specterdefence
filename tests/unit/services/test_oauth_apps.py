@@ -140,7 +140,7 @@ class TestOAuthAppsService:
     async def test_scan_tenant_oauth_apps_success(self, service, sample_tenant):
         """Test successful tenant OAuth app scan."""
         with patch.object(service, "_get_tenant", return_value=sample_tenant):
-            with patch("src.services.oauth_apps.MSGraphClient") as mock_graph:
+            with patch("src.services.oauth_apps.MSGraphClient"):
                 with patch("src.services.oauth_apps.OAuthAppsClient") as mock_oauth_client_class:
                     with patch("src.services.oauth_apps.encryption_service.decrypt", return_value="secret"):
                         mock_oauth_client = MagicMock()
@@ -178,7 +178,7 @@ class TestOAuthAppsService:
 
                 with patch.object(service, "_store_permissions"):
                     with patch.object(service, "_store_consents"):
-                        with patch.object(service, "_trigger_alert") as mock_alert:
+                        with patch.object(service, "_trigger_alert"):
                             result = await service._process_app(
                                 tenant_id=tenant_id,
                                 app_data=sample_app_data,

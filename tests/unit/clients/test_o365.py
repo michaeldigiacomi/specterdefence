@@ -573,7 +573,7 @@ class TestO365Subscriptions:
         with patch.object(o365_client, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {"status": "disabled"}
 
-            result = await o365_client.stop_subscription("Audit.General")
+            await o365_client.stop_subscription("Audit.General")
 
             mock_request.assert_called_once_with(
                 "POST",
@@ -601,7 +601,7 @@ class TestO365ContentBlobs:
                 "nextPageUri": None,
             }
 
-            result = await o365_client.get_content_blobs(
+            await o365_client.get_content_blobs(
                 "Audit.General",
                 start_time=start_time,
                 end_time=end_time
@@ -639,7 +639,7 @@ class TestO365ContentBlobs:
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_response)
 
-            result = await o365_client.get_content_blobs(
+            await o365_client.get_content_blobs(
                 "Audit.General",
                 next_page_uri=next_page_uri
             )

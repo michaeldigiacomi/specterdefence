@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Download, Upload, Trash2, FileJson, AlertTriangle, 
-  CheckCircle, X, Clock, Save, RotateCcw
+  X, Clock
 } from 'lucide-react';
 import { 
   useConfigurationBackups, 
@@ -56,7 +56,7 @@ export default function ConfigImportExport() {
     }
 
     try {
-      const result = await exportConfig.mutateAsync({
+      await exportConfig.mutateAsync({
         categories: selectedCategories,
         name: exportName || `Backup ${new Date().toISOString().split('T')[0]}`,
         description: exportDescription,

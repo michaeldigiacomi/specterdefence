@@ -158,7 +158,7 @@ async def list_mailbox_rules(
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
 ) -> MailboxRuleListResponse:
     """List mailbox rules with filtering.
-    
+
     Args:
         tenant_id: Filter by tenant UUID
         user_email: Filter by user email
@@ -168,7 +168,7 @@ async def list_mailbox_rules(
         limit: Maximum results (1-1000)
         offset: Offset for pagination
         service: Mailbox rule service
-        
+
     Returns:
         Paginated list of mailbox rules
     """
@@ -261,14 +261,14 @@ async def get_mailbox_rule(
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
 ) -> MailboxRuleResponse:
     """Get a specific mailbox rule.
-    
+
     Args:
         rule_id: Rule UUID
         service: Mailbox rule service
-        
+
     Returns:
         Mailbox rule details
-        
+
     Raises:
         HTTPException: If rule not found
     """
@@ -322,7 +322,7 @@ async def get_tenant_mailbox_rules(
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
 ) -> MailboxRuleListResponse:
     """Get mailbox rules for a specific tenant.
-    
+
     Args:
         tenant_id: Tenant UUID
         status: Filter by status
@@ -330,7 +330,7 @@ async def get_tenant_mailbox_rules(
         limit: Maximum results
         offset: Offset for pagination
         service: Mailbox rule service
-        
+
     Returns:
         Paginated list of mailbox rules
     """
@@ -412,12 +412,12 @@ async def get_suspicious_rules(
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
 ) -> list[MailboxRuleResponse]:
     """Get suspicious and malicious mailbox rules.
-    
+
     Args:
         tenant_id: Tenant UUID
         limit: Maximum results
         service: Mailbox rule service
-        
+
     Returns:
         List of suspicious/malicious rules
     """
@@ -470,14 +470,14 @@ async def scan_mailbox_rules(
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
 ) -> ScanResponse:
     """Trigger a manual scan of mailbox rules.
-    
+
     Args:
         request: Scan request parameters
         service: Mailbox rule service
-        
+
     Returns:
         Scan results summary
-        
+
     Raises:
         HTTPException: If tenant not found or scan fails
     """
@@ -531,7 +531,7 @@ async def list_mailbox_rule_alerts(
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
 ) -> MailboxRuleAlertListResponse:
     """List mailbox rule alerts.
-    
+
     Args:
         tenant_id: Filter by tenant
         acknowledged: Filter by acknowledgment status
@@ -539,7 +539,7 @@ async def list_mailbox_rule_alerts(
         limit: Maximum results
         offset: Offset for pagination
         service: Mailbox rule service
-        
+
     Returns:
         Paginated list of alerts
     """
@@ -597,15 +597,15 @@ async def acknowledge_alert(
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
 ) -> AcknowledgeAlertResponse:
     """Acknowledge a mailbox rule alert.
-    
+
     Args:
         alert_id: Alert UUID
         request: Acknowledgment request
         service: Mailbox rule service
-        
+
     Returns:
         Acknowledgment result
-        
+
     Raises:
         HTTPException: If alert not found
     """
@@ -652,11 +652,11 @@ async def get_rules_summary(
     service: MailboxRuleService = Depends(get_mailbox_rule_service)
 ) -> SuspiciousRulesSummary:
     """Get summary of suspicious mailbox rules.
-    
+
     Args:
         tenant_id: Tenant UUID
         service: Mailbox rule service
-        
+
     Returns:
         Summary of suspicious rules
     """

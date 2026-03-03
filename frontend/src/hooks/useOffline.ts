@@ -107,6 +107,7 @@ export function useOffline(): UseOfflineReturn {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   // Register service worker
@@ -190,7 +191,7 @@ export function useOffline(): UseOfflineReturn {
       // Try to trigger background sync if available
       if ('serviceWorker' in navigator && 'SyncManager' in window) {
         navigator.serviceWorker.ready.then((registration) => {
-          // @ts-ignore - BackgroundSync not fully typed
+          // @ts-expect-error - BackgroundSync not fully typed
           registration.sync.register('sync-alerts').catch(() => {
             // Fallback: will sync when online event fires
           });
@@ -272,13 +273,13 @@ export function useOffline(): UseOfflineReturn {
       if (!subscription) {
         // Subscribe
         const applicationServerKey = urlBase64ToUint8Array(
-          // @ts-ignore
+          // @ts-expect-error - import.meta.env is not typed
           import.meta.env?.VITE_VAPID_PUBLIC_KEY || ''
         );
         
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          // @ts-ignore
+          // @ts-expect-error - applicationServerKey type mismatch
           applicationServerKey: applicationServerKey,
         });
       }

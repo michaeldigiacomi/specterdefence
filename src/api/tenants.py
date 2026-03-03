@@ -39,11 +39,11 @@ async def list_tenants(
     service: TenantService = Depends(get_tenant_service)
 ) -> list[TenantResponse]:
     """List all registered tenants.
-    
+
     Args:
         include_inactive: If True, include inactive tenants in results
         service: Tenant service instance
-        
+
     Returns:
         List of tenant responses
     """
@@ -63,15 +63,15 @@ async def create_tenant(
     service: TenantService = Depends(get_tenant_service)
 ) -> TenantCreateResponse:
     """Create a new tenant registration.
-    
+
     Args:
         tenant: Tenant creation data
         validate: Whether to validate credentials against Microsoft Graph (default: True)
         service: Tenant service instance
-        
+
     Returns:
         Created tenant with validation results
-        
+
     Raises:
         HTTPException: If tenant already exists or validation fails
     """
@@ -112,14 +112,14 @@ async def get_tenant(
     service: TenantService = Depends(get_tenant_service)
 ) -> TenantResponse:
     """Get a specific tenant by ID.
-    
+
     Args:
         tenant_id: Internal tenant UUID
         service: Tenant service instance
-        
+
     Returns:
         Tenant details
-        
+
     Raises:
         HTTPException: If tenant not found
     """
@@ -144,15 +144,15 @@ async def update_tenant(
     service: TenantService = Depends(get_tenant_service)
 ) -> TenantResponse:
     """Update a tenant.
-    
+
     Args:
         tenant_id: Internal tenant UUID
         update: Update data
         service: Tenant service instance
-        
+
     Returns:
         Updated tenant details
-        
+
     Raises:
         HTTPException: If tenant not found
     """
@@ -177,12 +177,12 @@ async def delete_tenant(
     service: TenantService = Depends(get_tenant_service)
 ) -> None:
     """Delete a tenant registration.
-    
+
     Args:
         tenant_id: Internal tenant UUID
         hard: If True, permanently delete the tenant
         service: Tenant service instance
-        
+
     Raises:
         HTTPException: If tenant not found
     """
@@ -208,14 +208,14 @@ async def validate_tenant_credentials(
     service: TenantService = Depends(get_tenant_service)
 ):
     """Validate tenant credentials.
-    
+
     Args:
         tenant_id: Internal tenant UUID
         service: Tenant service instance
-        
+
     Returns:
         Validation result
-        
+
     Raises:
         HTTPException: If tenant not found
     """
@@ -245,13 +245,13 @@ async def validate_tenant_credentials(
     summary="Test tenant connection health",
     description="""
     Perform a comprehensive health check on the tenant connection.
-    
+
     Tests:
     - Microsoft Graph API connectivity
     - Authentication with tenant credentials
     - Required permissions (AuditLog.Read.All by default)
     - Response latency
-    
+
     Updates the tenant's connection_status field with the result.
     """
 )
@@ -274,17 +274,17 @@ async def health_check_tenant(
     service: TenantService = Depends(get_tenant_service)
 ) -> TenantHealthCheckResponse:
     """Perform health check on a tenant connection.
-    
+
     Args:
         tenant_id: Internal tenant UUID
         permissions: List of permissions to verify (default: ["AuditLog.Read.All"])
         timeout: Request timeout in seconds
         update_status: Whether to update connection status in database
         service: Tenant service instance
-        
+
     Returns:
         Health check response with connectivity, authentication, and permission status
-        
+
     Raises:
         HTTPException: If tenant not found
     """
@@ -328,12 +328,12 @@ async def health_check_all_tenants(
     service: TenantService = Depends(get_tenant_service)
 ) -> list[TenantHealthCheckResponse]:
     """Perform health checks on all active tenants.
-    
+
     Args:
         permissions: List of permissions to verify (default: ["AuditLog.Read.All"])
         timeout: Request timeout in seconds
         service: Tenant service instance
-        
+
     Returns:
         List of health check responses for all active tenants
     """

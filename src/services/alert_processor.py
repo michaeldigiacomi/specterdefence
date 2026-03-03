@@ -1,6 +1,7 @@
 """Alert processing service for SpecterDefence."""
 
 import asyncio
+import contextlib
 import logging
 from datetime import datetime, timedelta
 from typing import Any
@@ -20,7 +21,7 @@ class AlertProcessor:
 
     def __init__(self, check_interval: int = 60):
         """Initialize the alert processor.
-        
+
         Args:
             check_interval: Seconds between checks for new events
         """
@@ -46,10 +47,8 @@ class AlertProcessor:
         self._running = False
         if self._task:
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
 
         logger.info("Alert processor stopped")
 
@@ -84,14 +83,14 @@ class AlertProcessor:
         engine: AlertEngine,
     ) -> None:
         """Process login events and send alerts.
-        
+
         Args:
             session: Database session
             engine: Alert engine
         """
 
         # Look for recent login events with anomalies (last 5 minutes)
-        since = datetime.utcnow() - timedelta(minutes=5)
+        datetime.utcnow() - timedelta(minutes=5)
 
         # This is a placeholder - in production, you'd query for unprocessed events
         # For now, we rely on real-time processing via the API
@@ -103,13 +102,13 @@ class AlertProcessor:
         user_history: UserLoginHistoryModel | None = None,
     ) -> list[dict[str, Any]]:
         """Process a login analytics record and send alerts if needed.
-        
+
         This is called when a new login is analyzed.
-        
+
         Args:
             login_data: Login analytics data
             user_history: User's login history
-            
+
         Returns:
             List of alert results
         """
@@ -160,10 +159,10 @@ class AlertProcessor:
 
     def _map_anomaly_to_event_type(self, anomaly_flag: str) -> EventType | None:
         """Map an anomaly flag to an event type.
-        
+
         Args:
             anomaly_flag: Anomaly flag string
-            
+
         Returns:
             Event type or None
         """
@@ -179,10 +178,10 @@ class AlertProcessor:
 
     def _risk_score_to_severity(self, risk_score: int) -> SeverityLevel:
         """Convert risk score to severity level.
-        
+
         Args:
             risk_score: Risk score (0-100)
-            
+
         Returns:
             Severity level
         """
@@ -201,11 +200,11 @@ class AlertProcessor:
         login_data: LoginAnalyticsModel,
     ) -> tuple[str, str]:
         """Build alert title and description.
-        
+
         Args:
             event_type: Type of event
             login_data: Login data
-            
+
         Returns:
             Tuple of (title, description)
         """
@@ -252,11 +251,11 @@ class AlertProcessor:
         user_history: UserLoginHistoryModel | None,
     ) -> dict[str, Any]:
         """Build metadata for alert.
-        
+
         Args:
             login_data: Login data
             user_history: User history
-            
+
         Returns:
             Metadata dictionary
         """

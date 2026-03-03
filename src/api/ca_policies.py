@@ -157,7 +157,7 @@ async def list_ca_policies(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> CAPolicyListResponse:
     """List Conditional Access policies with filtering.
-    
+
     Args:
         tenant_id: Filter by tenant UUID
         state: Filter by state (enabled, disabled, reportOnly)
@@ -165,7 +165,7 @@ async def list_ca_policies(
         limit: Maximum results (1-1000)
         offset: Offset for pagination
         service: CA policies service
-        
+
     Returns:
         Paginated list of CA policies
     """
@@ -207,14 +207,14 @@ async def get_ca_policy(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> CAPolicyResponse:
     """Get a specific Conditional Access policy.
-    
+
     Args:
         policy_id: Policy UUID
         service: CA policies service
-        
+
     Returns:
         CA policy details
-        
+
     Raises:
         HTTPException: If policy not found
     """
@@ -241,13 +241,13 @@ async def get_policy_changes(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> CAPolicyChangeListResponse:
     """Get change history for a CA policy.
-    
+
     Args:
         policy_id: Policy UUID
         limit: Maximum results
         offset: Offset for pagination
         service: CA policies service
-        
+
     Returns:
         Paginated list of policy changes
     """
@@ -291,14 +291,14 @@ async def get_tenant_ca_policies(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> CAPolicyListResponse:
     """Get CA policies for a specific tenant.
-    
+
     Args:
         tenant_id: Tenant UUID
         state: Filter by state
         limit: Maximum results
         offset: Offset for pagination
         service: CA policies service
-        
+
     Returns:
         Paginated list of CA policies
     """
@@ -340,12 +340,12 @@ async def get_disabled_policies(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> list[CAPolicyResponse]:
     """Get disabled CA policies.
-    
+
     Args:
         tenant_id: Tenant UUID
         limit: Maximum results
         service: CA policies service
-        
+
     Returns:
         List of disabled policies
     """
@@ -365,12 +365,12 @@ async def get_mfa_policies(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> list[CAPolicyResponse]:
     """Get MFA policies.
-    
+
     Args:
         tenant_id: Tenant UUID
         limit: Maximum results
         service: CA policies service
-        
+
     Returns:
         List of MFA policies
     """
@@ -389,11 +389,11 @@ async def get_ca_policies_summary(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> CAPolicySummary:
     """Get summary of CA policies.
-    
+
     Args:
         tenant_id: Tenant UUID
         service: CA policies service
-        
+
     Returns:
         Summary of CA policies
     """
@@ -431,14 +431,14 @@ async def scan_ca_policies(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> CAPolicyScanResponse:
     """Trigger a manual scan of Conditional Access policies.
-    
+
     Args:
         request: Scan request parameters
         service: CA policies service
-        
+
     Returns:
         Scan results summary
-        
+
     Raises:
         HTTPException: If tenant not found or scan fails
     """
@@ -490,14 +490,14 @@ async def list_policy_changes(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> CAPolicyChangeListResponse:
     """List CA policy changes with filtering.
-    
+
     Args:
         tenant_id: Filter by tenant UUID
         change_type: Filter by change type (created, updated, deleted, enabled, disabled)
         limit: Maximum results
         offset: Offset for pagination
         service: CA policies service
-        
+
     Returns:
         Paginated list of policy changes
     """
@@ -546,7 +546,7 @@ async def list_ca_policy_alerts(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> CAPolicyAlertListResponse:
     """List CA policy alerts.
-    
+
     Args:
         tenant_id: Filter by tenant
         acknowledged: Filter by acknowledgment status
@@ -554,7 +554,7 @@ async def list_ca_policy_alerts(
         limit: Maximum results
         offset: Offset for pagination
         service: CA policies service
-        
+
     Returns:
         Paginated list of alerts
     """
@@ -596,15 +596,15 @@ async def acknowledge_alert(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> AcknowledgeAlertResponse:
     """Acknowledge a CA policy alert.
-    
+
     Args:
         alert_id: Alert UUID
         request: Acknowledgment request
         service: CA policies service
-        
+
     Returns:
         Acknowledgment result
-        
+
     Raises:
         HTTPException: If alert not found
     """
@@ -638,14 +638,14 @@ async def get_baseline_config(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> BaselineResponse:
     """Get security baseline configuration.
-    
+
     Args:
         tenant_id: Tenant UUID
         service: CA policies service
-        
+
     Returns:
         Baseline configuration
-        
+
     Raises:
         HTTPException: If baseline not found
     """
@@ -687,13 +687,13 @@ async def set_baseline_config(
     service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> BaselineResponse:
     """Set or update security baseline configuration.
-    
+
     Args:
         tenant_id: Tenant UUID
         request: Baseline configuration request
         created_by: User creating the baseline
         service: CA policies service
-        
+
     Returns:
         Created or updated baseline configuration
     """

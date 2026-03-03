@@ -6,8 +6,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  Legend
+  ResponsiveContainer
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';

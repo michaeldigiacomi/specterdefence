@@ -238,7 +238,7 @@ class TestMFAReportService:
         mock_result.scalar_one_or_none.return_value = None
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
-        result = await service._create_compliance_alert(
+        await service._create_compliance_alert(
             tenant_id=tenant_id,
             user_id=user_id,
             alert_type="admin_no_mfa",

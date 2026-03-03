@@ -73,7 +73,7 @@ class OAuthAppsClient:
 
     def __init__(self, graph_client: MSGraphClient) -> None:
         """Initialize with existing MS Graph client.
-        
+
         Args:
             graph_client: Authenticated MSGraphClient instance
         """
@@ -81,7 +81,7 @@ class OAuthAppsClient:
 
     async def get_oauth_apps(self) -> list[dict[str, Any]]:
         """Get all OAuth applications registered in the tenant.
-        
+
         Returns:
             List of application objects
         """
@@ -116,7 +116,7 @@ class OAuthAppsClient:
 
     async def get_service_principals(self) -> list[dict[str, Any]]:
         """Get all service principals (enterprise apps) in the tenant.
-        
+
         Returns:
             List of service principal objects
         """
@@ -151,10 +151,10 @@ class OAuthAppsClient:
 
     async def get_app_permissions(self, app_id: str) -> list[dict[str, Any]]:
         """Get permissions granted to an application.
-        
+
         Args:
             app_id: The service principal ID
-            
+
         Returns:
             List of permission grant objects
         """
@@ -180,10 +180,10 @@ class OAuthAppsClient:
 
     async def get_oauth_permission_grants(self, app_id: str) -> list[dict[str, Any]]:
         """Get OAuth2 permission grants for a service principal.
-        
+
         Args:
             app_id: The service principal ID
-            
+
         Returns:
             List of OAuth2 permission grant objects
         """
@@ -209,7 +209,7 @@ class OAuthAppsClient:
 
     async def get_user_consents(self) -> list[dict[str, Any]]:
         """Get all OAuth2 permission grants (user consents) in the tenant.
-        
+
         Returns:
             List of OAuth2 permission grant objects with user info
         """
@@ -244,10 +244,10 @@ class OAuthAppsClient:
 
     async def revoke_app_consent(self, grant_id: str) -> bool:
         """Revoke an OAuth2 permission grant.
-        
+
         Args:
             grant_id: The ID of the OAuth2 permission grant to revoke
-            
+
         Returns:
             True if successful
         """
@@ -265,10 +265,10 @@ class OAuthAppsClient:
 
     async def disable_service_principal(self, app_id: str) -> bool:
         """Disable a service principal (enterprise app).
-        
+
         Args:
             app_id: The service principal ID
-            
+
         Returns:
             True if successful
         """
@@ -290,10 +290,10 @@ class OAuthAppsClient:
 
     async def delete_service_principal(self, app_id: str) -> bool:
         """Delete a service principal (enterprise app).
-        
+
         Args:
             app_id: The service principal ID
-            
+
         Returns:
             True if successful
         """
@@ -311,10 +311,10 @@ class OAuthAppsClient:
 
     def analyze_permissions(self, permissions: list[dict[str, Any]]) -> dict[str, Any]:
         """Analyze permissions for risk assessment.
-        
+
         Args:
             permissions: List of permission objects
-            
+
         Returns:
             Analysis results with risk flags
         """
@@ -392,11 +392,11 @@ class OAuthAppsClient:
 
     def analyze_app(self, app: dict[str, Any], permissions_analysis: dict[str, Any]) -> dict[str, Any]:
         """Analyze an OAuth application for risk factors.
-        
+
         Args:
             app: Application object from Graph API
             permissions_analysis: Results from analyze_permissions
-            
+
         Returns:
             Analysis results with risk level and status
         """
@@ -457,10 +457,10 @@ class OAuthAppsClient:
 
     async def get_app_with_consents(self, app_id: str) -> dict[str, Any]:
         """Get detailed information about an app including consents.
-        
+
         Args:
             app_id: The service principal app ID
-            
+
         Returns:
             Dictionary with app details, permissions, and consents
         """

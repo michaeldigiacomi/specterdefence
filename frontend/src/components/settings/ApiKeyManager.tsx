@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { 
-  Plus, Copy, Trash2, Save, X, Key, Eye, EyeOff,
-  CheckCircle, RefreshCw, Clock, Shield
+  Plus, Copy, Trash2, X, Key,
+  Clock, Shield, CheckCircle
 } from 'lucide-react';
 import { 
   useApiKeys, 
   useCreateApiKey, 
   useRevokeApiKey,
-  useUpdateApiKey
 } from '@/hooks/useSettings';
 import { useTenants } from '@/hooks/useApi';
-import { ApiKey, ApiKeyCreate } from '@/types';
+import type { ApiKeyCreate } from '@/types';
 import toast from 'react-hot-toast';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -34,7 +33,6 @@ export default function ApiKeyManager() {
   const { data: apiKeys, isLoading } = useApiKeys();
   const { data: tenantsData } = useTenants();
   const createApiKey = useCreateApiKey();
-  const updateApiKey = useUpdateApiKey();
   const revokeApiKey = useRevokeApiKey();
   
   const [isModalOpen, setIsModalOpen] = useState(false);

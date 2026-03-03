@@ -53,7 +53,7 @@ export interface UseWebSocketReturn {
   };
 }
 
-// @ts-ignore
+// @ts-expect-error - import.meta is not fully typed
 const WS_URL = (import.meta as any).env?.VITE_WS_URL || 'ws://localhost:8000/ws/alerts';
 const RECONNECT_INTERVAL = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -135,6 +135,7 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
       setError('Failed to create WebSocket connection');
       attemptReconnect();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buildWsUrl, isPaused]);
 
   const attemptReconnect = useCallback(() => {
@@ -160,12 +161,13 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
         console.log('WebSocket connected:', data);
         break;
         
-      case 'initial_alerts':
+      case 'initial_alerts': {
         const initialAlerts = (data.alerts as Alert[]) || [];
         setAlerts(initialAlerts);
         break;
+      }
         
-      case 'new_alert':
+      case 'new_alert': {
         const newAlert = data.alert as Alert;
         if (isPaused) {
           pendingAlerts.current.unshift(newAlert);
@@ -173,8 +175,9 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
           setAlerts(prev => [newAlert, ...prev].slice(0, 100));
         }
         break;
+      }
         
-      case 'alert_acknowledged':
+      case 'alert_acknowledged': {
         const ackId = data.alert_id as string;
         setAlerts(prev =>
           prev.map(a =>
@@ -184,11 +187,13 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
           )
         );
         break;
+      }
         
-      case 'alert_dismissed':
+      case 'alert_dismissed': {
         const dismissId = data.alert_id as string;
         setAlerts(prev => prev.filter(a => a.id !== dismissId));
         break;
+      }
         
       case 'stats':
         setConnectionStats({

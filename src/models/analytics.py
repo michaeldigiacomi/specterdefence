@@ -2,13 +2,16 @@
 
 import uuid
 from datetime import UTC, datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
 from src.models.types import JSONB, UUID
+
+if TYPE_CHECKING:
+    from src.models.audit_log import AuditLogModel
 
 
 def utc_now() -> datetime:

@@ -128,7 +128,7 @@ async def get_login_analytics(
 ) -> LoginAnalyticsResponse:
     """
     Query login analytics with filters.
-    
+
     Returns login events with applied filters and detected anomalies.
     """
     # Convert status string to boolean
@@ -337,7 +337,7 @@ async def process_audit_logs(
 ) -> ProcessAuditLogsResponse:
     """
     Process unprocessed signin audit logs.
-    
+
     This converts Office 365 signin audit logs into login analytics records.
     """
     try:

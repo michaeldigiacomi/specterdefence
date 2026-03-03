@@ -237,7 +237,7 @@ class TestAlertProcessor:
         mock_engine.close = AsyncMock()
 
         with patch('src.services.alert_processor.AlertEngine', return_value=mock_engine):
-            results = await processor.process_login_analytics(login_data, None)
+            await processor.process_login_analytics(login_data, None)
 
         # Should process both flags
         assert mock_engine.process_event.call_count == 2

@@ -39,7 +39,7 @@ class TenantService:
 
     def __init__(self, db: AsyncSession) -> None:
         """Initialize tenant service.
-        
+
         Args:
             db: Database session
         """
@@ -47,10 +47,10 @@ class TenantService:
 
     async def list_tenants(self, include_inactive: bool = False) -> list[TenantResponse]:
         """List all tenants.
-        
+
         Args:
             include_inactive: Whether to include inactive tenants
-            
+
         Returns:
             List of tenant responses
         """
@@ -65,10 +65,10 @@ class TenantService:
 
     async def get_tenant(self, tenant_id: str) -> TenantModel | None:
         """Get a tenant by internal ID.
-        
+
         Args:
             tenant_id: Internal tenant UUID
-            
+
         Returns:
             Tenant model or None if not found
         """
@@ -79,10 +79,10 @@ class TenantService:
 
     async def get_tenant_by_ms_id(self, ms_tenant_id: str) -> TenantModel | None:
         """Get a tenant by Microsoft tenant ID.
-        
+
         Args:
             ms_tenant_id: Microsoft Azure AD tenant ID
-            
+
         Returns:
             Tenant model or None if not found
         """
@@ -99,13 +99,13 @@ class TenantService:
         timeout: float = 30.0
     ) -> TenantValidationResponse:
         """Validate tenant credentials against Microsoft Graph.
-        
+
         Args:
             tenant_id: Azure AD tenant ID
             client_id: Azure AD application ID
             client_secret: Azure AD client secret
             timeout: Request timeout in seconds
-            
+
         Returns:
             Validation response
         """
@@ -139,16 +139,16 @@ class TenantService:
         update_status: bool = True
     ) -> TenantHealthCheckResponse:
         """Perform health check on a tenant.
-        
+
         Args:
             tenant_id: Internal tenant UUID
             required_permissions: List of permissions to verify (default: ["AuditLog.Read.All"])
             timeout: Request timeout in seconds
             update_status: Whether to update the tenant's connection status in database
-            
+
         Returns:
             Health check response
-            
+
         Raises:
             TenantNotFoundError: If tenant is not found
         """
@@ -239,7 +239,7 @@ class TenantService:
         health_check: TenantHealthCheckResponse
     ) -> None:
         """Update tenant's connection status based on health check results.
-        
+
         Args:
             tenant: Tenant model
             health_check: Health check response
@@ -264,10 +264,10 @@ class TenantService:
 
     def _get_health_check_message(self, health_result: dict[str, Any]) -> str:
         """Generate a human-readable message from health check results.
-        
+
         Args:
             health_result: Raw health check result dictionary
-            
+
         Returns:
             Human-readable status message
         """
@@ -295,11 +295,11 @@ class TenantService:
         validate: bool = True
     ) -> dict[str, Any]:
         """Create a new tenant.
-        
+
         Args:
             tenant_data: Tenant creation data
             validate: Whether to validate credentials against Microsoft Graph
-            
+
         Returns:
             Dictionary with created tenant and validation result
         """
@@ -367,11 +367,11 @@ class TenantService:
         update_data: TenantUpdate
     ) -> TenantResponse | None:
         """Update a tenant.
-        
+
         Args:
             tenant_id: Internal tenant UUID
             update_data: Update data
-            
+
         Returns:
             Updated tenant response or None if not found
         """
@@ -391,10 +391,10 @@ class TenantService:
 
     async def delete_tenant(self, tenant_id: str) -> bool:
         """Delete (soft-delete) a tenant.
-        
+
         Args:
             tenant_id: Internal tenant UUID
-            
+
         Returns:
             True if deleted, False if not found
         """
@@ -410,10 +410,10 @@ class TenantService:
 
     async def hard_delete_tenant(self, tenant_id: str) -> bool:
         """Permanently delete a tenant.
-        
+
         Args:
             tenant_id: Internal tenant UUID
-            
+
         Returns:
             True if deleted, False if not found
         """
@@ -428,10 +428,10 @@ class TenantService:
 
     def _to_response(self, tenant: TenantModel) -> TenantResponse:
         """Convert tenant model to response.
-        
+
         Args:
             tenant: Tenant database model
-            
+
         Returns:
             Tenant response model
         """
@@ -450,11 +450,11 @@ class TenantService:
 
     def get_decrypted_secret(self, tenant: TenantModel, user_id: str = "system") -> str:
         """Get decrypted client secret for a tenant.
-        
+
         Args:
             tenant: Tenant model
             user_id: Identifier of user/system accessing the credential
-            
+
         Returns:
             Decrypted client secret
         """
@@ -494,16 +494,16 @@ async def validate_tenant_credentials(
     timeout: float = 30.0
 ) -> dict[str, Any]:
     """Validate tenant credentials against Microsoft Graph.
-    
+
     This is a standalone wrapper for backward compatibility with tests.
     In production, use TenantService.validate_tenant() instead.
-    
+
     Args:
         tenant_id: Azure AD tenant ID
         client_id: Azure AD application ID
         client_secret: Azure AD client secret
         timeout: Request timeout in seconds
-        
+
     Returns:
         Dictionary with validation results
     """
@@ -515,7 +515,7 @@ async def validate_tenant_credentials(
 
     try:
         # Try to get an access token
-        token = await client.get_access_token()
+        await client.get_access_token()
 
         # Try to get organization info
         async with client as c:

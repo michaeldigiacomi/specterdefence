@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Bell, Shield, Globe, Key, Database, Upload, Building2 } from 'lucide-react';
+import { Settings, Bell, Shield, Globe, Key, Upload } from 'lucide-react';
 import {
   SystemSettings,
   UserPreferences,

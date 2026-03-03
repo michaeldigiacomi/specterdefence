@@ -1,6 +1,7 @@
 """Kubernetes secrets storage backend for tenant credentials."""
 
 import base64
+import contextlib
 import hashlib
 import json
 import logging
@@ -62,10 +63,8 @@ class CredentialData:
         """Create from dictionary."""
         metadata = None
         if "metadata" in data:
-            try:
+            with contextlib.suppress(json.JSONDecodeError):
                 metadata = json.loads(data["metadata"])
-            except json.JSONDecodeError:
-                pass
 
         return cls(
             client_id=data.get("client_id", ""),
@@ -77,11 +76,11 @@ class CredentialData:
 
 class K8sSecretsStorage:
     """Kubernetes secrets storage backend for tenant credentials.
-    
+
     This class provides an interface to store and retrieve tenant credentials
     from Kubernetes secrets, with support for both in-cluster and external
     Kubernetes API access.
-    
+
     Credentials are mounted as files in a volume when running in Kubernetes,
     or accessed via the Kubernetes API when running externally.
     """
@@ -102,7 +101,7 @@ class K8sSecretsStorage:
         kubeconfig_path: str | None = None
     ) -> None:
         """Initialize K8s secrets storage.
-        
+
         Args:
             namespace: Kubernetes namespace for secrets
             use_k8s_api: Whether to use Kubernetes API instead of volume mounts
@@ -121,7 +120,7 @@ class K8sSecretsStorage:
 
     def _detect_in_cluster(self) -> bool:
         """Detect if running inside a Kubernetes cluster.
-        
+
         Returns:
             True if running in-cluster, False otherwise
         """
@@ -153,21 +152,21 @@ class K8sSecretsStorage:
             raise K8sSecretError(
                 "Kubernetes client library not installed. "
                 "Install with: pip install kubernetes"
-            )
+            ) from None
         except Exception as e:
-            raise K8sSecretError(f"Failed to initialize Kubernetes client: {str(e)}")
+            raise K8sSecretError(f"Failed to initialize Kubernetes client: {str(e)}") from e
 
     def _sanitize_secret_name(self, name: str) -> str:
         """Sanitize a name for use as a Kubernetes secret name.
-        
+
         Kubernetes secret names must:
         - Be lowercase alphanumeric, '-', or '.'
         - Start and end with alphanumeric
         - Max 253 characters
-        
+
         Args:
             name: Original name
-            
+
         Returns:
             Sanitized name
         """
@@ -182,10 +181,10 @@ class K8sSecretsStorage:
 
     def _get_secret_name(self, tenant_id: str) -> str:
         """Generate secret name for a tenant.
-        
+
         Args:
             tenant_id: Tenant ID
-            
+
         Returns:
             Secret name
         """
@@ -200,15 +199,15 @@ class K8sSecretsStorage:
         labels: dict[str, str] | None = None
     ) -> str:
         """Store credentials in Kubernetes secret.
-        
+
         Args:
             tenant_id: Tenant identifier
             credentials: Credential data to store
             labels: Optional labels for the secret
-            
+
         Returns:
             Secret name
-            
+
         Raises:
             K8sSecretAlreadyExistsError: If secret already exists
             K8sSecretError: If storage operation fails
@@ -249,7 +248,7 @@ class K8sSecretsStorage:
             if "AlreadyExists" in str(e) or "already exists" in str(e).lower():
                 raise K8sSecretAlreadyExistsError(
                     f"Secret {secret_name} already exists in namespace {self.namespace}"
-                )
+                ) from None
             # Secret doesn't exist, continue with creation
 
         # Prepare secret data (base64 encoded)
@@ -288,7 +287,7 @@ class K8sSecretsStorage:
             self._k8s_client.create_namespaced_secret(self.namespace, secret)
             return secret_name
         except Exception as e:
-            raise K8sSecretError(f"Failed to create secret: {str(e)}")
+            raise K8sSecretError(f"Failed to create secret: {str(e)}") from e
 
     def _store_via_volume(self, secret_name: str, credentials: CredentialData) -> str:
         """Store credentials via volume mount (for testing/development)."""
@@ -317,14 +316,14 @@ class K8sSecretsStorage:
 
     def get_credentials(self, tenant_id: str, user_id: str = "system") -> CredentialData:
         """Retrieve credentials from Kubernetes secret.
-        
+
         Args:
             tenant_id: Tenant identifier
             user_id: Identifier of user/system accessing the credential
-            
+
         Returns:
             Credential data
-            
+
         Raises:
             K8sSecretNotFoundError: If secret not found
             K8sSecretError: If retrieval fails
@@ -354,8 +353,8 @@ class K8sSecretsStorage:
             if "NotFound" in str(e) or "not found" in str(e).lower():
                 raise K8sSecretNotFoundError(
                     f"Secret {secret_name} not found in namespace {self.namespace}"
-                )
-            raise K8sSecretError(f"Failed to read secret: {str(e)}")
+                ) from None
+            raise K8sSecretError(f"Failed to read secret: {str(e)}") from e
 
         # Decode base64 data
         secret_data = {
@@ -389,12 +388,12 @@ class K8sSecretsStorage:
         user_id: str = "system"
     ) -> str:
         """Update existing credentials in Kubernetes secret.
-        
+
         Args:
             tenant_id: Tenant identifier
             credentials: New credential data
             user_id: Identifier of user/system updating the credential
-            
+
         Returns:
             Secret name
         """
@@ -440,16 +439,16 @@ class K8sSecretsStorage:
             if "NotFound" in str(e) or "not found" in str(e).lower():
                 raise K8sSecretNotFoundError(
                     f"Secret {secret_name} not found in namespace {self.namespace}"
-                )
-            raise K8sSecretError(f"Failed to update secret: {str(e)}")
+                ) from None
+            raise K8sSecretError(f"Failed to update secret: {str(e)}") from e
 
     def delete_credentials(self, tenant_id: str, user_id: str = "system") -> bool:
         """Delete credentials from Kubernetes secret.
-        
+
         Args:
             tenant_id: Tenant identifier
             user_id: Identifier of user/system deleting the credential
-            
+
         Returns:
             True if deleted, False if not found
         """
@@ -478,7 +477,7 @@ class K8sSecretsStorage:
         except Exception as e:
             if "NotFound" in str(e) or "not found" in str(e).lower():
                 return False
-            raise K8sSecretError(f"Failed to delete secret: {str(e)}")
+            raise K8sSecretError(f"Failed to delete secret: {str(e)}") from e
 
     def _delete_via_volume(self, secret_name: str) -> bool:
         """Delete credentials via volume mount."""
@@ -495,7 +494,7 @@ class K8sSecretsStorage:
 
     def list_secrets(self) -> list[dict[str, Any]]:
         """List all tenant credential secrets.
-        
+
         Returns:
             List of secret metadata (without credential values)
         """
@@ -528,7 +527,7 @@ class K8sSecretsStorage:
                 })
             return result
         except Exception as e:
-            raise K8sSecretError(f"Failed to list secrets: {str(e)}")
+            raise K8sSecretError(f"Failed to list secrets: {str(e)}") from e
 
     def _list_via_volume(self) -> list[dict[str, Any]]:
         """List secrets via volume mount."""
@@ -553,7 +552,7 @@ class K8sSecretsStorage:
 
     def health_check(self) -> dict[str, Any]:
         """Check storage backend health.
-        
+
         Returns:
             Health check result
         """

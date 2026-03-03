@@ -85,7 +85,7 @@ class TestWebhookEndpoints:
             webhook_url="https://discord.com/api/webhooks/123/test",
         )
 
-        result = await alerts_api.create_webhook(
+        await alerts_api.create_webhook(
             webhook=request,
             tenant_id=tenant_id,
             service=mock_service,
@@ -533,7 +533,7 @@ class TestAlertHistoryEndpoints:
         """Test getting alert history with filters."""
         mock_engine.get_alert_history.return_value = []
 
-        result = await alerts_api.get_alert_history(
+        await alerts_api.get_alert_history(
             tenant_id="tenant-123",
             event_type="impossible_travel",
             severity="HIGH",

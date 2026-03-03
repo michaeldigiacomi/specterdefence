@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, Shield, RotateCcw, Plane, Globe, Lock, Wifi, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Save, RotateCcw, Plane, Globe, Lock, Wifi, AlertTriangle, TrendingUp } from 'lucide-react';
 import { useDetectionThresholds, useUpdateDetectionThresholds } from '@/hooks/useSettings';
 import toast from 'react-hot-toast';
 import { clsx, type ClassValue } from 'clsx';

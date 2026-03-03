@@ -1,11 +1,12 @@
 """Alert streaming service for real-time WebSocket updates."""
 
 import asyncio
+import contextlib
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
@@ -23,7 +24,7 @@ from src.models.alerts import (
 logger = logging.getLogger(__name__)
 
 
-class AlertStatus(str, Enum):
+class AlertStatus(StrEnum):
     """Status of an alert in the stream."""
     NEW = "new"
     ACKNOWLEDGED = "acknowledged"
@@ -72,7 +73,7 @@ class AlertStreamService:
 
     def __init__(self, db: AsyncSession):
         """Initialize the alert stream service.
-        
+
         Args:
             db: Database session
         """
@@ -90,13 +91,13 @@ class AlertStreamService:
         tenant_id: str | None = None,
     ) -> list[StreamAlert]:
         """Get recent alerts from the database.
-        
+
         Args:
             limit: Maximum number of alerts to return
             severity: Filter by severity levels
             event_types: Filter by event types
             tenant_id: Filter by tenant ID
-            
+
         Returns:
             List of recent alerts
         """
@@ -133,7 +134,7 @@ class AlertStreamService:
 
     async def publish_alert(self, alert: StreamAlert) -> None:
         """Publish a new alert to the stream.
-        
+
         Args:
             alert: Alert to publish
         """
@@ -156,7 +157,7 @@ class AlertStreamService:
 
     def register_callback(self, callback: Callable[[StreamAlert], None]) -> None:
         """Register a callback for new alerts.
-        
+
         Args:
             callback: Function to call when new alert arrives
         """
@@ -164,7 +165,7 @@ class AlertStreamService:
 
     def unregister_callback(self, callback: Callable[[StreamAlert], None]) -> None:
         """Unregister a callback.
-        
+
         Args:
             callback: Callback to remove
         """
@@ -173,10 +174,10 @@ class AlertStreamService:
 
     async def get_alert_by_id(self, alert_id: str) -> StreamAlert | None:
         """Get a specific alert by ID.
-        
+
         Args:
             alert_id: Alert UUID
-            
+
         Returns:
             Alert if found, None otherwise
         """
@@ -216,11 +217,11 @@ class AlertStreamService:
         acknowledged_by: str
     ) -> bool:
         """Mark an alert as acknowledged.
-        
+
         Args:
             alert_id: Alert UUID
             acknowledged_by: User/client who acknowledged
-            
+
         Returns:
             True if successful
         """
@@ -237,11 +238,11 @@ class AlertStreamService:
 
     async def dismiss_alert(self, alert_id: str, dismissed_by: str) -> bool:
         """Mark an alert as dismissed.
-        
+
         Args:
             alert_id: Alert UUID
             dismissed_by: User/client who dismissed
-            
+
         Returns:
             True if successful
         """
@@ -266,7 +267,7 @@ class AlertStreamManager:
         connection_manager: Any  # ConnectionManager from websocket.py
     ):
         """Initialize the stream manager.
-        
+
         Args:
             stream_service: Alert stream service
             connection_manager: WebSocket connection manager
@@ -291,15 +292,13 @@ class AlertStreamManager:
         self._running = False
         if self._task:
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
         logger.info("Alert stream manager stopped")
 
     async def subscribe_client(self, client_id: str, filters: dict) -> None:
         """Subscribe a client to the alert stream.
-        
+
         Args:
             client_id: Client identifier
             filters: Filter configuration
@@ -323,7 +322,7 @@ class AlertStreamManager:
 
     async def unsubscribe_client(self, client_id: str) -> None:
         """Unsubscribe a client from the alert stream.
-        
+
         Args:
             client_id: Client identifier
         """
@@ -331,7 +330,7 @@ class AlertStreamManager:
 
     async def update_subscription(self, client_id: str, filters: dict) -> None:
         """Update a client's subscription filters.
-        
+
         Args:
             client_id: Client identifier
             filters: New filter configuration
@@ -346,11 +345,11 @@ class AlertStreamManager:
 
     async def acknowledge_alert(self, alert_id: str, client_id: str) -> bool:
         """Acknowledge an alert.
-        
+
         Args:
             alert_id: Alert UUID
             client_id: Client who acknowledged
-            
+
         Returns:
             True if successful
         """
@@ -368,11 +367,11 @@ class AlertStreamManager:
 
     async def dismiss_alert(self, alert_id: str, client_id: str) -> bool:
         """Dismiss an alert.
-        
+
         Args:
             alert_id: Alert UUID
             client_id: Client who dismissed
-            
+
         Returns:
             True if successful
         """
@@ -403,10 +402,10 @@ class AlertStreamManager:
 
     async def broadcast_alert(self, alert: StreamAlert) -> int:
         """Broadcast an alert to all connected clients.
-        
+
         Args:
             alert: Alert to broadcast
-            
+
         Returns:
             Number of clients the alert was sent to
         """

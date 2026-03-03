@@ -21,7 +21,7 @@ class MSGraphClient:
         timeout: float = 30.0
     ) -> None:
         """Initialize MSAL client.
-        
+
         Args:
             tenant_id: Azure AD tenant ID
             client_id: Azure AD application (client) ID
@@ -44,10 +44,10 @@ class MSGraphClient:
 
     async def get_access_token(self) -> str | None:
         """Get access token for Microsoft Graph API.
-        
+
         Returns:
             Access token string or None if authentication fails.
-            
+
         Raises:
             MSGraphAuthError: If authentication fails.
         """
@@ -86,10 +86,10 @@ class MSGraphClient:
 
     async def validate_credentials(self) -> dict[str, Any]:
         """Validate credentials by fetching tenant information.
-        
+
         Returns:
             Dictionary containing tenant information.
-            
+
         Raises:
             MSGraphAuthError: If credentials are invalid.
             MSGraphAPIError: If API call fails.
@@ -126,10 +126,10 @@ class MSGraphClient:
 
     async def check_permissions(self, required_permissions: list[str]) -> dict[str, Any]:
         """Check if the app has required permissions.
-        
+
         Args:
             required_permissions: List of required permission names (e.g., ["AuditLog.Read.All"])
-            
+
         Returns:
             Dictionary with permission check results:
             {
@@ -138,7 +138,7 @@ class MSGraphClient:
                 "missing_permissions": List[str],
                 "details": Dict[str, Any]
             }
-            
+
         Raises:
             MSGraphAuthError: If authentication fails.
             MSGraphAPIError: If API call fails.
@@ -147,7 +147,7 @@ class MSGraphClient:
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             # Get the service principal's OAuth2 permissions
-            response = await client.get(
+            await client.get(
                 f"{settings.MS_GRAPH_API_URL}/me",
                 headers={"Authorization": f"Bearer {token}"}
             )
@@ -211,10 +211,10 @@ class MSGraphClient:
 
     async def health_check(self, required_permissions: list[str] | None = None) -> dict[str, Any]:
         """Perform a comprehensive health check on the tenant connection.
-        
+
         Args:
             required_permissions: Optional list of permissions to verify
-            
+
         Returns:
             Dictionary with health check results:
             {
@@ -243,7 +243,7 @@ class MSGraphClient:
             start_time = time.time()
 
             try:
-                token = await asyncio.wait_for(
+                await asyncio.wait_for(
                     self.get_access_token(),
                     timeout=self.timeout
                 )
@@ -316,7 +316,7 @@ class MSGraphClient:
 
     async def get_tenant_info(self) -> dict[str, Any]:
         """Get detailed tenant information.
-        
+
         Returns:
             Dictionary containing tenant details.
         """
@@ -360,13 +360,13 @@ async def validate_tenant_credentials(
     timeout: float = 30.0
 ) -> dict[str, Any]:
     """Validate tenant credentials against Microsoft Graph.
-    
+
     Args:
         tenant_id: Azure AD tenant ID
-        client_id: Azure AD application (client) ID  
+        client_id: Azure AD application (client) ID
         client_secret: Azure AD client secret
         timeout: Request timeout in seconds
-        
+
     Returns:
         Dictionary with validation result and tenant info.
     """

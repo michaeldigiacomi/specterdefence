@@ -86,10 +86,10 @@ class GeoIPClient:
     async def lookup(self, ip_address: str) -> GeoLocation:
         """
         Look up geographic information for an IP address.
-        
+
         Args:
             ip_address: IP address to look up
-            
+
         Returns:
             GeoLocation object with geographic data
         """
@@ -174,10 +174,10 @@ class GeoIPClient:
     async def lookup_batch(self, ip_addresses: list[str]) -> dict[str, GeoLocation]:
         """
         Look up multiple IP addresses (with rate limiting).
-        
+
         Args:
             ip_addresses: List of IP addresses to look up
-            
+
         Returns:
             Dictionary mapping IP addresses to GeoLocation objects
         """
@@ -214,10 +214,10 @@ def get_geo_ip_client() -> GeoIPClient:
 async def lookup_ip(ip_address: str) -> GeoLocation:
     """
     Convenience function to look up an IP address.
-    
+
     Args:
         ip_address: IP address to look up
-        
+
     Returns:
         GeoLocation object
     """

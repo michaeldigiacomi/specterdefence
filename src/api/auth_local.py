@@ -4,6 +4,8 @@ import time
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 
+# Use bcrypt directly to avoid passlib compatibility issues with newer bcrypt versions
+import bcrypt as bcrypt_lib
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
@@ -12,8 +14,6 @@ from pydantic import BaseModel
 from src.config import settings
 
 router = APIRouter()
-# Use bcrypt directly to avoid passlib compatibility issues with newer bcrypt versions
-import bcrypt as bcrypt_lib
 
 security = HTTPBearer(auto_error=False)
 
@@ -255,7 +255,7 @@ async def change_password(
         )
 
     # Generate new hash
-    new_hash = get_password_hash(request.new_password)
+    get_password_hash(request.new_password)
 
     # In a real production environment, we'd update the database or secret
     # For now, return success - the user needs to update the env variable

@@ -2,9 +2,10 @@
 
 import uuid
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
+from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column
@@ -18,7 +19,7 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-class MFAMethodType(str, Enum):
+class MFAMethodType(StrEnum):
     """Types of MFA methods."""
     FIDO2 = "fido2"
     AUTHENTICATOR_APP = "authenticatorApp"
@@ -33,7 +34,7 @@ class MFAMethodType(str, Enum):
     NONE = "none"  # No method registered
 
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     """User role types for MFA compliance."""
     ADMIN = "admin"
     USER = "user"
@@ -41,7 +42,7 @@ class UserRole(str, Enum):
     SERVICE_ACCOUNT = "service_account"
 
 
-class ComplianceStatus(str, Enum):
+class ComplianceStatus(StrEnum):
     """MFA compliance status."""
     COMPLIANT = "compliant"
     NON_COMPLIANT = "non_compliant"
@@ -49,7 +50,7 @@ class ComplianceStatus(str, Enum):
     PENDING = "pending"
 
 
-class MFAStrengthLevel(str, Enum):
+class MFAStrengthLevel(StrEnum):
     """MFA strength levels based on NIST guidelines."""
     STRONG = "strong"  # FIDO2, hardware tokens
     MODERATE = "moderate"  # Authenticator apps
@@ -257,9 +258,7 @@ class MFAUserModel(Base):
             return False
         if not self.is_mfa_registered:
             return True
-        if self.is_admin and self.mfa_strength == MFAStrengthLevel.WEAK:
-            return True
-        return False
+        return bool(self.is_admin and self.mfa_strength == MFAStrengthLevel.WEAK)
 
 
 class MFAEnrollmentHistoryModel(Base):
@@ -477,7 +476,6 @@ class MFAComplianceAlertModel(Base):
 
 
 # Pydantic models for API requests/responses
-from pydantic import BaseModel, Field
 
 
 class MFAMethod(BaseModel):

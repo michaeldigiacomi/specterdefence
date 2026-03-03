@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Ensure src is in path
 sys.path.insert(0, "/app")
 
+import contextlib
+
 from src.collector.o365_feed import (
     CONTENT_TYPES,
     O365ManagementClient,
@@ -56,7 +58,7 @@ class TenantCollector:
 
     def __init__(self, tenant: TenantModel, session: AsyncSession):
         """Initialize tenant collector.
-        
+
         Args:
             tenant: Tenant database model.
             session: Database session.
@@ -70,7 +72,7 @@ class TenantCollector:
             self.decrypted_secret = encryption_service.decrypt(tenant.client_secret)
         except Exception as e:
             logger.error(f"Failed to decrypt secret for tenant {tenant.id}: {e}")
-            raise CollectorError(f"Failed to decrypt tenant secret: {e}")
+            raise CollectorError(f"Failed to decrypt tenant secret: {e}") from e
 
     async def __aenter__(self) -> "TenantCollector":
         """Async context manager entry."""
@@ -88,7 +90,7 @@ class TenantCollector:
 
     async def get_collection_state(self) -> CollectionStateModel:
         """Get or create collection state for tenant.
-        
+
         Returns:
             CollectionStateModel instance.
         """
@@ -117,7 +119,7 @@ class TenantCollector:
         events_count: int = 0
     ) -> None:
         """Update collection state after collection attempt.
-        
+
         Args:
             state: Collection state to update.
             success: Whether collection was successful.
@@ -145,11 +147,11 @@ class TenantCollector:
         content_type: str
     ) -> int:
         """Store events in database.
-        
+
         Args:
             events: List of audit log events.
             content_type: Office 365 content type.
-            
+
         Returns:
             Number of events stored.
         """
@@ -164,12 +166,10 @@ class TenantCollector:
                 # Extract O365 creation time if available
                 o365_created_at = None
                 if "CreationTime" in event:
-                    try:
+                    with contextlib.suppress(ValueError, AttributeError):
                         o365_created_at = datetime.fromisoformat(
                             event["CreationTime"].replace("Z", "+00:00")
                         )
-                    except (ValueError, AttributeError):
-                        pass
 
                 audit_log = AuditLogModel(
                     tenant_id=self.tenant.id,
@@ -200,12 +200,12 @@ class TenantCollector:
         end_time: datetime
     ) -> int:
         """Collect logs for a single content type.
-        
+
         Args:
             content_type: Office 365 content type.
             start_time: Start time for collection.
             end_time: End time for collection.
-            
+
         Returns:
             Number of events collected.
         """
@@ -243,7 +243,7 @@ class TenantCollector:
 
     async def collect_all(self) -> dict[str, Any]:
         """Collect all audit logs for tenant.
-        
+
         Returns:
             Dictionary with collection results.
         """
@@ -326,24 +326,24 @@ class TenantCollector:
 
 async def get_active_tenants(session: AsyncSession) -> list[TenantModel]:
     """Get all active tenants.
-    
+
     Args:
         session: Database session.
-        
+
     Returns:
         List of active tenant models.
     """
     result = await session.execute(
-        select(TenantModel).where(TenantModel.is_active == True)
+        select(TenantModel).where(TenantModel.is_active)
     )
     return list(result.scalars().all())
 
 
 async def collect_logs() -> dict[str, Any]:
     """Main collection function.
-    
+
     Collects audit logs for all active tenants.
-    
+
     Returns:
         Dictionary with overall collection results.
     """
@@ -427,7 +427,7 @@ async def collect_logs() -> dict[str, Any]:
 
 async def main() -> int:
     """Main entry point for collector.
-    
+
     Returns:
         Exit code (0 for success, 1 for failure).
     """

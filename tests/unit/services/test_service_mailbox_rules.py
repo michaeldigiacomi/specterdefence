@@ -102,7 +102,7 @@ class TestMailboxRuleService:
         """Test successful tenant mailbox rule scan."""
         # Mock tenant retrieval
         with patch.object(service, "_get_tenant", return_value=sample_tenant):
-            with patch("src.services.mailbox_rules.MSGraphClient") as mock_graph:
+            with patch("src.services.mailbox_rules.MSGraphClient"):
                 with patch("src.services.mailbox_rules.MailboxRuleClient") as mock_rule_client_class:
                     with patch("src.services.mailbox_rules.encryption_service.decrypt", return_value="secret"):
                         mock_rule_client = MagicMock()
@@ -132,7 +132,7 @@ class TestMailboxRuleService:
                 mock_rule.status = RuleStatus.SUSPICIOUS
                 mock_create.return_value = mock_rule
 
-                with patch.object(service, "_trigger_alert") as mock_alert:
+                with patch.object(service, "_trigger_alert"):
                     mock_rule_client = MagicMock()
                     mock_rule_client.analyze_rule.return_value = sample_analysis
 

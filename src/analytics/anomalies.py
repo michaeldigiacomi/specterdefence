@@ -4,13 +4,13 @@ import logging
 import math
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class AnomalyType(str, Enum):
+class AnomalyType(StrEnum):
     """Types of login anomalies."""
     IMPOSSIBLE_TRAVEL = "impossible_travel"
     NEW_COUNTRY = "new_country"
@@ -63,7 +63,7 @@ class AnomalyDetector:
     def __init__(self, travel_speed_kmh: float = DEFAULT_TRAVEL_SPEED_KMH):
         """
         Initialize the anomaly detector.
-        
+
         Args:
             travel_speed_kmh: Assumed travel speed in km/h for impossible travel detection
         """
@@ -73,13 +73,13 @@ class AnomalyDetector:
     def haversine_distance(loc1: Location, loc2: Location) -> float:
         """
         Calculate the great circle distance between two points on Earth.
-        
+
         Uses the Haversine formula for accuracy.
-        
+
         Args:
             loc1: First location
             loc2: Second location
-            
+
         Returns:
             Distance in kilometers
         """
@@ -99,10 +99,10 @@ class AnomalyDetector:
     def calculate_min_travel_time(self, distance_km: float) -> float:
         """
         Calculate minimum travel time between two points.
-        
+
         Args:
             distance_km: Distance in kilometers
-            
+
         Returns:
             Minimum travel time in minutes
         """
@@ -115,14 +115,14 @@ class AnomalyDetector:
     def calculate_risk_score(self, actual_time_min: float, min_travel_time_min: float) -> int:
         """
         Calculate risk score for impossible travel.
-        
-        Risk score is inversely proportional to how much time 
+
+        Risk score is inversely proportional to how much time
         the user would need to make the trip.
-        
+
         Args:
             actual_time_min: Actual time between logins in minutes
             min_travel_time_min: Minimum travel time needed in minutes
-            
+
         Returns:
             Risk score from 0-100
         """
@@ -150,7 +150,7 @@ class AnomalyDetector:
     ) -> AnomalyResult:
         """
         Detect if travel between two login locations is physically impossible.
-        
+
         Args:
             prev_location: Previous login location
             prev_time: Previous login timestamp
@@ -158,7 +158,7 @@ class AnomalyDetector:
             curr_time: Current login timestamp
             prev_country: Previous country code (optional)
             curr_country: Current country code (optional)
-            
+
         Returns:
             AnomalyResult with detection status and details
         """
@@ -242,11 +242,11 @@ class AnomalyDetector:
     ) -> AnomalyResult:
         """
         Detect if login is from a new country for the user.
-        
+
         Args:
             country_code: Current country code (ISO 2-letter)
             known_countries: List of previously seen country codes
-            
+
         Returns:
             AnomalyResult with detection status
         """
@@ -292,24 +292,18 @@ class AnomalyDetector:
     ) -> AnomalyResult:
         """
         Detect if login is from a new IP address for the user.
-        
+
         Args:
             ip_address: Current IP address
             known_ips: List of previously seen IP addresses
-            
+
         Returns:
             AnomalyResult with detection status
         """
         is_new = ip_address not in known_ips
 
         # Risk score based on user's IP history
-        if is_new:
-            if len(known_ips) == 0:
-                risk_score = 10
-            else:
-                risk_score = 25
-        else:
-            risk_score = 0
+        risk_score = (10 if len(known_ips) == 0 else 25) if is_new else 0
 
         details = {
             "ip_address": ip_address,
@@ -335,12 +329,12 @@ class AnomalyDetector:
     ) -> AnomalyResult:
         """
         Detect failed login attempts and multiple failures.
-        
+
         Args:
             is_success: Whether login was successful
             failure_reason: Reason for failure if applicable
             recent_failures: Number of recent failed attempts
-            
+
         Returns:
             AnomalyResult with detection status
         """
@@ -394,12 +388,12 @@ class AnomalyDetector:
     ) -> list[AnomalyResult]:
         """
         Perform complete anomaly analysis on a login attempt.
-        
+
         Args:
             current_login: Current login data
             previous_login: Previous login data (for travel analysis)
             user_history: User's login history
-            
+
         Returns:
             List of anomaly detection results
         """

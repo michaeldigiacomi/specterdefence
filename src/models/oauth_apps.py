@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
@@ -18,7 +18,7 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     """Risk levels for OAuth applications."""
     LOW = "LOW"
     MEDIUM = "MEDIUM"
@@ -26,7 +26,7 @@ class RiskLevel(str, Enum):
     CRITICAL = "CRITICAL"
 
 
-class AppStatus(str, Enum):
+class AppStatus(StrEnum):
     """Status of OAuth application analysis."""
     APPROVED = "approved"
     SUSPICIOUS = "suspicious"
@@ -35,7 +35,7 @@ class AppStatus(str, Enum):
     PENDING_REVIEW = "pending_review"
 
 
-class PublisherType(str, Enum):
+class PublisherType(StrEnum):
     """Type of app publisher."""
     MICROSOFT = "microsoft"
     VERIFIED = "verified"

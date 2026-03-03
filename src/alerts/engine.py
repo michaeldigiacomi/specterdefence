@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, desc, select
+from sqlalchemy import and_, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.alerts.discord import DiscordWebhookClient, DiscordWebhookError
@@ -27,7 +27,7 @@ class AlertEngine:
 
     def __init__(self, db: AsyncSession):
         """Initialize the alert engine.
-        
+
         Args:
             db: Database session
         """
@@ -46,13 +46,13 @@ class AlertEngine:
         metadata: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         """Process a security event and send alerts.
-        
+
         This method:
         1. Finds matching alert rules
         2. Checks deduplication
         3. Sends alerts to configured webhooks
         4. Records alert history
-        
+
         Args:
             event_type: Type of security event
             severity: Severity level
@@ -61,7 +61,7 @@ class AlertEngine:
             user_email: User email (optional)
             tenant_id: Tenant ID (optional)
             metadata: Additional metadata (optional)
-            
+
         Returns:
             List of alert results with status for each webhook
         """
@@ -143,12 +143,12 @@ class AlertEngine:
         tenant_id: str | None,
     ) -> bool:
         """Check if an alert is a duplicate within the cooldown period.
-        
+
         Args:
             dedup_hash: Deduplication hash
             rule: Alert rule
             tenant_id: Tenant ID
-            
+
         Returns:
             True if this is a duplicate alert, False otherwise
         """
@@ -190,7 +190,7 @@ class AlertEngine:
         dedup_hash: str,
     ) -> dict[str, Any]:
         """Send an alert to a webhook and record history.
-        
+
         Args:
             webhook: Webhook configuration
             rule: Alert rule that triggered
@@ -202,7 +202,7 @@ class AlertEngine:
             tenant_id: Tenant ID
             metadata: Event metadata
             dedup_hash: Deduplication hash
-            
+
         Returns:
             Result dictionary with status
         """
@@ -257,10 +257,10 @@ class AlertEngine:
 
     async def _get_discord_client(self, webhook: AlertWebhookModel) -> DiscordWebhookClient:
         """Get or create a Discord client for a webhook.
-        
+
         Args:
             webhook: Webhook configuration
-            
+
         Returns:
             DiscordWebhookClient instance
         """
@@ -284,7 +284,7 @@ class AlertEngine:
         dedup_hash: str,
     ) -> AlertHistoryModel:
         """Record an alert in the history.
-        
+
         Args:
             rule: Alert rule
             webhook: Webhook used
@@ -296,7 +296,7 @@ class AlertEngine:
             tenant_id: Tenant ID
             metadata: Event metadata
             dedup_hash: Deduplication hash
-            
+
         Returns:
             Created alert history record
         """
@@ -329,7 +329,7 @@ class AlertEngine:
         offset: int = 0,
     ) -> list[AlertHistoryModel]:
         """Get alert history with optional filtering.
-        
+
         Args:
             tenant_id: Filter by tenant
             event_type: Filter by event type
@@ -337,7 +337,7 @@ class AlertEngine:
             user_email: Filter by user email
             limit: Maximum number of results
             offset: Offset for pagination
-            
+
         Returns:
             List of alert history records
         """
@@ -375,7 +375,3 @@ class AlertEngine:
         for client in self._discord_clients.values():
             await client.close()
         self._discord_clients.clear()
-
-
-# Import for type checking
-from sqlalchemy import or_

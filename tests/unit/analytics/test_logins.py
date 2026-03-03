@@ -381,7 +381,7 @@ class TestProcessAuditLogSignins:
         mock_result.scalars.return_value.all.return_value = [audit_log]
         mock_db.execute.return_value = mock_result
 
-        count = await service.process_audit_log_signins("tenant-123")
+        await service.process_audit_log_signins("tenant-123")
 
         # Should skip the invalid log but mark as processed
         assert audit_log.processed is True
@@ -849,7 +849,7 @@ class TestProcessAuditLogExtended:
         mock_result.scalars.return_value.all.return_value = [audit_log]
         mock_db.execute.return_value = mock_result
 
-        count = await service.process_audit_log_signins("tenant-123")
+        await service.process_audit_log_signins("tenant-123")
 
         assert audit_log.processed is True
 
@@ -879,7 +879,7 @@ class TestProcessAuditLogExtended:
         mock_result.scalars.return_value.all.return_value = [audit_log]
         mock_db.execute.return_value = mock_result
 
-        count = await service.process_audit_log_signins("tenant-123")
+        await service.process_audit_log_signins("tenant-123")
 
         assert audit_log.processed is True
 
@@ -910,7 +910,7 @@ class TestProcessAuditLogExtended:
         mock_db.execute.return_value = mock_result
 
         # Should not raise exception
-        count = await service.process_audit_log_signins("tenant-123")
+        await service.process_audit_log_signins("tenant-123")
 
         # Should mark as processed even on error
         assert audit_log.processed is True
@@ -937,7 +937,7 @@ class TestProcessAuditLogExtended:
         mock_result.scalars.return_value.all.return_value = [audit_log]
         mock_db.execute.return_value = mock_result
 
-        count = await service.process_audit_log_signins("tenant-123")
+        await service.process_audit_log_signins("tenant-123")
 
         assert audit_log.processed is True
 

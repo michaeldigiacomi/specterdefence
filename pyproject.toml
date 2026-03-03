@@ -88,9 +88,17 @@ select = [
     "C4",  # flake8-comprehensions
     "SIM", # flake8-simplify
 ]
-ignore = ["E501"]  # Line too long (handled by black)
+ignore = [
+    "E501",  # Line too long (handled by black)
+    "B008",  # FastAPI dependency pattern uses function calls in defaults
+    "B904",  # Exception chaining - we'll fix these gradually
+    "SIM117", # Nested with statements in tests are often clearer
+]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint]
+per-file-ignores = { "tests/**" = ["E402"] }  # Allow late imports for mocking in tests
+
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.mypy]

@@ -52,7 +52,7 @@ class O365ManagementClient:
         base_delay: float = 1.0
     ):
         """Initialize O365 Management API client.
-        
+
         Args:
             tenant_id: Azure AD tenant ID (GUID)
             client_id: Azure AD application (client) ID
@@ -79,17 +79,17 @@ class O365ManagementClient:
 
     async def _get_access_token(self) -> str:
         """Get access token for Management API.
-        
+
         Returns:
             Access token string.
-            
+
         Raises:
             O365ManagementAuthError: If authentication fails.
         """
         # Check if we have a valid cached token
-        if self._access_token and self._token_expires_at:
-            if datetime.now(UTC) < self._token_expires_at - timedelta(minutes=5):
-                return self._access_token
+        if (self._access_token and self._token_expires_at and
+            datetime.now(UTC) < self._token_expires_at - timedelta(minutes=5)):
+            return self._access_token
 
         # Try to get token silently from cache
         result = self.app.acquire_token_silent(
@@ -122,16 +122,16 @@ class O365ManagementClient:
         retry_count: int = 0
     ) -> dict[str, Any]:
         """Make authenticated request to Management API with retry logic.
-        
+
         Args:
             method: HTTP method (GET, POST, etc.)
             endpoint: API endpoint path
             params: Optional query parameters
             retry_count: Current retry attempt number
-            
+
         Returns:
             JSON response as dictionary.
-            
+
         Raises:
             RateLimitError: If rate limit is exceeded after all retries.
             O365ManagementAPIError: If API call fails.
@@ -163,10 +163,7 @@ class O365ManagementClient:
 
                     # Get retry-after header or use exponential backoff
                     retry_after = response.headers.get("Retry-After")
-                    if retry_after:
-                        delay = int(retry_after)
-                    else:
-                        delay = self.base_delay * (2 ** retry_count)
+                    delay = int(retry_after) if retry_after else self.base_delay * 2 ** retry_count
 
                     logger.warning(
                         f"Rate limited. Waiting {delay}s before retry {retry_count + 1}/{self.max_retries}"
@@ -195,7 +192,7 @@ class O365ManagementClient:
                 return response.json()
 
             except httpx.HTTPStatusError as e:
-                raise O365ManagementAPIError(f"HTTP error {e.response.status_code}: {e.response.text}")
+                raise O365ManagementAPIError(f"HTTP error {e.response.status_code}: {e.response.text}") from e
             except httpx.RequestError as e:
                 if retry_count < self.max_retries:
                     delay = self.base_delay * (2 ** retry_count)
@@ -204,14 +201,14 @@ class O365ManagementClient:
                     return await self._make_request(
                         method, endpoint, params, retry_count + 1
                     )
-                raise O365ManagementAPIError(f"Request failed after {self.max_retries} retries: {e}")
+                raise O365ManagementAPIError(f"Request failed after {self.max_retries} retries: {e}") from e
 
     async def start_subscription(self, content_type: str) -> dict[str, Any]:
         """Start a subscription for a content type.
-        
+
         Args:
             content_type: Office 365 content type (e.g., Audit.AzureActiveDirectory)
-            
+
         Returns:
             Subscription response.
         """
@@ -222,7 +219,7 @@ class O365ManagementClient:
 
     async def list_subscriptions(self) -> list[dict[str, Any]]:
         """List active subscriptions.
-        
+
         Returns:
             List of subscription objects.
         """
@@ -232,10 +229,10 @@ class O365ManagementClient:
 
     async def stop_subscription(self, content_type: str) -> dict[str, Any]:
         """Stop a subscription for a content type.
-        
+
         Args:
             content_type: Office 365 content type.
-            
+
         Returns:
             Stop response.
         """
@@ -252,13 +249,13 @@ class O365ManagementClient:
         next_page_uri: str | None = None
     ) -> dict[str, Any]:
         """Get content blob URLs for a content type.
-        
+
         Args:
             content_type: Office 365 content type.
             start_time: Start time for content (defaults to 24 hours ago).
             end_time: End time for content (defaults to now).
             next_page_uri: URI for next page (pagination).
-            
+
         Returns:
             Dictionary with content blobs and next page URI.
         """
@@ -287,10 +284,10 @@ class O365ManagementClient:
 
     async def download_content(self, content_uri: str) -> list[dict[str, Any]]:
         """Download content from a blob URL.
-        
+
         Args:
             content_uri: URL to the content blob.
-            
+
         Returns:
             List of audit log events.
         """
@@ -320,12 +317,12 @@ class O365ManagementClient:
         end_time: datetime | None = None
     ) -> AsyncGenerator[list[dict[str, Any]], None]:
         """Collect all logs for a content type with pagination.
-        
+
         Args:
             content_type: Office 365 content type.
             start_time: Start time for collection.
             end_time: End time for collection.
-            
+
         Yields:
             Batches of audit log events.
         """
@@ -383,7 +380,7 @@ class O365ManagementClient:
 
     async def ensure_subscriptions(self) -> list[str]:
         """Ensure all required content type subscriptions are active.
-        
+
         Returns:
             List of successfully subscribed content types.
         """
@@ -408,10 +405,10 @@ class O365ManagementClient:
 
 def map_content_type_to_log_type(content_type: str) -> str:
     """Map O365 content type to our log type enum value.
-    
+
     Args:
         content_type: Office 365 content type.
-        
+
     Returns:
         Our internal log type string.
     """

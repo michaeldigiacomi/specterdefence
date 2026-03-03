@@ -31,7 +31,7 @@ class ConnectionManager:
         filters: dict | None = None
     ) -> None:
         """Accept a new WebSocket connection.
-        
+
         Args:
             websocket: The WebSocket connection
             client_id: Unique client identifier
@@ -45,7 +45,7 @@ class ConnectionManager:
 
     async def disconnect(self, client_id: str) -> None:
         """Remove a WebSocket connection.
-        
+
         Args:
             client_id: Client identifier to disconnect
         """
@@ -56,11 +56,11 @@ class ConnectionManager:
 
     async def send_personal_message(self, message: dict, client_id: str) -> bool:
         """Send a message to a specific client.
-        
+
         Args:
             message: Message to send
             client_id: Target client ID
-            
+
         Returns:
             True if sent successfully, False otherwise
         """
@@ -76,10 +76,10 @@ class ConnectionManager:
 
     async def broadcast(self, message: dict) -> int:
         """Broadcast a message to all connected clients.
-        
+
         Args:
             message: Message to broadcast
-            
+
         Returns:
             Number of successful sends
         """
@@ -105,11 +105,11 @@ class ConnectionManager:
 
     def _should_send_to_client(self, message: dict, filters: dict) -> bool:
         """Check if message should be sent based on client filters.
-        
+
         Args:
             message: Alert message
             filters: Client filter configuration
-            
+
         Returns:
             True if message passes filters
         """
@@ -128,10 +128,7 @@ class ConnectionManager:
 
         # Filter by tenant
         tenant_filter = filters.get("tenant_id")
-        if tenant_filter and message.get("tenant_id") != tenant_filter:
-            return False
-
-        return True
+        return not (tenant_filter and message.get("tenant_id") != tenant_filter)
 
     def get_connection_count(self) -> int:
         """Get total number of active connections."""
@@ -155,12 +152,12 @@ async def alert_websocket(
     db: AsyncSession = Depends(get_db)
 ) -> None:
     """WebSocket endpoint for real-time alert streaming.
-    
+
     Supports filtering by:
     - severity: LOW,MEDIUM,HIGH,CRITICAL
     - event_types: impossible_travel,new_country,brute_force,etc
     - tenant_id: specific tenant UUID
-    
+
     Query Parameters:
         severity: Comma-separated severity levels
         event_types: Comma-separated event types
@@ -230,7 +227,7 @@ async def handle_client_message(
     stream_manager: AlertStreamManager
 ) -> None:
     """Handle incoming messages from WebSocket clients.
-    
+
     Args:
         data: Received message data
         client_id: Client identifier
@@ -300,7 +297,7 @@ async def handle_client_message(
 @router.get("/ws/stats")
 async def get_websocket_stats() -> dict:
     """Get WebSocket connection statistics.
-    
+
     Returns:
         Connection statistics
     """

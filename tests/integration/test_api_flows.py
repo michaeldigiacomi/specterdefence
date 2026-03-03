@@ -359,7 +359,7 @@ class TestAnalyticsFlow:
             pytest.skip("Analytics endpoint has Pydantic validation issues")
 
         assert response.status_code == 200
-        data = response.json()
+        response.json()
         # Response structure may vary
 
     async def test_get_user_login_summary(self, test_client, test_user_login_history):

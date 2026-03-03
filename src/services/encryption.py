@@ -44,10 +44,10 @@ class EncryptionService:
 
     def encrypt(self, plaintext: str) -> str:
         """Encrypt a string.
-        
+
         Args:
             plaintext: The string to encrypt.
-            
+
         Returns:
             Base64 encoded encrypted string.
         """
@@ -58,10 +58,10 @@ class EncryptionService:
 
     def decrypt(self, ciphertext: str) -> str:
         """Decrypt an encrypted string.
-        
+
         Args:
             ciphertext: The encrypted string to decrypt.
-            
+
         Returns:
             Decrypted plaintext string.
         """

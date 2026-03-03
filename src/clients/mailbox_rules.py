@@ -30,7 +30,7 @@ class MailboxRuleClient:
 
     def __init__(self, graph_client: MSGraphClient) -> None:
         """Initialize with existing MS Graph client.
-        
+
         Args:
             graph_client: Authenticated MSGraphClient instance
         """
@@ -38,10 +38,10 @@ class MailboxRuleClient:
 
     async def get_users(self, filter_active: bool = True) -> list[dict[str, Any]]:
         """Get list of users in the tenant.
-        
+
         Args:
             filter_active: Only return active users
-            
+
         Returns:
             List of user objects with id, displayName, userPrincipalName, mail
         """
@@ -79,10 +79,10 @@ class MailboxRuleClient:
 
     async def get_mailbox_rules(self, user_id: str) -> list[dict[str, Any]]:
         """Get mailbox rules for a specific user.
-        
+
         Args:
             user_id: The user's ID or UPN
-            
+
         Returns:
             List of mailbox rule objects
         """
@@ -117,7 +117,7 @@ class MailboxRuleClient:
 
     async def get_mailbox_rules_for_tenant(self) -> list[dict[str, Any]]:
         """Get mailbox rules for all users in the tenant.
-        
+
         Returns:
             List of mailbox rule objects with user context
         """
@@ -142,10 +142,10 @@ class MailboxRuleClient:
 
     def analyze_rule(self, rule: dict[str, Any]) -> dict[str, Any]:
         """Analyze a mailbox rule for suspicious characteristics.
-        
+
         Args:
             rule: Mailbox rule object from Graph API
-            
+
         Returns:
             Analysis results with detection flags and severity
         """
@@ -234,10 +234,10 @@ class MailboxRuleClient:
 
     def _is_external_address(self, email: str) -> bool:
         """Check if an email address is external (non-corporate).
-        
+
         Args:
             email: Email address to check
-            
+
         Returns:
             True if external
         """
@@ -257,17 +257,14 @@ class MailboxRuleClient:
             return True
 
         # Check suspicious domains
-        if any(susp in domain for susp in self.SUSPICIOUS_DOMAINS):
-            return True
-
-        return False
+        return bool(any(susp in domain for susp in self.SUSPICIOUS_DOMAINS))
 
     def _contains_suspicious_keywords(self, text: str) -> bool:
         """Check if text contains suspicious keywords.
-        
+
         Args:
             text: Text to check
-            
+
         Returns:
             True if suspicious keywords found
         """
@@ -279,10 +276,10 @@ class MailboxRuleClient:
 
     def _is_outside_business_hours(self, dt: datetime) -> bool:
         """Check if datetime is outside business hours (9 AM - 6 PM, Mon-Fri).
-        
+
         Args:
             dt: Datetime to check
-            
+
         Returns:
             True if outside business hours
         """
@@ -291,17 +288,14 @@ class MailboxRuleClient:
             return True
 
         # Before 9 AM or after 6 PM
-        if dt.hour < 9 or dt.hour >= 18:
-            return True
-
-        return False
+        return bool(dt.hour < 9 or dt.hour >= 18)
 
     def _calculate_severity(self, analysis: dict[str, Any]) -> str:
         """Calculate severity based on analysis flags.
-        
+
         Args:
             analysis: Analysis results dictionary
-            
+
         Returns:
             Severity level string
         """
@@ -328,10 +322,10 @@ class MailboxRuleClient:
 
     def _calculate_status(self, analysis: dict[str, Any]) -> str:
         """Calculate status based on analysis flags.
-        
+
         Args:
             analysis: Analysis results dictionary
-            
+
         Returns:
             Status string
         """
@@ -345,11 +339,11 @@ class MailboxRuleClient:
 
     async def disable_rule(self, user_id: str, rule_id: str) -> bool:
         """Disable a mailbox rule.
-        
+
         Args:
             user_id: User ID or UPN
             rule_id: Rule ID to disable
-            
+
         Returns:
             True if successful
         """
@@ -371,11 +365,11 @@ class MailboxRuleClient:
 
     async def delete_rule(self, user_id: str, rule_id: str) -> bool:
         """Delete a mailbox rule.
-        
+
         Args:
             user_id: User ID or UPN
             rule_id: Rule ID to delete
-            
+
         Returns:
             True if successful
         """

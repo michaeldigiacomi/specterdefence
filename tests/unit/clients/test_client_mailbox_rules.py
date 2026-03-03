@@ -341,8 +341,8 @@ class TestMailboxRuleClient:
         severity = mailbox_client._calculate_severity(analysis)
         assert severity == "HIGH"
 
-    def test_calculate_severity_critical(self, mailbox_client):
-        """Test critical severity calculation."""
+    def test_calculate_severity_critical_combined_flags(self, mailbox_client):
+        """Test critical severity calculation with combined flags."""
         analysis = {
             "forward_to_external": True,  # 3 points
             "is_hidden_folder_redirect": True,  # 2 points

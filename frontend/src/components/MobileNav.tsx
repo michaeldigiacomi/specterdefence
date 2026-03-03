@@ -79,7 +79,7 @@ export function MobileNav() {
   }, [location.pathname]);
   
   const handleInstallClick = async () => {
-    // @ts-ignore - deferredPrompt is added by the browser
+    // @ts-expect-error - deferredPrompt is added by the browser
     const deferredPrompt = window.deferredPrompt;
     
     if (deferredPrompt) {

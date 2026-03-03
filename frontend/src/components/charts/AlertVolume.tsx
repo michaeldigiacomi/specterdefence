@@ -7,10 +7,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import { Bell, TrendingUp } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import clsx from 'clsx';
 
 interface AlertVolumePoint {

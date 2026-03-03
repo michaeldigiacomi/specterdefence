@@ -288,7 +288,7 @@ class TestMSGraphAPIResponses:
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_response)
 
-            with pytest.raises(Exception):
+            with pytest.raises(json.JSONDecodeError):
                 await ms_graph_client.validate_credentials()
 
     @pytest.mark.asyncio
@@ -522,7 +522,7 @@ class TestMSGraphPagination:
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_response)
 
-            result = await ms_graph_client.get_tenant_info()
+            await ms_graph_client.get_tenant_info()
             # Single page - should not need pagination
             assert mock_client.get.call_count == 1
 
@@ -558,7 +558,7 @@ class TestMSGraphPagination:
             mock_client.get = AsyncMock(side_effect=[mock_response1, mock_response2])
 
             # Test would follow nextLink - this is a placeholder for pagination logic
-            result = await ms_graph_client.get_tenant_info()
+            await ms_graph_client.get_tenant_info()
 
     @pytest.mark.asyncio
     async def test_next_link_following(self, ms_graph_client, mock_msal_app, mock_token_response):
@@ -603,7 +603,7 @@ class TestMSGraphPagination:
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_response)
 
-            result = await ms_graph_client.get_tenant_info()
+            await ms_graph_client.get_tenant_info()
             # Last page should not have nextLink
             assert "@odata.nextLink" not in last_page or last_page.get("@odata.nextLink") is None
 
