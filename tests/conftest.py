@@ -116,6 +116,51 @@ def rate_limiter():
     return rl
 
 
+# Mock database fixture for unit tests
+@pytest.fixture
+def mock_db():
+    """Create a mock database session for unit tests."""
+    from unittest.mock import AsyncMock, MagicMock
+    
+    mock = AsyncMock()
+    mock.execute = AsyncMock()
+    mock.commit = AsyncMock()
+    mock.refresh = AsyncMock()
+    mock.add = MagicMock()
+    mock.add_all = MagicMock()
+    mock.delete = AsyncMock()
+    mock.close = AsyncMock()
+    
+    # Common query result patterns
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_result.scalar_one.return_value = None
+    mock_result.scalars.return_value = MagicMock()
+    mock_result.scalars().all.return_value = []
+    mock_result.scalars().first.return_value = None
+    mock.execute.return_value = mock_result
+    
+    return mock
+
+
+# Mock tenant fixture
+@pytest.fixture
+def mock_tenant():
+    """Create a mock tenant for testing."""
+    from unittest.mock import MagicMock
+    
+    tenant = MagicMock()
+    tenant.id = "test-tenant-id"
+    tenant.tenant_id = "test-tenant-123"
+    tenant.name = "Test Tenant"
+    tenant.client_id = "test-client-id"
+    tenant.client_secret = "encrypted-secret"
+    tenant.is_active = True
+    tenant.connection_status = "healthy"
+    tenant.connection_error = None
+    return tenant
+
+
 # Mock for MS Graph client
 @pytest.fixture
 def mock_ms_graph():
