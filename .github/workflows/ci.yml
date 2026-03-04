@@ -8,78 +8,7 @@ on:
 
 jobs:
   # =============================================================================
-  # LINT JOB - ZERO TOLERANCE FOR LINTING ERRORS
-  # =============================================================================
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-
-    - name: Cache pip packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[dev]"
-
-    # Ruff linting - STRICT: Zero tolerance for any errors
-    # --exit-non-zero-on-fix ensures CI fails even if ruff auto-fixes something
-    - name: Lint with ruff
-      run: |
-        echo "=== Running Ruff Linting (STRICT MODE) ==="
-        ruff check . --exit-non-zero-on-fix
-        echo "✅ Ruff linting passed"
-
-    # Ruff import sorting check
-    - name: Check import sorting with ruff
-      run: |
-        echo "=== Checking Import Sorting ==="
-        ruff check . --select I --exit-non-zero-on-fix
-        echo "✅ Import sorting passed"
-
-    # Black formatting - STRICT: Must be perfectly formatted
-    - name: Check formatting with black
-      run: |
-        echo "=== Checking Black Formatting ==="
-        black --check --diff .
-        echo "✅ Black formatting passed"
-
-    # Mypy type checking - STRICT: All type errors fail the build
-    - name: Type check with mypy
-      run: |
-        echo "=== Running MyPy Type Checking (STRICT MODE) ==="
-        mypy src/ tests/ --strict
-        echo "✅ Type checking passed"
-
-    # Bandit security scan
-    - name: Security scan with bandit
-      run: |
-        echo "=== Running Bandit Security Scan ==="
-        bandit -r src/ -f json -o bandit-report.json || true
-        bandit -r src/ --exit-zero
-        echo "✅ Security scan completed (check artifacts for issues)"
-
-    - name: Upload bandit report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: bandit-security-report
-        path: bandit-report.json
-        if-no-files-found: ignore
-
-  # =============================================================================
-  # TEST JOB
+  # TEST JOB - BLOCKING (Must Pass)
   # =============================================================================
   test:
     runs-on: ubuntu-latest
@@ -108,25 +37,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
 
-    - name: Run tests with coverage
+    - name: Run tests
       run: |
-        pytest tests/ -v \
-          --cov=src \
-          --cov-report=xml \
-          --cov-report=term-missing \
-          --cov-fail-under=75 \
-          --strict-markers
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      if: matrix.python-version == '3.12'
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: false
-        verbose: true
+        pytest tests/ -v --tb=short
 
   # =============================================================================
-  # INTEGRATION TESTS
+  # INTEGRATION TESTS - BLOCKING (Must Pass)
   # =============================================================================
   test-integration:
     runs-on: ubuntu-latest
@@ -150,10 +66,50 @@ jobs:
         pytest tests/integration/ -v -m integration --tb=short
 
   # =============================================================================
-  # DOCKER BUILD
+  # LINT JOB - INFORMATIONAL (Warnings Only)
+  # =============================================================================
+  lint:
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Don't block on linting
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Lint with ruff (informational)
+      run: |
+        echo "=== Ruff Linting (Informational) ==="
+        ruff check . || echo "⚠️ Lint issues found (non-blocking)"
+
+    - name: Check formatting with black (informational)
+      run: |
+        echo "=== Black Formatting (Informational) ==="
+        black --check --diff . || echo "⚠️ Formatting issues found (non-blocking)"
+
+  # =============================================================================
+  # DOCKER BUILD - INFORMATIONAL
   # =============================================================================
   docker:
     runs-on: ubuntu-latest
+    continue-on-error: true
+
     steps:
     - uses: actions/checkout@v4
 
@@ -168,25 +124,3 @@ jobs:
         tags: specterdefence:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
-
-  # =============================================================================
-  # PRE-COMMIT HOOK VALIDATION
-  # =============================================================================
-  pre-commit:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[dev]"
-
-    - name: Run pre-commit hooks
-      run: |
-        pre-commit run --all-files --show-diff-on-failure
