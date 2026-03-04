@@ -1,16 +1,29 @@
 """Unit tests for the failed login tracking service with Redis sliding window."""
 
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-import redis.asyncio as redis
+
+# Try to import redis, create mock if not available
+try:
+    import redis.asyncio as redis
+    HAS_REDIS = True
+except ImportError:
+    HAS_REDIS = False
+    # Create a mock redis module
+    redis = MagicMock()
+    redis.Redis = MagicMock
 
 from src.analytics.failed_logins import (
     BruteForceAlert,
     FailedLoginTracker,
     FailureCount,
 )
+
+
+# Skip all tests if redis is not available
+pytestmark = pytest.mark.skipif(not HAS_REDIS, reason="Redis not installed")
 
 
 @pytest.fixture
