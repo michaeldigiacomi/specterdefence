@@ -34,7 +34,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --user -r requirements.txt && \
+    pip list | grep msal
 
 # ============================================
 # Stage 3: Production image
@@ -49,6 +50,9 @@ RUN useradd --create-home --shell /bin/bash app && \
 
 # Copy Python dependencies from builder
 COPY --from=python-builder /root/.local /home/app/.local
+
+# Verify msal is installed
+RUN python -c "import msal; print('msal version:', msal.__version__)"
 
 # Copy application code
 COPY --chown=app:app src/ ./src/
