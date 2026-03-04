@@ -11,7 +11,7 @@ resources:
   - ingress.yaml
 
 images:
-  - name: ghcr.io/michaeldigiacomi/specterdefence
+  - name: ghcr.io/digiacomi-shared/specterdefence
     newTag: latest  # This will be overridden by ArgoCD or CI/CD
 
 commonLabels:

@@ -20,7 +20,7 @@ spec:
         - name: ghcr-registry-secret
       containers:
         - name: specterdefence
-          image: ghcr.io/michaeldigiacomi/specterdefence:latest
+          image: ghcr.io/digiacomi-shared/specterdefence:latest
           imagePullPolicy: Always
           ports:
             - name: http
