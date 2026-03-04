@@ -31,6 +31,7 @@ from src.models.alerts import (
     WebhookType,
 )
 from src.models.db import TenantModel
+from src.models.user import UserModel
 from src.models.tenant import TenantCreate
 
 # =============================================================================
@@ -186,7 +187,22 @@ def mock_tenant_create():
 
 
 @pytest_asyncio.fixture
-async def sample_tenant(test_db) -> TenantModel:
+async def admin_user(test_db) -> UserModel:
+    """Create the admin user in the database."""
+    from src.api.auth_local import get_password_hash
+
+    user = UserModel(
+        username="admin",
+        password_hash=get_password_hash("admin123"),
+        is_active=True,
+        is_admin=True,
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+    test_db.add(user)
+    await test_db.commit()
+    await test_db.refresh(user)
+    return user
     """Create a sample tenant in the database."""
     tenant = TenantModel(
         id=str(uuid.uuid4()),

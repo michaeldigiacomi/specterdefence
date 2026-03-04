@@ -10,8 +10,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
+from src.database import async_session_maker, get_db
+from src.models.user import UserModel
 
 router = APIRouter()
 
@@ -56,6 +60,85 @@ def _check_rate_limit(ip_address: str) -> bool:
 def _record_attempt(ip_address: str):
     """Record a login attempt."""
     _login_attempts[ip_address].append(time.time())
+
+
+async def get_or_create_admin_user() -> UserModel:
+    """Get the admin user from database, or create from env var if not exists."""
+    async with async_session_maker() as session:
+        # Try to get existing admin user
+        result = await session.execute(
+            select(UserModel).where(UserModel.username == settings.ADMIN_USERNAME)
+        )
+        user = result.scalar_one_or_none()
+
+        if user:
+            return user
+
+        # Create admin user from environment variable if exists
+        if settings.ADMIN_PASSWORD_HASH:
+            user = UserModel(
+                username=settings.ADMIN_USERNAME,
+                password_hash=settings.ADMIN_PASSWORD_HASH,
+                is_active=True,
+                is_admin=True
+            )
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+        # No admin user exists and no env var set - this is an error condition
+        raise RuntimeError(
+            "No admin user exists and ADMIN_PASSWORD_HASH is not set. "
+            "Please set ADMIN_PASSWORD_HASH environment variable."
+        )
+
+
+async def get_admin_password_hash() -> str:
+    """Get the admin password hash from database or env var."""
+    try:
+        user = await get_or_create_admin_user()
+        return user.password_hash
+    except RuntimeError:
+        # Fall back to env var if no database user exists
+        return settings.ADMIN_PASSWORD_HASH
+
+
+async def update_admin_password(new_password_hash: str) -> None:
+    """Update the admin password in the database."""
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(UserModel).where(UserModel.username == settings.ADMIN_USERNAME)
+        )
+        user = result.scalar_one_or_none()
+
+        if user:
+            user.password_hash = new_password_hash
+            user.updated_at = datetime.now(UTC)
+        else:
+            # Create new admin user with the password
+            user = UserModel(
+                username=settings.ADMIN_USERNAME,
+                password_hash=new_password_hash,
+                is_active=True,
+                is_admin=True
+            )
+            session.add(user)
+
+        await session.commit()
+
+
+async def update_last_login(username: str) -> None:
+    """Update the last login timestamp for a user."""
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(UserModel).where(UserModel.username == username)
+        )
+        user = result.scalar_one_or_none()
+
+        if user:
+            user.last_login = datetime.now(UTC)
+            await session.commit()
 
 
 class LoginRequest(BaseModel):
@@ -180,8 +263,11 @@ async def login(request: LoginRequest, req: Request):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Get password hash from database (creates from env var if first time)
+    admin_hash = await get_admin_password_hash()
+
     # Verify password
-    if not verify_password(request.password, settings.ADMIN_PASSWORD_HASH):
+    if not verify_password(request.password, admin_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
@@ -190,6 +276,9 @@ async def login(request: LoginRequest, req: Request):
 
     # Clear failed attempts on successful login
     _login_attempts[client_ip] = []
+
+    # Update last login timestamp
+    await update_last_login(request.username)
 
     # Create access token (reduced to 2 hours for security)
     access_token_expires = timedelta(hours=2)
@@ -240,8 +329,11 @@ async def change_password(
     user: dict = Depends(get_current_user)
 ):
     """Change the current user's password."""
+    # Get current password hash from database
+    admin_hash = await get_admin_password_hash()
+
     # Verify current password
-    if not verify_password(request.current_password, settings.ADMIN_PASSWORD_HASH):
+    if not verify_password(request.current_password, admin_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Current password is incorrect",
@@ -255,10 +347,11 @@ async def change_password(
         )
 
     # Generate new hash
-    get_password_hash(request.new_password)
+    new_hash = get_password_hash(request.new_password)
 
-    # In a real production environment, we'd update the database or secret
-    # For now, return success - the user needs to update the env variable
+    # Save to database
+    await update_admin_password(new_hash)
+
     return ChangePasswordResponse(
-        message="Password changed successfully. Please update ADMIN_PASSWORD_HASH environment variable.",
+        message="Password changed successfully. Please log in again with your new password.",
     )

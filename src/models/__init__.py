@@ -38,6 +38,7 @@ from src.models.dashboard import (
     TopRiskUsersData,
 )
 from src.models.db import TenantModel
+from src.models.user import UserModel
 from src.models.mailbox_rules import (
     MailboxRuleAlertModel,
     MailboxRuleModel,
@@ -76,6 +77,7 @@ from src.models.tenant import (
 )
 
 __all__ = [
+    "UserModel",
     "TenantBase",
     "TenantCreate",
     "TenantUpdate",
