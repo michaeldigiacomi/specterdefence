@@ -17,6 +17,7 @@ router = APIRouter()
 
 # ============== Pydantic Models ==============
 
+
 class LoginRecord(BaseModel):
     """Login record response model."""
 
@@ -94,20 +95,20 @@ class ProcessAuditLogsResponse(BaseModel):
 
 # ============== Dependencies ==============
 
-async def get_analytics_service(
-    db: AsyncSession = Depends(get_db)
-) -> LoginAnalyticsService:
+
+async def get_analytics_service(db: AsyncSession = Depends(get_db)) -> LoginAnalyticsService:
     """Dependency to get login analytics service."""
     return LoginAnalyticsService(db)
 
 
 # ============== API Endpoints ==============
 
+
 @router.get(
     "/logins",
     response_model=LoginAnalyticsResponse,
     summary="Query login analytics",
-    description="Query login events with various filters and detect anomalies."
+    description="Query login events with various filters and detect anomalies.",
 )
 async def get_login_analytics(
     tenant_id: str | None = Query(None, description="Filter by tenant ID"),
@@ -124,7 +125,7 @@ async def get_login_analytics(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(100, ge=1, le=1000, description="Items per page"),
     include_anomalies: bool = Query(True, description="Include detected anomalies in response"),
-    service: LoginAnalyticsService = Depends(get_analytics_service)
+    service: LoginAnalyticsService = Depends(get_analytics_service),
 ) -> LoginAnalyticsResponse:
     """
     Query login analytics with filters.
@@ -142,7 +143,7 @@ async def get_login_analytics(
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid status: {status}. Use 'success' or 'failed'"
+                detail=f"Invalid status: {status}. Use 'success' or 'failed'",
             )
 
     # Calculate offset
@@ -162,7 +163,7 @@ async def get_login_analytics(
         anomaly_type=anomaly_type,
         min_risk_score=min_risk_score,
         limit=page_size,
-        offset=offset
+        offset=offset,
     )
 
     # Build filters applied dict
@@ -177,7 +178,7 @@ async def get_login_analytics(
         "status": status,
         "has_anomaly": has_anomaly,
         "anomaly_type": anomaly_type,
-        "min_risk_score": min_risk_score
+        "min_risk_score": min_risk_score,
     }
 
     # Extract anomalies for response
@@ -204,14 +205,12 @@ async def get_login_analytics(
         page=page,
         page_size=page_size,
         filters_applied=filters_applied,
-        anomalies=anomalies
+        anomalies=anomalies,
     )
 
 
 async def _create_anomaly_detail(
-    login: LoginAnalyticsModel,
-    anomaly_type: str,
-    service: LoginAnalyticsService
+    login: LoginAnalyticsModel, anomaly_type: str, service: LoginAnalyticsService
 ) -> AnomalyDetail | None:
     """Create anomaly detail from login record."""
     if anomaly_type == AnomalyType.IMPOSSIBLE_TRAVEL.value:
@@ -241,21 +240,16 @@ async def _create_anomaly_detail(
                     "previous_ip": prev_login.ip_address,
                     "current_ip": login.ip_address,
                     "previous_country": prev_login.country_code,
-                    "current_country": login.country_code
-                }
+                    "current_country": login.country_code,
+                },
             )
 
     elif anomaly_type == AnomalyType.NEW_COUNTRY.value:
         # Get user history for previous countries
-        user_history = await service._get_or_create_user_history(
-            login.user_email, login.tenant_id
-        )
+        user_history = await service._get_or_create_user_history(login.user_email, login.tenant_id)
 
         # Previous countries (excluding current)
-        prev_countries = [
-            c for c in user_history.known_countries
-            if c != login.country_code
-        ]
+        prev_countries = [c for c in user_history.known_countries if c != login.country_code]
 
         return AnomalyDetail(
             type="new_country",
@@ -263,10 +257,7 @@ async def _create_anomaly_detail(
             country=login.country,
             previous_countries=prev_countries[-5:] if prev_countries else [],  # Last 5
             risk_score=login.risk_score,
-            details={
-                "country_code": login.country_code,
-                "city": login.city
-            }
+            details={"country_code": login.country_code, "city": login.city},
         )
 
     elif anomaly_type == AnomalyType.FAILED_LOGIN.value:
@@ -277,14 +268,12 @@ async def _create_anomaly_detail(
             details={
                 "failure_reason": login.failure_reason,
                 "ip_address": login.ip_address,
-                "country": login.country
-            }
+                "country": login.country,
+            },
         )
 
     elif anomaly_type == AnomalyType.MULTIPLE_FAILURES.value:
-        user_history = await service._get_or_create_user_history(
-            login.user_email, login.tenant_id
-        )
+        user_history = await service._get_or_create_user_history(login.user_email, login.tenant_id)
 
         return AnomalyDetail(
             type="multiple_failures",
@@ -293,8 +282,8 @@ async def _create_anomaly_detail(
             details={
                 "failed_attempts_24h": user_history.failed_attempts_24h,
                 "failure_reason": login.failure_reason,
-                "ip_address": login.ip_address
-            }
+                "ip_address": login.ip_address,
+            },
         )
 
     # Generic anomaly
@@ -302,10 +291,7 @@ async def _create_anomaly_detail(
         type=anomaly_type,
         user=login.user_email,
         risk_score=login.risk_score,
-        details={
-            "ip_address": login.ip_address,
-            "country": login.country
-        }
+        details={"ip_address": login.ip_address, "country": login.country},
     )
 
 
@@ -313,12 +299,10 @@ async def _create_anomaly_detail(
     "/logins/{user_email}/summary",
     response_model=UserLoginSummary,
     summary="Get user login summary",
-    description="Get summary statistics for a user's login activity."
+    description="Get summary statistics for a user's login activity.",
 )
 async def get_user_summary(
-    user_email: str,
-    tenant_id: str,
-    service: LoginAnalyticsService = Depends(get_analytics_service)
+    user_email: str, tenant_id: str, service: LoginAnalyticsService = Depends(get_analytics_service)
 ) -> UserLoginSummary:
     """Get login summary for a specific user."""
     summary = await service.get_user_login_summary(user_email, tenant_id)
@@ -329,11 +313,11 @@ async def get_user_summary(
     "/logins/process-audit-logs",
     response_model=ProcessAuditLogsResponse,
     summary="Process audit logs",
-    description="Process unprocessed signin audit logs and create login analytics."
+    description="Process unprocessed signin audit logs and create login analytics.",
 )
 async def process_audit_logs(
     request: ProcessAuditLogsRequest,
-    service: LoginAnalyticsService = Depends(get_analytics_service)
+    service: LoginAnalyticsService = Depends(get_analytics_service),
 ) -> ProcessAuditLogsResponse:
     """
     Process unprocessed signin audit logs.
@@ -342,19 +326,18 @@ async def process_audit_logs(
     """
     try:
         processed_count = await service.process_audit_log_signins(
-            tenant_id=request.tenant_id,
-            limit=request.limit
+            tenant_id=request.tenant_id, limit=request.limit
         )
 
         return ProcessAuditLogsResponse(
             processed_count=processed_count,
             tenant_id=request.tenant_id,
-            message=f"Successfully processed {processed_count} audit log entries"
+            message=f"Successfully processed {processed_count} audit log entries",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing audit logs: {str(e)}"
+            detail=f"Error processing audit logs: {str(e)}",
         )
 
 
@@ -362,14 +345,14 @@ async def process_audit_logs(
     "/anomalies/recent",
     response_model=list[AnomalyDetail],
     summary="Get recent anomalies",
-    description="Get recent login anomalies across all users or filtered by tenant."
+    description="Get recent login anomalies across all users or filtered by tenant.",
 )
 async def get_recent_anomalies(
     tenant_id: str | None = Query(None, description="Filter by tenant ID"),
     hours: int = Query(24, ge=1, le=168, description="Look back period in hours"),
     min_risk_score: int = Query(50, ge=0, le=100, description="Minimum risk score"),
     limit: int = Query(50, ge=1, le=100, description="Maximum results"),
-    service: LoginAnalyticsService = Depends(get_analytics_service)
+    service: LoginAnalyticsService = Depends(get_analytics_service),
 ) -> list[AnomalyDetail]:
     """Get recent anomalies detected in login activity."""
     since = datetime.utcnow() - timedelta(hours=hours)
@@ -380,7 +363,7 @@ async def get_recent_anomalies(
         has_anomaly=True,
         min_risk_score=min_risk_score,
         limit=limit,
-        offset=0
+        offset=0,
     )
 
     anomalies = []

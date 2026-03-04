@@ -241,7 +241,9 @@ class TestOAuthAppsEndpoints:
         assert exc_info.value.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_get_app_permissions_success(self, mock_service, sample_app, sample_permission, sample_consent):
+    async def test_get_app_permissions_success(
+        self, mock_service, sample_app, sample_permission, sample_consent
+    ):
         """Test getting app permissions."""
         mock_service.get_app_by_id.return_value = sample_app
         mock_service.get_app_permissions_detail.return_value = [sample_permission]
@@ -273,7 +275,10 @@ class TestOAuthAppsEndpoints:
     @pytest.mark.asyncio
     async def test_revoke_oauth_app_success(self, mock_service):
         """Test successful OAuth app revocation."""
-        mock_service.revoke_app.return_value = {"success": True, "message": "App disabled successfully"}
+        mock_service.revoke_app.return_value = {
+            "success": True,
+            "message": "App disabled successfully",
+        }
 
         request = RevokeAppRequest(revoke_type="disable")
 
@@ -323,11 +328,7 @@ class TestOAuthAppsEndpoints:
 
         assert result.total == 1
         mock_service.get_apps.assert_called_once_with(
-            tenant_id="tenant-123",
-            status=None,
-            risk_level=None,
-            limit=100,
-            offset=0
+            tenant_id="tenant-123", status=None, risk_level=None, limit=100, offset=0
         )
 
     @pytest.mark.asyncio
@@ -364,7 +365,13 @@ class TestOAuthAppsEndpoints:
         mock_service.get_apps_summary.return_value = {
             "total_apps": 10,
             "by_risk_level": {"LOW": 5, "MEDIUM": 3, "HIGH": 2, "CRITICAL": 0},
-            "by_status": {"approved": 5, "suspicious": 3, "malicious": 2, "revoked": 0, "pending_review": 0},
+            "by_status": {
+                "approved": 5,
+                "suspicious": 3,
+                "malicious": 2,
+                "revoked": 0,
+                "pending_review": 0,
+            },
             "mail_access_apps": 2,
             "unverified_publisher_apps": 3,
             "total_alerts": 5,
@@ -421,7 +428,9 @@ class TestOAuthAppsEndpoints:
     @pytest.mark.asyncio
     async def test_scan_oauth_apps_tenant_not_found(self, mock_service):
         """Test scan with non-existent tenant."""
-        mock_service.scan_tenant_oauth_apps.side_effect = ValueError("Tenant not-found-id not found")
+        mock_service.scan_tenant_oauth_apps.side_effect = ValueError(
+            "Tenant not-found-id not found"
+        )
 
         request = ScanRequest(tenant_id="not-found-id", trigger_alerts=True)
 

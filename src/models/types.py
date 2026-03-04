@@ -18,22 +18,23 @@ class JSONB(TypeDecorator):
 
     Uses PostgreSQL JSONB in production, falls back to Text/JSON in SQLite.
     """
+
     impl = Text
     cache_ok = True
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql':
+        if dialect.name == "postgresql":
             return dialect.type_descriptor(PGJSONB())
         else:
             return dialect.type_descriptor(Text())
 
     def process_bind_param(self, value: Any, dialect) -> Any:
-        if dialect.name != 'postgresql' and value is not None:
+        if dialect.name != "postgresql" and value is not None:
             return json.dumps(value)
         return value
 
     def process_result_value(self, value: Any, dialect) -> Any:
-        if dialect.name != 'postgresql' and value is not None and isinstance(value, str):
+        if dialect.name != "postgresql" and value is not None and isinstance(value, str):
             return json.loads(value)
         return value
 
@@ -43,6 +44,7 @@ class UUID(TypeDecorator):
 
     Uses PostgreSQL UUID in production, falls back to String(36) in SQLite.
     """
+
     impl = String(36)
     cache_ok = True
 
@@ -51,7 +53,7 @@ class UUID(TypeDecorator):
         super().__init__(*args, **kwargs)
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql':
+        if dialect.name == "postgresql":
             return dialect.type_descriptor(PGUIID(as_uuid=self.as_uuid))
         else:
             return dialect.type_descriptor(String(36))
@@ -59,7 +61,7 @@ class UUID(TypeDecorator):
     def process_bind_param(self, value: Any, dialect) -> Any:
         if value is None:
             return None
-        if dialect.name != 'postgresql' and hasattr(value, 'hex'):
+        if dialect.name != "postgresql" and hasattr(value, "hex"):
             # Convert UUID to string for SQLite
             return str(value)
         return value
@@ -67,9 +69,10 @@ class UUID(TypeDecorator):
     def process_result_value(self, value: Any, dialect) -> Any:
         if value is None:
             return None
-        if dialect.name != 'postgresql' and self.as_uuid:
+        if dialect.name != "postgresql" and self.as_uuid:
             # Convert string back to UUID for SQLite
             import uuid
+
             if isinstance(value, str):
                 return uuid.UUID(value)
         return value
@@ -80,6 +83,7 @@ class ARRAY(TypeDecorator):
 
     Uses PostgreSQL ARRAY in production, falls back to Text/JSON in SQLite.
     """
+
     impl = Text
     cache_ok = True
 
@@ -89,17 +93,17 @@ class ARRAY(TypeDecorator):
         super().__init__(*args, **kwargs)
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql':
+        if dialect.name == "postgresql":
             return dialect.type_descriptor(PGARRAY(self.item_type, dimensions=self.dimensions))
         else:
             return dialect.type_descriptor(Text())
 
     def process_bind_param(self, value: Any, dialect) -> Any:
-        if dialect.name != 'postgresql' and value is not None:
+        if dialect.name != "postgresql" and value is not None:
             return json.dumps(value)
         return value
 
     def process_result_value(self, value: Any, dialect) -> Any:
-        if dialect.name != 'postgresql' and value is not None and isinstance(value, str):
+        if dialect.name != "postgresql" and value is not None and isinstance(value, str):
             return json.loads(value)
         return value

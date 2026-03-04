@@ -38,14 +38,17 @@ def setup_module():
     """Setup module-level mock."""
     pass  # Mock is set above
 
+
 def teardown_module():
     """Remove the mock to avoid affecting other tests."""
     if "src.services.encryption" in sys.modules:
         del sys.modules["src.services.encryption"]
 
+
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_msal_app():
@@ -60,9 +63,7 @@ def mock_msal_app():
 def ms_graph_client(mock_msal_app):
     """Create a test MSGraphClient instance."""
     client = MSGraphClient(
-        tenant_id="test-tenant-id",
-        client_id="test-client-id",
-        client_secret="test-client-secret"
+        tenant_id="test-tenant-id", client_id="test-client-id", client_secret="test-client-secret"
     )
     return client
 
@@ -81,16 +82,18 @@ def mock_token_response():
 def mock_organization_response():
     """Return a mock organization response."""
     return {
-        "value": [{
-            "id": "test-tenant-id",
-            "displayName": "Test Organization",
-            "verifiedDomains": [
-                {"name": "test.com", "isDefault": True, "isInitial": False},
-                {"name": "test.onmicrosoft.com", "isDefault": False, "isInitial": True},
-            ],
-            "createdDateTime": "2020-01-01T00:00:00Z",
-            "tenantType": "AAD",
-        }]
+        "value": [
+            {
+                "id": "test-tenant-id",
+                "displayName": "Test Organization",
+                "verifiedDomains": [
+                    {"name": "test.com", "isDefault": True, "isInitial": False},
+                    {"name": "test.onmicrosoft.com", "isDefault": False, "isInitial": True},
+                ],
+                "createdDateTime": "2020-01-01T00:00:00Z",
+                "tenantType": "AAD",
+            }
+        ]
     }
 
 
@@ -122,6 +125,7 @@ def mock_users_response():
 # Authentication Tests
 # =============================================================================
 
+
 class TestMSGraphAuthentication:
     """Test cases for MSAL integration and token acquisition."""
 
@@ -134,7 +138,9 @@ class TestMSGraphAuthentication:
         assert ms_graph_client.scope == ["https://graph.microsoft.com/.default"]
 
     @pytest.mark.asyncio
-    async def test_get_access_token_success(self, ms_graph_client, mock_msal_app, mock_token_response):
+    async def test_get_access_token_success(
+        self, ms_graph_client, mock_msal_app, mock_token_response
+    ):
         """Test successful token acquisition from MSAL."""
         mock_msal_app.acquire_token_silent.return_value = None  # No cached token
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -143,8 +149,7 @@ class TestMSGraphAuthentication:
 
         assert token == "mock-access-token-12345"
         mock_msal_app.acquire_token_silent.assert_called_once_with(
-            ["https://graph.microsoft.com/.default"],
-            account=None
+            ["https://graph.microsoft.com/.default"], account=None
         )
         mock_msal_app.acquire_token_for_client.assert_called_once_with(
             scopes=["https://graph.microsoft.com/.default"]
@@ -209,7 +214,9 @@ class TestMSGraphAuthentication:
         assert "Unknown error" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_get_access_token_expired_refresh(self, ms_graph_client, mock_msal_app, mock_token_response):
+    async def test_get_access_token_expired_refresh(
+        self, ms_graph_client, mock_msal_app, mock_token_response
+    ):
         """Test automatic token refresh when token expires."""
         # First call fails with expired token, second succeeds
         mock_msal_app.acquire_token_silent.side_effect = [None, mock_token_response]
@@ -223,11 +230,14 @@ class TestMSGraphAuthentication:
 # API Response Tests
 # =============================================================================
 
+
 class TestMSGraphAPIResponses:
     """Test cases for API response handling."""
 
     @pytest.mark.asyncio
-    async def test_validate_credentials_success(self, ms_graph_client, mock_msal_app, mock_token_response, mock_organization_response):
+    async def test_validate_credentials_success(
+        self, ms_graph_client, mock_msal_app, mock_token_response, mock_organization_response
+    ):
         """Test successful tenant credential validation."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -251,7 +261,9 @@ class TestMSGraphAPIResponses:
             assert len(result["verified_domains"]) == 2
 
     @pytest.mark.asyncio
-    async def test_validate_credentials_empty_response(self, ms_graph_client, mock_msal_app, mock_token_response):
+    async def test_validate_credentials_empty_response(
+        self, ms_graph_client, mock_msal_app, mock_token_response
+    ):
         """Test validation with empty organization response."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -273,7 +285,9 @@ class TestMSGraphAPIResponses:
             assert result["tenant_id"] == ""
 
     @pytest.mark.asyncio
-    async def test_validate_credentials_malformed_json(self, ms_graph_client, mock_msal_app, mock_token_response):
+    async def test_validate_credentials_malformed_json(
+        self, ms_graph_client, mock_msal_app, mock_token_response
+    ):
         """Test handling of malformed JSON response."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -292,7 +306,9 @@ class TestMSGraphAPIResponses:
                 await ms_graph_client.validate_credentials()
 
     @pytest.mark.asyncio
-    async def test_get_tenant_info_success(self, ms_graph_client, mock_msal_app, mock_token_response, mock_organization_response):
+    async def test_get_tenant_info_success(
+        self, ms_graph_client, mock_msal_app, mock_token_response, mock_organization_response
+    ):
         """Test successful tenant info fetch."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -316,7 +332,9 @@ class TestMSGraphAPIResponses:
             mock_client.get.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_tenant_info_empty_response(self, ms_graph_client, mock_msal_app, mock_token_response):
+    async def test_get_tenant_info_empty_response(
+        self, ms_graph_client, mock_msal_app, mock_token_response
+    ):
         """Test tenant info with empty response."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -340,6 +358,7 @@ class TestMSGraphAPIResponses:
 # =============================================================================
 # Error Handling Tests
 # =============================================================================
+
 
 class TestMSGraphErrorHandling:
     """Test cases for HTTP error handling."""
@@ -377,9 +396,7 @@ class TestMSGraphErrorHandling:
             mock_response.text = "Forbidden - Insufficient permissions"
             mock_response.raise_for_status = MagicMock()
             mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-                "Forbidden",
-                request=MagicMock(),
-                response=mock_response
+                "Forbidden", request=MagicMock(), response=mock_response
             )
 
             mock_client = AsyncMock()
@@ -403,9 +420,7 @@ class TestMSGraphErrorHandling:
             mock_response.text = "Rate limit exceeded"
             mock_response.raise_for_status = MagicMock()
             mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-                "Rate limit exceeded",
-                request=MagicMock(),
-                response=mock_response
+                "Rate limit exceeded", request=MagicMock(), response=mock_response
             )
 
             mock_client = AsyncMock()
@@ -449,9 +464,7 @@ class TestMSGraphErrorHandling:
             mock_response.text = "Bad Gateway"
             mock_response.raise_for_status = MagicMock()
             mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-                "Bad Gateway",
-                request=MagicMock(),
-                response=mock_response
+                "Bad Gateway", request=MagicMock(), response=mock_response
             )
 
             mock_client = AsyncMock()
@@ -496,6 +509,7 @@ class TestMSGraphErrorHandling:
 # =============================================================================
 # Pagination Tests
 # =============================================================================
+
 
 class TestMSGraphPagination:
     """Test cases for API pagination handling."""
@@ -612,11 +626,14 @@ class TestMSGraphPagination:
 # Rate Limiting Tests
 # =============================================================================
 
+
 class TestMSGraphRateLimiting:
     """Test cases for rate limiting behavior."""
 
     @pytest.mark.asyncio
-    async def test_retry_after_header_parsing(self, ms_graph_client, mock_msal_app, mock_token_response):
+    async def test_retry_after_header_parsing(
+        self, ms_graph_client, mock_msal_app, mock_token_response
+    ):
         """Test parsing of Retry-After header."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -628,9 +645,7 @@ class TestMSGraphRateLimiting:
             mock_response.text = "Rate limited"
             mock_response.raise_for_status = Mock()
             mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-                "Rate limited",
-                request=MagicMock(),
-                response=mock_response
+                "Rate limited", request=MagicMock(), response=mock_response
             )
 
             mock_client = AsyncMock()
@@ -643,7 +658,9 @@ class TestMSGraphRateLimiting:
                 await ms_graph_client.get_tenant_info()
 
     @pytest.mark.asyncio
-    async def test_rate_limit_without_retry_after(self, ms_graph_client, mock_msal_app, mock_token_response):
+    async def test_rate_limit_without_retry_after(
+        self, ms_graph_client, mock_msal_app, mock_token_response
+    ):
         """Test rate limit without Retry-After header."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -655,9 +672,7 @@ class TestMSGraphRateLimiting:
             mock_response.text = "Rate limited"
             mock_response.raise_for_status = Mock()
             mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-                "Rate limited",
-                request=MagicMock(),
-                response=mock_response
+                "Rate limited", request=MagicMock(), response=mock_response
             )
 
             mock_client = AsyncMock()
@@ -673,10 +688,12 @@ class TestMSGraphRateLimiting:
         """Test exponential backoff calculation logic."""
         # The O365 feed client has backoff logic
         # Verify the client has retry configuration
-        assert hasattr(ms_graph_client, 'app')
+        assert hasattr(ms_graph_client, "app")
 
     @pytest.mark.asyncio
-    async def test_successful_request_after_rate_limit(self, ms_graph_client, mock_msal_app, mock_token_response):
+    async def test_successful_request_after_rate_limit(
+        self, ms_graph_client, mock_msal_app, mock_token_response
+    ):
         """Test successful request after handling rate limit."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -698,6 +715,7 @@ class TestMSGraphRateLimiting:
 # Validate Tenant Credentials Function Tests
 # =============================================================================
 
+
 class TestValidateTenantCredentials:
     """Test cases for validate_tenant_credentials convenience function."""
 
@@ -706,18 +724,18 @@ class TestValidateTenantCredentials:
         """Test successful validation via convenience function."""
         with patch("src.clients.ms_graph.MSGraphClient") as mock_client_class:
             mock_client = MagicMock()
-            mock_client.validate_credentials = AsyncMock(return_value={
-                "valid": True,
-                "display_name": "Test Org",
-                "tenant_id": "test-tenant",
-                "verified_domains": [{"name": "test.com"}],
-            })
+            mock_client.validate_credentials = AsyncMock(
+                return_value={
+                    "valid": True,
+                    "display_name": "Test Org",
+                    "tenant_id": "test-tenant",
+                    "verified_domains": [{"name": "test.com"}],
+                }
+            )
             mock_client_class.return_value = mock_client
 
             result = await validate_tenant_credentials(
-                tenant_id="test-tenant",
-                client_id="test-client",
-                client_secret="test-secret"
+                tenant_id="test-tenant", client_id="test-client", client_secret="test-secret"
             )
 
             assert result["valid"] is True
@@ -740,7 +758,7 @@ class TestValidateTenantCredentials:
                 await validate_tenant_credentials(
                     tenant_id="test-tenant",
                     client_id="invalid-client",
-                    client_secret="invalid-secret"
+                    client_secret="invalid-secret",
                 )
 
     @pytest.mark.asyncio
@@ -755,9 +773,7 @@ class TestValidateTenantCredentials:
 
             with pytest.raises(MSGraphAPIError):
                 await validate_tenant_credentials(
-                    tenant_id="test-tenant",
-                    client_id="test-client",
-                    client_secret="test-secret"
+                    tenant_id="test-tenant", client_id="test-client", client_secret="test-secret"
                 )
 
 
@@ -765,11 +781,14 @@ class TestValidateTenantCredentials:
 # Edge Cases and Integration Tests
 # =============================================================================
 
+
 class TestMSGraphEdgeCases:
     """Test edge cases and integration scenarios."""
 
     @pytest.mark.asyncio
-    async def test_concurrent_token_requests(self, ms_graph_client, mock_msal_app, mock_token_response):
+    async def test_concurrent_token_requests(
+        self, ms_graph_client, mock_msal_app, mock_token_response
+    ):
         """Test handling of concurrent token requests."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -786,7 +805,7 @@ class TestMSGraphEdgeCases:
         client = MSGraphClient(
             tenant_id="test-tenant-id",
             client_id="test-client-id",
-            client_secret="test-secret-with-special-chars-!@#$%"
+            client_secret="test-secret-with-special-chars-!@#$%",
         )
         assert client.client_secret == "test-secret-with-special-chars-!@#$%"
 
@@ -800,11 +819,13 @@ class TestMSGraphEdgeCases:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = {
-                "value": [{
-                    "id": "test-tenant-id",
-                    "displayName": "Test Org",
-                    "verifiedDomains": [],  # Empty list
-                }]
+                "value": [
+                    {
+                        "id": "test-tenant-id",
+                        "displayName": "Test Org",
+                        "verifiedDomains": [],  # Empty list
+                    }
+                ]
             }
 
             mock_client = AsyncMock()
@@ -818,7 +839,9 @@ class TestMSGraphEdgeCases:
             assert result["verified_domains"] == []
 
     @pytest.mark.asyncio
-    async def test_missing_optional_fields(self, ms_graph_client, mock_msal_app, mock_token_response):
+    async def test_missing_optional_fields(
+        self, ms_graph_client, mock_msal_app, mock_token_response
+    ):
         """Test handling of missing optional fields in response."""
         mock_msal_app.acquire_token_silent.return_value = None
         mock_msal_app.acquire_token_for_client.return_value = mock_token_response
@@ -827,11 +850,13 @@ class TestMSGraphEdgeCases:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = {
-                "value": [{
-                    "id": "test-tenant-id",
-                    # displayName missing
-                    # verifiedDomains missing
-                }]
+                "value": [
+                    {
+                        "id": "test-tenant-id",
+                        # displayName missing
+                        # verifiedDomains missing
+                    }
+                ]
             }
 
             mock_client = AsyncMock()

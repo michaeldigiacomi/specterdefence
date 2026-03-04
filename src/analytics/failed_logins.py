@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import redis.asyncio as redis
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +13,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FailureCount:
     """Failure count result."""
+
     count: int
     window_start: datetime
     window_end: datetime
@@ -23,6 +23,7 @@ class FailureCount:
 @dataclass
 class BruteForceAlert:
     """Brute force alert details."""
+
     triggered: bool
     user_email: str | None
     ip_address: str | None
@@ -80,7 +81,7 @@ class FailedLoginTracker:
         redis_client: redis.Redis | None = None,
         failure_threshold: int = DEFAULT_FAILURE_THRESHOLD,
         window_minutes: int = DEFAULT_WINDOW_MINUTES,
-        suppress_after_alert_minutes: int = DEFAULT_SUPPRESS_AFTER_ALERT_MINUTES
+        suppress_after_alert_minutes: int = DEFAULT_SUPPRESS_AFTER_ALERT_MINUTES,
     ):
         """
         Initialize the failed login tracker.
@@ -102,9 +103,7 @@ class FailedLoginTracker:
         if self.redis is None:
             try:
                 self.redis = await redis.from_url(
-                    "redis://localhost:6379",
-                    encoding="utf-8",
-                    decode_responses=True
+                    "redis://localhost:6379", encoding="utf-8", decode_responses=True
                 )
             except Exception as e:
                 logger.warning(f"Redis unavailable, using local cache: {e}")
@@ -145,7 +144,7 @@ class FailedLoginTracker:
         ip_address: str,
         error_code: int | None = None,
         failure_reason: str | None = None,
-        timestamp: datetime | None = None
+        timestamp: datetime | None = None,
     ) -> FailureCount:
         """
         Record a failed login attempt.
@@ -220,7 +219,7 @@ class FailedLoginTracker:
             count=max(user_count, ip_count),
             window_start=window_start,
             window_end=window_end,
-            key=f"{user_key}/{ip_key}"
+            key=f"{user_key}/{ip_key}",
         )
 
     def _add_to_local_cache(self, key: str, timestamp: datetime):
@@ -230,10 +229,7 @@ class FailedLoginTracker:
 
         # Clean old entries
         cutoff = timestamp - timedelta(minutes=self.window_minutes)
-        self._local_cache[key] = [
-            ts for ts in self._local_cache[key]
-            if ts > cutoff
-        ]
+        self._local_cache[key] = [ts for ts in self._local_cache[key] if ts > cutoff]
 
         self._local_cache[key].append(timestamp)
 
@@ -241,7 +237,7 @@ class FailedLoginTracker:
         self,
         user_email: str | None = None,
         ip_address: str | None = None,
-        tenant_id: str | None = None
+        tenant_id: str | None = None,
     ) -> FailureCount:
         """
         Get current failure count for user and/or IP.
@@ -278,8 +274,7 @@ class FailedLoginTracker:
                 user_key = self._get_user_key(user_email, tenant_id)
                 if user_key in self._local_cache:
                     self._local_cache[user_key] = [
-                        ts for ts in self._local_cache[user_key]
-                        if ts > window_start
+                        ts for ts in self._local_cache[user_key] if ts > window_start
                     ]
                     user_count = len(self._local_cache[user_key])
 
@@ -287,8 +282,7 @@ class FailedLoginTracker:
                 ip_key = self._get_ip_key(ip_address, tenant_id)
                 if ip_key in self._local_cache:
                     self._local_cache[ip_key] = [
-                        ts for ts in self._local_cache[ip_key]
-                        if ts > window_start
+                        ts for ts in self._local_cache[ip_key] if ts > window_start
                     ]
                     ip_count = len(self._local_cache[ip_key])
 
@@ -296,14 +290,11 @@ class FailedLoginTracker:
             count=max(user_count, ip_count),
             window_start=window_start,
             window_end=now,
-            key=f"user:{user_email}/ip:{ip_address}"
+            key=f"user:{user_email}/ip:{ip_address}",
         )
 
     async def check_brute_force(
-        self,
-        user_email: str,
-        tenant_id: str,
-        ip_address: str
+        self, user_email: str, tenant_id: str, ip_address: str
     ) -> BruteForceAlert:
         """
         Check if brute force attack is detected.
@@ -334,7 +325,7 @@ class FailedLoginTracker:
             suppressed = suppress_ttl > 0
         else:
             # Check local suppression
-            suppressed = suppress_key in getattr(self, '_suppress_cache', {})
+            suppressed = suppress_key in getattr(self, "_suppress_cache", {})
 
         # Build alert details
         alert_type = None
@@ -373,7 +364,7 @@ class FailedLoginTracker:
                 suppress_seconds = self.suppress_after_alert_minutes * 60
                 await redis_client.setex(suppress_key, suppress_seconds, "1")
             else:
-                if not hasattr(self, '_suppress_cache'):
+                if not hasattr(self, "_suppress_cache"):
                     self._suppress_cache = {}
                 self._suppress_cache[suppress_key] = datetime.utcnow()
 
@@ -386,14 +377,14 @@ class FailedLoginTracker:
             window_minutes=self.window_minutes,
             alert_type=alert_type or "none",
             details=details,
-            suppressed=suppressed and triggered
+            suppressed=suppressed and triggered,
         )
 
     async def clear_failures(
         self,
         user_email: str | None = None,
         ip_address: str | None = None,
-        tenant_id: str | None = None
+        tenant_id: str | None = None,
     ) -> bool:
         """
         Clear failure counts for user and/or IP.
@@ -441,16 +432,12 @@ class FailedLoginTracker:
             suppress_key = self._get_suppress_key(user_email, ip_address, tenant_id)
             if redis_client:
                 await redis_client.delete(suppress_key)
-            elif hasattr(self, '_suppress_cache') and suppress_key in self._suppress_cache:
+            elif hasattr(self, "_suppress_cache") and suppress_key in self._suppress_cache:
                 del self._suppress_cache[suppress_key]
 
         return cleared
 
-    async def get_failure_stats(
-        self,
-        tenant_id: str,
-        minutes: int | None = None
-    ) -> dict[str, Any]:
+    async def get_failure_stats(self, tenant_id: str, minutes: int | None = None) -> dict[str, Any]:
         """
         Get failure statistics for a tenant.
 
@@ -499,9 +486,7 @@ class FailedLoginTracker:
                 user_counts.append((user_email, count))
 
             user_counts.sort(key=lambda x: x[1], reverse=True)
-            stats["top_users"] = [
-                {"user": u, "failures": c} for u, c in user_counts[:5]
-            ]
+            stats["top_users"] = [{"user": u, "failures": c} for u, c in user_counts[:5]]
 
             # Scan for IP keys
             ip_pattern = f"{self.KEY_PREFIX_IP}:{tenant_id}:*"
@@ -521,9 +506,7 @@ class FailedLoginTracker:
                 ip_counts.append((ip_address, count))
 
             ip_counts.sort(key=lambda x: x[1], reverse=True)
-            stats["top_ips"] = [
-                {"ip": ip, "failures": c} for ip, c in ip_counts[:5]
-            ]
+            stats["top_ips"] = [{"ip": ip, "failures": c} for ip, c in ip_counts[:5]]
 
         return stats
 
@@ -535,7 +518,7 @@ _failed_login_tracker: FailedLoginTracker | None = None
 def get_failed_login_tracker(
     redis_client: redis.Redis | None = None,
     failure_threshold: int = FailedLoginTracker.DEFAULT_FAILURE_THRESHOLD,
-    window_minutes: int = FailedLoginTracker.DEFAULT_WINDOW_MINUTES
+    window_minutes: int = FailedLoginTracker.DEFAULT_WINDOW_MINUTES,
 ) -> FailedLoginTracker:
     """Get or create singleton failed login tracker."""
     global _failed_login_tracker
@@ -543,6 +526,6 @@ def get_failed_login_tracker(
         _failed_login_tracker = FailedLoginTracker(
             redis_client=redis_client,
             failure_threshold=failure_threshold,
-            window_minutes=window_minutes
+            window_minutes=window_minutes,
         )
     return _failed_login_tracker

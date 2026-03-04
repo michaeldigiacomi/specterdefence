@@ -23,7 +23,7 @@ class LoginAnalyticsService:
         self,
         db: AsyncSession,
         geo_ip_client: GeoIPClient | None = None,
-        anomaly_detector: AnomalyDetector | None = None
+        anomaly_detector: AnomalyDetector | None = None,
     ):
         """
         Initialize the login analytics service.
@@ -45,7 +45,7 @@ class LoginAnalyticsService:
         login_time: datetime,
         is_success: bool = True,
         failure_reason: str | None = None,
-        audit_log_id: UUID | None = None
+        audit_log_id: UUID | None = None,
     ) -> LoginAnalyticsModel:
         """
         Process a login event and store analytics data.
@@ -81,7 +81,7 @@ class LoginAnalyticsService:
             "longitude": geo.longitude,
             "login_time": login_time,
             "is_success": is_success,
-            "failure_reason": failure_reason
+            "failure_reason": failure_reason,
         }
 
         prev_login_data = None
@@ -91,20 +91,20 @@ class LoginAnalyticsService:
                 "longitude": previous_login.longitude,
                 "country_code": previous_login.country_code,
                 "city": previous_login.city,
-                "login_time": previous_login.login_time
+                "login_time": previous_login.login_time,
             }
 
         user_history_data = {
             "known_countries": user_history.known_countries,
             "known_ips": user_history.known_ips,
-            "failed_attempts_24h": user_history.failed_attempts_24h
+            "failed_attempts_24h": user_history.failed_attempts_24h,
         }
 
         # Perform anomaly detection
         anomaly_results = self.detector.analyze_login(
             current_login=current_login,
             previous_login=prev_login_data,
-            user_history=user_history_data
+            user_history=user_history_data,
         )
 
         # Extract anomaly flags and calculate max risk score
@@ -133,7 +133,7 @@ class LoginAnalyticsService:
             is_success=is_success,
             failure_reason=failure_reason,
             anomaly_flags=anomaly_flags,
-            risk_score=max_risk_score
+            risk_score=max_risk_score,
         )
 
         self.db.add(login_record)
@@ -141,9 +141,7 @@ class LoginAnalyticsService:
 
         # Update user history
         await self._update_user_history(
-            user_history=user_history,
-            login_record=login_record,
-            anomaly_results=anomaly_results
+            user_history=user_history, login_record=login_record, anomaly_results=anomaly_results
         )
 
         await self.db.commit()
@@ -151,16 +149,14 @@ class LoginAnalyticsService:
         return login_record
 
     async def _get_or_create_user_history(
-        self,
-        user_email: str,
-        tenant_id: str
+        self, user_email: str, tenant_id: str
     ) -> UserLoginHistoryModel:
         """Get or create user login history record."""
         result = await self.db.execute(
             select(UserLoginHistoryModel).where(
                 and_(
                     UserLoginHistoryModel.user_email == user_email,
-                    UserLoginHistoryModel.tenant_id == tenant_id
+                    UserLoginHistoryModel.tenant_id == tenant_id,
                 )
             )
         )
@@ -174,7 +170,7 @@ class LoginAnalyticsService:
                 known_countries=[],
                 known_ips=[],
                 total_logins=0,
-                failed_attempts_24h=0
+                failed_attempts_24h=0,
             )
             self.db.add(history)
             await self.db.flush()
@@ -182,19 +178,20 @@ class LoginAnalyticsService:
         return history
 
     async def _get_previous_login(
-        self,
-        user_email: str,
-        tenant_id: str
+        self, user_email: str, tenant_id: str
     ) -> LoginAnalyticsModel | None:
         """Get the most recent successful login for a user."""
         result = await self.db.execute(
-            select(LoginAnalyticsModel).where(
+            select(LoginAnalyticsModel)
+            .where(
                 and_(
                     LoginAnalyticsModel.user_email == user_email,
                     LoginAnalyticsModel.tenant_id == tenant_id,
-                    LoginAnalyticsModel.is_success
+                    LoginAnalyticsModel.is_success,
                 )
-            ).order_by(desc(LoginAnalyticsModel.login_time)).limit(1)
+            )
+            .order_by(desc(LoginAnalyticsModel.login_time))
+            .limit(1)
         )
 
         return result.scalar_one_or_none()
@@ -203,7 +200,7 @@ class LoginAnalyticsService:
         self,
         user_history: UserLoginHistoryModel,
         login_record: LoginAnalyticsModel,
-        anomaly_results: list[AnomalyResult]
+        anomaly_results: list[AnomalyResult],
     ):
         """Update user login history based on new login."""
         # Update failed attempts counter
@@ -218,29 +215,26 @@ class LoginAnalyticsService:
             # Update known countries
             if login_record.country_code:
                 country_result = next(
-                    (r for r in anomaly_results if r.type == AnomalyType.NEW_COUNTRY),
-                    None
+                    (r for r in anomaly_results if r.type == AnomalyType.NEW_COUNTRY), None
                 )
 
                 # Add to known countries if configured to auto-add
                 if country_result and country_result.detected:
                     config = await self._get_anomaly_config(user_history.tenant_id)
                     if config is None or config.auto_add_known_countries:
-                        user_history.known_countries = (
-                            user_history.known_countries + [login_record.country_code]
-                        )
+                        user_history.known_countries = user_history.known_countries + [
+                            login_record.country_code
+                        ]
                 elif not country_result or not country_result.detected:
                     # Already known, ensure it's in the list
                     if login_record.country_code not in user_history.known_countries:
-                        user_history.known_countries = (
-                            user_history.known_countries + [login_record.country_code]
-                        )
+                        user_history.known_countries = user_history.known_countries + [
+                            login_record.country_code
+                        ]
 
             # Update known IPs
             if login_record.ip_address and login_record.ip_address not in user_history.known_ips:
-                user_history.known_ips = (
-                    user_history.known_ips + [login_record.ip_address]
-                )
+                user_history.known_ips = user_history.known_ips + [login_record.ip_address]
 
             # Update last login info
             user_history.last_login_time = login_record.login_time
@@ -250,15 +244,10 @@ class LoginAnalyticsService:
             user_history.last_longitude = login_record.longitude
             user_history.total_logins += 1
 
-    async def _get_anomaly_config(
-        self,
-        tenant_id: str
-    ) -> AnomalyDetectionConfig | None:
+    async def _get_anomaly_config(self, tenant_id: str) -> AnomalyDetectionConfig | None:
         """Get anomaly detection configuration for a tenant."""
         result = await self.db.execute(
-            select(AnomalyDetectionConfig).where(
-                AnomalyDetectionConfig.tenant_id == tenant_id
-            )
+            select(AnomalyDetectionConfig).where(AnomalyDetectionConfig.tenant_id == tenant_id)
         )
         return result.scalar_one_or_none()
 
@@ -276,7 +265,7 @@ class LoginAnalyticsService:
         anomaly_type: str | None = None,
         min_risk_score: int | None = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> tuple[list[LoginAnalyticsModel], int]:
         """
         Query login analytics with filters.
@@ -320,14 +309,12 @@ class LoginAnalyticsService:
                 filters.append(
                     or_(
                         LoginAnalyticsModel.anomaly_flags == [],
-                        LoginAnalyticsModel.anomaly_flags.is_(None)
+                        LoginAnalyticsModel.anomaly_flags.is_(None),
                     )
                 )
 
         if anomaly_type:
-            filters.append(
-                LoginAnalyticsModel.anomaly_flags.contains([anomaly_type])
-            )
+            filters.append(LoginAnalyticsModel.anomaly_flags.contains([anomaly_type]))
 
         if min_risk_score is not None:
             filters.append(LoginAnalyticsModel.risk_score >= min_risk_score)
@@ -342,29 +329,21 @@ class LoginAnalyticsService:
         total = count_result.scalar()
 
         # Apply ordering, limit, offset
-        query = (
-            query.order_by(desc(LoginAnalyticsModel.login_time))
-            .offset(offset)
-            .limit(limit)
-        )
+        query = query.order_by(desc(LoginAnalyticsModel.login_time)).offset(offset).limit(limit)
 
         result = await self.db.execute(query)
         logins = result.scalars().all()
 
         return list(logins), total
 
-    async def get_user_login_summary(
-        self,
-        user_email: str,
-        tenant_id: str
-    ) -> dict[str, Any]:
+    async def get_user_login_summary(self, user_email: str, tenant_id: str) -> dict[str, Any]:
         """Get summary statistics for a user's login activity."""
         # Get user history
         result = await self.db.execute(
             select(UserLoginHistoryModel).where(
                 and_(
                     UserLoginHistoryModel.user_email == user_email,
-                    UserLoginHistoryModel.tenant_id == tenant_id
+                    UserLoginHistoryModel.tenant_id == tenant_id,
                 )
             )
         )
@@ -377,18 +356,21 @@ class LoginAnalyticsService:
                 "total_logins": 0,
                 "known_countries": [],
                 "known_ips_count": 0,
-                "failed_attempts_24h": 0
+                "failed_attempts_24h": 0,
             }
 
         # Get recent anomalies
         result = await self.db.execute(
-            select(LoginAnalyticsModel).where(
+            select(LoginAnalyticsModel)
+            .where(
                 and_(
                     LoginAnalyticsModel.user_email == user_email,
                     LoginAnalyticsModel.tenant_id == tenant_id,
-                    LoginAnalyticsModel.anomaly_flags != []
+                    LoginAnalyticsModel.anomaly_flags != [],
                 )
-            ).order_by(desc(LoginAnalyticsModel.login_time)).limit(10)
+            )
+            .order_by(desc(LoginAnalyticsModel.login_time))
+            .limit(10)
         )
         recent_anomalies = result.scalars().all()
 
@@ -398,7 +380,9 @@ class LoginAnalyticsService:
             "total_logins": history.total_logins,
             "known_countries": history.known_countries,
             "known_ips_count": len(history.known_ips),
-            "last_login_time": history.last_login_time.isoformat() if history.last_login_time else None,
+            "last_login_time": history.last_login_time.isoformat()
+            if history.last_login_time
+            else None,
             "last_login_country": history.last_login_country,
             "failed_attempts_24h": history.failed_attempts_24h,
             "recent_anomalies": [
@@ -407,10 +391,10 @@ class LoginAnalyticsService:
                     "anomaly_flags": a.anomaly_flags,
                     "risk_score": a.risk_score,
                     "country": a.country,
-                    "ip_address": a.ip_address
+                    "ip_address": a.ip_address,
                 }
                 for a in recent_anomalies
-            ]
+            ],
         }
 
     async def process_audit_log_signins(self, tenant_id: str, limit: int = 100) -> int:
@@ -426,13 +410,16 @@ class LoginAnalyticsService:
         """
         # Get unprocessed signin logs
         result = await self.db.execute(
-            select(AuditLogModel).where(
+            select(AuditLogModel)
+            .where(
                 and_(
                     AuditLogModel.tenant_id == tenant_id,
                     AuditLogModel.log_type == LogType.SIGNIN,
-                    not AuditLogModel.processed
+                    not AuditLogModel.processed,
                 )
-            ).order_by(AuditLogModel.o365_created_at).limit(limit)
+            )
+            .order_by(AuditLogModel.o365_created_at)
+            .limit(limit)
         )
 
         logs = result.scalars().all()
@@ -455,7 +442,7 @@ class LoginAnalyticsService:
                 login_time_str = raw_data.get("CreationTime") or raw_data.get("CreatedDateTime")
                 if login_time_str:
                     try:
-                        login_time = datetime.fromisoformat(login_time_str.replace('Z', '+00:00'))
+                        login_time = datetime.fromisoformat(login_time_str.replace("Z", "+00:00"))
                     except (ValueError, AttributeError):
                         login_time = log.o365_created_at or log.created_at
                 else:
@@ -477,7 +464,7 @@ class LoginAnalyticsService:
                     login_time=login_time,
                     is_success=is_success,
                     failure_reason=failure_reason,
-                    audit_log_id=log.id
+                    audit_log_id=log.id,
                 )
 
                 log.processed = True

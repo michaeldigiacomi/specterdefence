@@ -96,7 +96,7 @@ class TestMFAReportClient:
         mock_response1.status_code = 200
         mock_response1.json.return_value = {
             "value": [{"id": "user-1", "displayName": "User 1"}],
-            "@odata.nextLink": "https://next.page"
+            "@odata.nextLink": "https://next.page",
         }
 
         mock_response2 = MagicMock()
@@ -122,7 +122,9 @@ class TestMFAReportClient:
                 await mfa_client.get_all_users()
 
     @pytest.mark.asyncio
-    async def test_get_user_mfa_methods_success(self, mfa_client, mock_graph_client, sample_mfa_methods):
+    async def test_get_user_mfa_methods_success(
+        self, mfa_client, mock_graph_client, sample_mfa_methods
+    ):
         """Test successful retrieval of user MFA methods."""
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -132,7 +134,10 @@ class TestMFAReportClient:
             result = await mfa_client.get_user_mfa_methods("user-123")
 
         assert len(result) == 2
-        assert result[0]["@odata.type"] == "#microsoft.graph.microsoftAuthenticatorAuthenticationMethod"
+        assert (
+            result[0]["@odata.type"]
+            == "#microsoft.graph.microsoftAuthenticatorAuthenticationMethod"
+        )
 
     @pytest.mark.asyncio
     async def test_get_user_mfa_methods_not_found(self, mfa_client, mock_graph_client):
@@ -146,7 +151,9 @@ class TestMFAReportClient:
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_get_user_directory_roles_success(self, mfa_client, mock_graph_client, sample_admin_roles):
+    async def test_get_user_directory_roles_success(
+        self, mfa_client, mock_graph_client, sample_admin_roles
+    ):
         """Test successful retrieval of user directory roles."""
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -209,7 +216,11 @@ class TestMFAReportClient:
     def test_analyze_mfa_methods_weak_only(self, mfa_client):
         """Test MFA method analysis with only weak methods."""
         methods = [
-            {"@odata.type": "#microsoft.graph.phoneAuthenticationMethod", "id": "phone-1", "phoneType": "mobile"},
+            {
+                "@odata.type": "#microsoft.graph.phoneAuthenticationMethod",
+                "id": "phone-1",
+                "phoneType": "mobile",
+            },
             {"@odata.type": "#microsoft.graph.emailAuthenticationMethod", "id": "email-1"},
         ]
 
@@ -304,7 +315,9 @@ class TestMFAReportClient:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_full_user_mfa_data(self, mfa_client, mock_graph_client, sample_user, sample_mfa_methods, sample_admin_roles):
+    async def test_get_full_user_mfa_data(
+        self, mfa_client, mock_graph_client, sample_user, sample_mfa_methods, sample_admin_roles
+    ):
         """Test getting complete MFA data for a user."""
         mock_response1 = MagicMock()
         mock_response1.status_code = 200
@@ -328,16 +341,30 @@ class TestMFAReportClient:
         """Test scanning all users for MFA."""
         # Mock get_all_users
         users = [
-            {"id": "user-1", "displayName": "User 1", "userPrincipalName": "user1@example.com", "accountEnabled": True},
-            {"id": "user-2", "displayName": "User 2", "userPrincipalName": "user2@example.com", "accountEnabled": True},
+            {
+                "id": "user-1",
+                "displayName": "User 1",
+                "userPrincipalName": "user1@example.com",
+                "accountEnabled": True,
+            },
+            {
+                "id": "user-2",
+                "displayName": "User 2",
+                "userPrincipalName": "user2@example.com",
+                "accountEnabled": True,
+            },
         ]
 
         with patch.object(mfa_client, "get_all_users", return_value=users):
-            with patch.object(mfa_client, "get_full_user_mfa_data", return_value={
-                "user_id": "user-1",
-                "is_mfa_registered": True,
-                "is_admin": False,
-            }):
+            with patch.object(
+                mfa_client,
+                "get_full_user_mfa_data",
+                return_value={
+                    "user_id": "user-1",
+                    "is_mfa_registered": True,
+                    "is_admin": False,
+                },
+            ):
                 result = await mfa_client.scan_all_users_mfa()
 
         assert len(result) == 2
@@ -355,10 +382,14 @@ class TestMFAReportClient:
             progress_calls.append((current, total))
 
         with patch.object(mfa_client, "get_all_users", return_value=users):
-            with patch.object(mfa_client, "get_full_user_mfa_data", return_value={
-                "user_id": "user-1",
-                "is_mfa_registered": True,
-            }):
+            with patch.object(
+                mfa_client,
+                "get_full_user_mfa_data",
+                return_value={
+                    "user_id": "user-1",
+                    "is_mfa_registered": True,
+                },
+            ):
                 await mfa_client.scan_all_users_mfa(progress_callback=progress_callback)
 
         assert len(progress_calls) == 1
@@ -374,7 +405,17 @@ class TestMFAReportClient:
 
     def test_mfa_method_mapping(self, mfa_client):
         """Test MFA method type mapping."""
-        assert mfa_client.MFA_METHOD_MAPPING["#microsoft.graph.fido2AuthenticationMethod"] == "fido2"
-        assert mfa_client.MFA_METHOD_MAPPING["#microsoft.graph.microsoftAuthenticatorAuthenticationMethod"] == "microsoftAuthenticator"
+        assert (
+            mfa_client.MFA_METHOD_MAPPING["#microsoft.graph.fido2AuthenticationMethod"] == "fido2"
+        )
+        assert (
+            mfa_client.MFA_METHOD_MAPPING[
+                "#microsoft.graph.microsoftAuthenticatorAuthenticationMethod"
+            ]
+            == "microsoftAuthenticator"
+        )
         assert mfa_client.MFA_METHOD_MAPPING["#microsoft.graph.phoneAuthenticationMethod"] == "sms"
-        assert mfa_client.MFA_METHOD_MAPPING["#microsoft.graph.passwordAuthenticationMethod"] == "password"
+        assert (
+            mfa_client.MFA_METHOD_MAPPING["#microsoft.graph.passwordAuthenticationMethod"]
+            == "password"
+        )

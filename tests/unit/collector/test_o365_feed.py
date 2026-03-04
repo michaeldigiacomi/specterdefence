@@ -80,7 +80,9 @@ class TestO365ManagementClient:
     async def test_get_access_token_failure(self, client, mock_msal_app):
         """Test token acquisition failure."""
         mock_msal_app.acquire_token_silent.return_value = None
-        mock_msal_app.acquire_token_for_client.return_value = {"error_description": "Invalid credentials"}
+        mock_msal_app.acquire_token_for_client.return_value = {
+            "error_description": "Invalid credentials"
+        }
 
         with pytest.raises(O365ManagementAuthError):
             await client._get_access_token()
@@ -164,9 +166,13 @@ class TestO365ManagementClient:
 
         # Mock token acquisition to return a valid token after 401
         mock_msal_app.acquire_token_silent.return_value = None
-        mock_msal_app.acquire_token_for_client.return_value = {"access_token": "new-token", "expires_in": 3600}
+        mock_msal_app.acquire_token_for_client.return_value = {
+            "access_token": "new-token",
+            "expires_in": 3600,
+        }
 
         call_count = 0
+
         def track_token_during_request(*args, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -196,9 +202,7 @@ class TestO365ManagementClient:
             result = await client.start_subscription("Audit.General")
 
             mock_request.assert_called_once_with(
-                "POST",
-                "activity/feed/subscriptions/start",
-                {"contentType": "Audit.General"}
+                "POST", "activity/feed/subscriptions/start", {"contentType": "Audit.General"}
             )
             assert result == {"status": "enabled"}
 
@@ -206,9 +210,7 @@ class TestO365ManagementClient:
     async def test_list_subscriptions(self, client):
         """Test listing subscriptions."""
         with patch.object(client, "_make_request", new_callable=AsyncMock) as mock_request:
-            mock_request.return_value = [
-                {"contentType": "Audit.General", "status": "enabled"}
-            ]
+            mock_request.return_value = [{"contentType": "Audit.General", "status": "enabled"}]
 
             result = await client.list_subscriptions()
 
@@ -225,13 +227,11 @@ class TestO365ManagementClient:
         with patch.object(client, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "contentUri": ["https://blob1.json", "https://blob2.json"],
-                "nextPageUri": None
+                "nextPageUri": None,
             }
 
             await client.get_content_blobs(
-                "Audit.General",
-                start_time=start_time,
-                end_time=end_time
+                "Audit.General", start_time=start_time, end_time=end_time
             )
 
             mock_request.assert_called_once()
@@ -239,7 +239,9 @@ class TestO365ManagementClient:
             assert call_args[0][0] == "GET"
             assert call_args[0][1] == "activity/feed/subscriptions/content"
             # Check params - they might be passed as positional or keyword arg
-            params_arg = call_args.kwargs.get("params") or (call_args[0][2] if len(call_args[0]) > 2 else None)
+            params_arg = call_args.kwargs.get("params") or (
+                call_args[0][2] if len(call_args[0]) > 2 else None
+            )
             if params_arg is None:
                 # Might be passed as second positional arg
                 params_arg = call_args[1] if len(call_args) > 1 else {}
@@ -258,7 +260,10 @@ class TestO365ManagementClient:
 
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"contentUri": ["https://blob3.json"], "nextPageUri": None}
+        mock_response.json.return_value = {
+            "contentUri": ["https://blob3.json"],
+            "nextPageUri": None,
+        }
         mock_response.raise_for_status = Mock()
 
         with patch("httpx.AsyncClient") as mock_client_class:
@@ -267,10 +272,7 @@ class TestO365ManagementClient:
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_response)
 
-            await client.get_content_blobs(
-                "Audit.General",
-                next_page_uri=next_page_uri
-            )
+            await client.get_content_blobs("Audit.General", next_page_uri=next_page_uri)
 
             mock_client.get.assert_called_once()
             call_args = mock_client.get.call_args
@@ -281,7 +283,11 @@ class TestO365ManagementClient:
         """Test downloading content from blob URL."""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.text = json.dumps({"id": "event1", "type": "test"}) + "\n" + json.dumps({"id": "event2", "type": "test"})
+        mock_response.text = (
+            json.dumps({"id": "event1", "type": "test"})
+            + "\n"
+            + json.dumps({"id": "event2", "type": "test"})
+        )
         mock_response.raise_for_status = Mock()
 
         with patch("httpx.AsyncClient") as mock_client_class:
@@ -319,24 +325,15 @@ class TestO365ManagementClient:
         """Test log collection with pagination."""
         # Mock get_content_blobs responses
         blob_responses = [
-            {
-                "contentUri": ["https://blob1.json"],
-                "nextPageUri": "https://next-page.json"
-            },
-            {
-                "contentUri": ["https://blob2.json"],
-                "nextPageUri": None
-            }
+            {"contentUri": ["https://blob1.json"], "nextPageUri": "https://next-page.json"},
+            {"contentUri": ["https://blob2.json"], "nextPageUri": None},
         ]
 
         with patch.object(client, "get_content_blobs", new_callable=AsyncMock) as mock_blobs:
             with patch.object(client, "download_content", new_callable=AsyncMock) as mock_download:
                 with patch("asyncio.sleep", new_callable=AsyncMock):
                     mock_blobs.side_effect = blob_responses
-                    mock_download.side_effect = [
-                        [{"id": "event1"}],
-                        [{"id": "event2"}]
-                    ]
+                    mock_download.side_effect = [[{"id": "event1"}], [{"id": "event2"}]]
 
                     batches = []
                     async for batch in client.collect_logs("Audit.General"):

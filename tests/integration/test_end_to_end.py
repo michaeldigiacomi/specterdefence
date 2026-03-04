@@ -59,7 +59,7 @@ class TestEndToEndSecurityEvents:
         service = LoginAnalyticsService(db_session)
 
         # Mock geo IP lookup
-        with patch.object(service.geo_ip, 'lookup', new_callable=AsyncMock) as mock_geo:
+        with patch.object(service.geo_ip, "lookup", new_callable=AsyncMock) as mock_geo:
             mock_geo.return_value = MagicMock(
                 country="United States",
                 country_code="US",
@@ -113,12 +113,13 @@ class TestEndToEndSecurityEvents:
 
         # 2. Create login analytics service with mocked geo that returns proper values
         from src.analytics.geo_ip import GeoIPClient
+
         geo_client = GeoIPClient()
 
         service = LoginAnalyticsService(db_session, geo_ip_client=geo_client)
 
         # 3. Process a new login from Japan (impossible travel)
-        with patch.object(service.geo_ip, 'lookup', new_callable=AsyncMock) as mock_geo:
+        with patch.object(service.geo_ip, "lookup", new_callable=AsyncMock) as mock_geo:
             # Return proper MagicMock with all needed attributes
             mock_location = MagicMock()
             mock_location.country = "Japan"
@@ -173,7 +174,7 @@ class TestEndToEndSecurityEvents:
         failed_ips = [f"192.168.100.{i}" for i in range(1, 6)]  # 5 different IPs
 
         for i, ip in enumerate(failed_ips):
-            with patch.object(service.geo_ip, 'lookup', new_callable=AsyncMock) as mock_geo:
+            with patch.object(service.geo_ip, "lookup", new_callable=AsyncMock) as mock_geo:
                 mock_geo.return_value = MagicMock(
                     country="United States",
                     country_code="US",
@@ -199,7 +200,7 @@ class TestEndToEndSecurityEvents:
         assert user_history.failed_attempts_24h == 5
 
         # 5. Process one more failed login (triggers multiple_failures)
-        with patch.object(service.geo_ip, 'lookup', new_callable=AsyncMock) as mock_geo:
+        with patch.object(service.geo_ip, "lookup", new_callable=AsyncMock) as mock_geo:
             mock_geo.return_value = MagicMock(
                 country="United States",
                 country_code="US",
@@ -235,7 +236,7 @@ class TestEndToEndSecurityEvents:
         # 2. Process login from France
         service = LoginAnalyticsService(db_session)
 
-        with patch.object(service.geo_ip, 'lookup', new_callable=AsyncMock) as mock_geo:
+        with patch.object(service.geo_ip, "lookup", new_callable=AsyncMock) as mock_geo:
             mock_geo.return_value = MagicMock(
                 country="France",
                 country_code="FR",
@@ -300,7 +301,7 @@ class TestAlertingFlow:
         engine = AlertEngine(db_session)
 
         # Mock Discord webhook to capture alert
-        with patch.object(engine, '_get_discord_client') as mock_get_client:
+        with patch.object(engine, "_get_discord_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_get_client.return_value = mock_client
 
@@ -359,7 +360,7 @@ class TestAlertingFlow:
         engine = AlertEngine(db_session)
 
         # Mock Discord client
-        with patch.object(engine, '_get_discord_client') as mock_get_client:
+        with patch.object(engine, "_get_discord_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_get_client.return_value = mock_client
 
@@ -381,9 +382,7 @@ class TestAlertingFlow:
         if len(results1) == 0:
             # Check if alert was still recorded
             result = await db_session.execute(
-                select(AlertHistoryModel).where(
-                    AlertHistoryModel.user_email == "test@example.com"
-                )
+                select(AlertHistoryModel).where(AlertHistoryModel.user_email == "test@example.com")
             )
             alerts = result.scalars().all()
             if len(alerts) == 0:
@@ -396,7 +395,7 @@ class TestAlertingFlow:
             assert results1[0]["status"] == "sent"
 
             # Second identical alert (should be deduplicated)
-            with patch.object(engine, '_get_discord_client') as mock_get_client:
+            with patch.object(engine, "_get_discord_client") as mock_get_client:
                 mock_client = AsyncMock()
                 mock_get_client.return_value = mock_client
 
@@ -430,7 +429,7 @@ class TestAlertingFlow:
         engine = AlertEngine(db_session)
 
         # Create brute force event
-        with patch.object(engine, '_get_discord_client') as mock_get_client:
+        with patch.object(engine, "_get_discord_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_get_client.return_value = mock_client
 
@@ -509,9 +508,7 @@ class TestCronJobExecution:
             ]
 
         mock_client.collect_logs = mock_collect_logs
-        mock_client.ensure_subscriptions = AsyncMock(
-            return_value=["Audit.AzureActiveDirectory"]
-        )
+        mock_client.ensure_subscriptions = AsyncMock(return_value=["Audit.AzureActiveDirectory"])
 
         # Execute collector
         async with TenantCollector(test_tenant, db_session) as collector:
@@ -560,18 +557,14 @@ class TestCronJobExecution:
             yield [original_event]
 
         mock_client.collect_logs = mock_collect_logs
-        mock_client.ensure_subscriptions = AsyncMock(
-            return_value=["Audit.AzureActiveDirectory"]
-        )
+        mock_client.ensure_subscriptions = AsyncMock(return_value=["Audit.AzureActiveDirectory"])
 
         async with TenantCollector(test_tenant, db_session) as collector:
             await collector.collect_all()
 
         # Retrieve stored log and verify integrity by tenant and raw_data content
         result = await db_session.execute(
-            select(AuditLogModel).where(
-                AuditLogModel.tenant_id == test_tenant.id
-            )
+            select(AuditLogModel).where(AuditLogModel.tenant_id == test_tenant.id)
         )
         stored_logs = result.scalars().all()
 
@@ -600,7 +593,9 @@ class TestAnomalyDetectorIntegration:
         detector = AnomalyDetector(travel_speed_kmh=900)
 
         # NYC coordinates
-        prev_location = Location(latitude=40.7128, longitude=-74.0060, city="New York", country="US")
+        prev_location = Location(
+            latitude=40.7128, longitude=-74.0060, city="New York", country="US"
+        )
         prev_time = datetime(2026, 3, 1, 10, 0, 0, tzinfo=UTC)
 
         # Tokyo coordinates
@@ -627,11 +622,15 @@ class TestAnomalyDetectorIntegration:
         detector = AnomalyDetector(travel_speed_kmh=900)
 
         # NYC
-        prev_location = Location(latitude=40.7128, longitude=-74.0060, city="New York", country="US")
+        prev_location = Location(
+            latitude=40.7128, longitude=-74.0060, city="New York", country="US"
+        )
         prev_time = datetime(2026, 3, 1, 10, 0, 0, tzinfo=UTC)
 
         # Washington DC (reasonable travel time)
-        curr_location = Location(latitude=38.9072, longitude=-77.0369, city="Washington DC", country="US")
+        curr_location = Location(
+            latitude=38.9072, longitude=-77.0369, city="Washington DC", country="US"
+        )
         curr_time = datetime(2026, 3, 1, 14, 0, 0, tzinfo=UTC)  # 4 hours later
 
         result = detector.detect_impossible_travel(
@@ -690,15 +689,19 @@ class TestSecurityEventScenarios:
     ):
         """Simulate account takeover with impossible travel."""
         # Skip if previous login time has no timezone info (causes comparison issues)
-        if test_user_login_history.last_login_time and test_user_login_history.last_login_time.tzinfo is None:
+        if (
+            test_user_login_history.last_login_time
+            and test_user_login_history.last_login_time.tzinfo is None
+        ):
             pytest.skip("Previous login time lacks timezone info - known issue with SQLite")
 
         from src.analytics.geo_ip import GeoIPClient
+
         geo_client = GeoIPClient()
         service = LoginAnalyticsService(db_session, geo_ip_client=geo_client)
 
         # Legitimate user login from New York
-        with patch.object(service.geo_ip, 'lookup', new_callable=AsyncMock) as mock_geo:
+        with patch.object(service.geo_ip, "lookup", new_callable=AsyncMock) as mock_geo:
             mock_location = MagicMock()
             mock_location.country = "United States"
             mock_location.country_code = "US"
@@ -717,7 +720,7 @@ class TestSecurityEventScenarios:
             )
 
         # Attacker login from Russia (5 minutes later - impossible)
-        with patch.object(service.geo_ip, 'lookup', new_callable=AsyncMock) as mock_geo:
+        with patch.object(service.geo_ip, "lookup", new_callable=AsyncMock) as mock_geo:
             mock_location = MagicMock()
             mock_location.country = "Russia"
             mock_location.country_code = "RU"
@@ -746,6 +749,7 @@ class TestSecurityEventScenarios:
     ):
         """Simulate credential stuffing attack with multiple failed logins."""
         from src.analytics.geo_ip import GeoIPClient
+
         geo_client = GeoIPClient()
         service = LoginAnalyticsService(db_session, geo_ip_client=geo_client)
 
@@ -753,7 +757,7 @@ class TestSecurityEventScenarios:
         attacker_ips = [f"203.0.113.{i}" for i in range(1, 11)]
 
         for i, ip in enumerate(attacker_ips):
-            with patch.object(service.geo_ip, 'lookup', new_callable=AsyncMock) as mock_geo:
+            with patch.object(service.geo_ip, "lookup", new_callable=AsyncMock) as mock_geo:
                 # Use explicit values instead of MagicMock for serialization
                 mock_location = MagicMock()
                 mock_location.country = None
@@ -775,12 +779,15 @@ class TestSecurityEventScenarios:
 
         # Verify last attempt has anomaly flags
         result = await db_session.execute(
-            select(LoginAnalyticsModel).where(
+            select(LoginAnalyticsModel)
+            .where(
                 and_(
                     LoginAnalyticsModel.user_email == "target@victim.com",
                     not LoginAnalyticsModel.is_success,
                 )
-            ).order_by(LoginAnalyticsModel.login_time.desc()).limit(1)
+            )
+            .order_by(LoginAnalyticsModel.login_time.desc())
+            .limit(1)
         )
         last_failure = result.scalar_one()
 

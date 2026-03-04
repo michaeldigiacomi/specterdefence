@@ -50,6 +50,7 @@ MAX_EVENTS_PER_BATCH = int(os.getenv("MAX_EVENTS_PER_BATCH", "1000"))
 
 class CollectorError(Exception):
     """Base exception for collector errors."""
+
     pass
 
 
@@ -95,9 +96,7 @@ class TenantCollector:
             CollectionStateModel instance.
         """
         result = await self.session.execute(
-            select(CollectionStateModel).where(
-                CollectionStateModel.tenant_id == self.tenant.id
-            )
+            select(CollectionStateModel).where(CollectionStateModel.tenant_id == self.tenant.id)
         )
         state = result.scalar_one_or_none()
 
@@ -116,7 +115,7 @@ class TenantCollector:
         state: CollectionStateModel,
         success: bool = True,
         error_message: str | None = None,
-        events_count: int = 0
+        events_count: int = 0,
     ) -> None:
         """Update collection state after collection attempt.
 
@@ -141,11 +140,7 @@ class TenantCollector:
         state.updated_at = now
         await self.session.flush()
 
-    async def store_events(
-        self,
-        events: list[dict[str, Any]],
-        content_type: str
-    ) -> int:
+    async def store_events(self, events: list[dict[str, Any]], content_type: str) -> int:
         """Store events in database.
 
         Args:
@@ -194,10 +189,7 @@ class TenantCollector:
         return stored_count
 
     async def collect_content_type(
-        self,
-        content_type: str,
-        start_time: datetime,
-        end_time: datetime
+        self, content_type: str, start_time: datetime, end_time: datetime
     ) -> int:
         """Collect logs for a single content type.
 
@@ -216,9 +208,7 @@ class TenantCollector:
 
         try:
             async for event_batch in self.client.collect_logs(
-                content_type=content_type,
-                start_time=start_time,
-                end_time=end_time
+                content_type=content_type, start_time=start_time, end_time=end_time
             ):
                 if event_batch:
                     stored = await self.store_events(event_batch, content_type)
@@ -256,8 +246,7 @@ class TenantCollector:
             # Start from last collection time, but not more than 24 hours ago
             # (O365 API limit for historical data)
             start_time = max(
-                state.last_collection_time,
-                end_time - timedelta(hours=23)  # Leave buffer for API
+                state.last_collection_time, end_time - timedelta(hours=23)  # Leave buffer for API
             )
         else:
             # First time collection - go back configured lookback period
@@ -294,9 +283,7 @@ class TenantCollector:
             try:
                 logger.info(f"Collecting {content_type} for tenant {self.tenant.id}")
                 events = await self.collect_content_type(
-                    content_type=content_type,
-                    start_time=start_time,
-                    end_time=end_time
+                    content_type=content_type, start_time=start_time, end_time=end_time
                 )
                 results["content_types"][content_type] = events
                 total_events += events
@@ -316,7 +303,7 @@ class TenantCollector:
             state=state,
             success=results["success"],
             error_message=results["error"],
-            events_count=total_events
+            events_count=total_events,
         )
 
         await self.session.commit()
@@ -333,9 +320,7 @@ async def get_active_tenants(session: AsyncSession) -> list[TenantModel]:
     Returns:
         List of active tenant models.
     """
-    result = await session.execute(
-        select(TenantModel).where(TenantModel.is_active)
-    )
+    result = await session.execute(select(TenantModel).where(TenantModel.is_active))
     return list(result.scalars().all())
 
 

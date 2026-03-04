@@ -1,1 +1,1 @@
-# SpecterDefence package.
+"""SpecterDefence application."""

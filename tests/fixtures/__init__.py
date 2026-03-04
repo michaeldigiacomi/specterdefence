@@ -7,6 +7,7 @@ from typing import Any
 # Microsoft Graph API Mock Responses
 # =============================================================================
 
+
 class MSGraphFixtures:
     """Microsoft Graph API mock response fixtures."""
 
@@ -14,32 +15,34 @@ class MSGraphFixtures:
     def organization(tenant_id: str = "12345678-1234-1234-1234-123456789012") -> dict[str, Any]:
         """Return a mock organization response."""
         return {
-            "value": [{
-                "id": tenant_id,
-                "displayName": "Test Organization",
-                "verifiedDomains": [
-                    {
-                        "name": "test.com",
-                        "isDefault": True,
-                        "isInitial": False,
-                        "type": "Managed"
-                    },
-                    {
-                        "name": "test.onmicrosoft.com",
-                        "isDefault": False,
-                        "isInitial": True,
-                        "type": "Managed"
-                    },
-                ],
-                "createdDateTime": "2020-01-01T00:00:00Z",
-                "tenantType": "AAD",
-                "country": "US",
-                "countryLetterCode": "US",
-                "state": None,
-                "city": None,
-                "postalCode": None,
-                "preferredLanguage": "en",
-            }]
+            "value": [
+                {
+                    "id": tenant_id,
+                    "displayName": "Test Organization",
+                    "verifiedDomains": [
+                        {
+                            "name": "test.com",
+                            "isDefault": True,
+                            "isInitial": False,
+                            "type": "Managed",
+                        },
+                        {
+                            "name": "test.onmicrosoft.com",
+                            "isDefault": False,
+                            "isInitial": True,
+                            "type": "Managed",
+                        },
+                    ],
+                    "createdDateTime": "2020-01-01T00:00:00Z",
+                    "tenantType": "AAD",
+                    "country": "US",
+                    "countryLetterCode": "US",
+                    "state": None,
+                    "city": None,
+                    "postalCode": None,
+                    "preferredLanguage": "en",
+                }
+            ]
         }
 
     @staticmethod
@@ -47,18 +50,20 @@ class MSGraphFixtures:
         """Return mock users response."""
         users = []
         for i in range(count):
-            users.append({
-                "id": f"user-{i+1}-id",
-                "displayName": f"Test User {i+1}",
-                "userPrincipalName": f"user{i+1}@test.com",
-                "mail": f"user{i+1}@test.com",
-                "accountEnabled": True,
-                "createdDateTime": "2020-01-01T00:00:00Z",
-                "lastSignInDateTime": "2026-03-01T00:00:00Z",
-                "jobTitle": "Test Engineer",
-                "department": "Engineering",
-                "officeLocation": "New York",
-            })
+            users.append(
+                {
+                    "id": f"user-{i+1}-id",
+                    "displayName": f"Test User {i+1}",
+                    "userPrincipalName": f"user{i+1}@test.com",
+                    "mail": f"user{i+1}@test.com",
+                    "accountEnabled": True,
+                    "createdDateTime": "2020-01-01T00:00:00Z",
+                    "lastSignInDateTime": "2026-03-01T00:00:00Z",
+                    "jobTitle": "Test Engineer",
+                    "department": "Engineering",
+                    "officeLocation": "New York",
+                }
+            )
 
         return {"value": users}
 
@@ -83,26 +88,28 @@ class MSGraphFixtures:
         base_time = datetime(2026, 3, 1, 10, 0, 0, tzinfo=UTC)
 
         for i in range(count):
-            signins.append({
-                "id": f"signin-{i+1}",
-                "createdDateTime": base_time.isoformat().replace("+00:00", "Z"),
-                "userPrincipalName": "user@example.com",
-                "userId": "user-1-id",
-                "appDisplayName": "Office 365 Exchange Online",
-                "appId": "00000002-0000-0ff1-ce00-000000000000",
-                "ipAddress": f"192.168.1.{i+1}",
-                "location": locations[i % len(locations)],
-                "status": {"errorCode": 0, "failureReason": None},
-                "clientAppUsed": "Browser",
-                "userAgent": "Mozilla/5.0",
-                "correlationId": f"corr-{i+1}",
-                "conditionalAccessStatus": "success",
-                "isInteractive": True,
-                "riskDetail": "none",
-                "riskLevelAggregated": "low",
-                "riskLevelDuringSignIn": "low",
-                "riskState": "none",
-            })
+            signins.append(
+                {
+                    "id": f"signin-{i+1}",
+                    "createdDateTime": base_time.isoformat().replace("+00:00", "Z"),
+                    "userPrincipalName": "user@example.com",
+                    "userId": "user-1-id",
+                    "appDisplayName": "Office 365 Exchange Online",
+                    "appId": "00000002-0000-0ff1-ce00-000000000000",
+                    "ipAddress": f"192.168.1.{i+1}",
+                    "location": locations[i % len(locations)],
+                    "status": {"errorCode": 0, "failureReason": None},
+                    "clientAppUsed": "Browser",
+                    "userAgent": "Mozilla/5.0",
+                    "correlationId": f"corr-{i+1}",
+                    "conditionalAccessStatus": "success",
+                    "isInteractive": True,
+                    "riskDetail": "none",
+                    "riskLevelAggregated": "low",
+                    "riskLevelDuringSignIn": "low",
+                    "riskState": "none",
+                }
+            )
 
         return {"value": signins}
 
@@ -127,32 +134,34 @@ class MSGraphFixtures:
 
         for i in range(count):
             op = operations[i % len(operations)]
-            logs.append({
-                "id": f"audit-{i+1}",
-                "createdDateTime": base_time.isoformat().replace("+00:00", "Z"),
-                "userPrincipalName": "admin@example.com",
-                "activityDisplayName": op["activityDisplayName"],
-                "category": op["category"],
-                "result": op["result"],
-                "resultReason": None,
-                "correlationId": f"corr-{i+1}",
-                "initiatedBy": {
-                    "user": {
-                        "id": "admin-id",
-                        "displayName": "Admin User",
-                        "userPrincipalName": "admin@example.com",
-                        "ipAddress": "192.168.1.100",
-                    }
-                },
-                "targetResources": [
-                    {
-                        "id": f"target-{i+1}",
-                        "displayName": f"Target {i+1}",
-                        "type": "User",
-                        "modifiedProperties": [],
-                    }
-                ],
-            })
+            logs.append(
+                {
+                    "id": f"audit-{i+1}",
+                    "createdDateTime": base_time.isoformat().replace("+00:00", "Z"),
+                    "userPrincipalName": "admin@example.com",
+                    "activityDisplayName": op["activityDisplayName"],
+                    "category": op["category"],
+                    "result": op["result"],
+                    "resultReason": None,
+                    "correlationId": f"corr-{i+1}",
+                    "initiatedBy": {
+                        "user": {
+                            "id": "admin-id",
+                            "displayName": "Admin User",
+                            "userPrincipalName": "admin@example.com",
+                            "ipAddress": "192.168.1.100",
+                        }
+                    },
+                    "targetResources": [
+                        {
+                            "id": f"target-{i+1}",
+                            "displayName": f"Target {i+1}",
+                            "type": "User",
+                            "modifiedProperties": [],
+                        }
+                    ],
+                }
+            )
 
         return {"value": logs}
 
@@ -167,7 +176,9 @@ class MSGraphFixtures:
         }
 
     @staticmethod
-    def error_response(error_code: str = "invalid_client", description: str = "Invalid credentials") -> dict[str, Any]:
+    def error_response(
+        error_code: str = "invalid_client", description: str = "Invalid credentials"
+    ) -> dict[str, Any]:
         """Return a mock error response."""
         return {
             "error": error_code,
@@ -182,6 +193,7 @@ class MSGraphFixtures:
 # =============================================================================
 # Tenant Mock Data
 # =============================================================================
+
 
 class TenantFixtures:
     """Tenant mock data fixtures."""
@@ -260,6 +272,7 @@ class TenantFixtures:
 # Discord Webhook Mock Data
 # =============================================================================
 
+
 class DiscordFixtures:
     """Discord webhook mock data fixtures."""
 
@@ -319,6 +332,7 @@ class DiscordFixtures:
 # =============================================================================
 # Security Event Mock Data
 # =============================================================================
+
 
 class SecurityEventFixtures:
     """Security event mock data fixtures."""

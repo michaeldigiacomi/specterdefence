@@ -14,6 +14,7 @@ from src.services.alert_stream import AlertStreamManager, AlertStreamService
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
 # Global connection manager for WebSocket connections
 class ConnectionManager:
     """Manages WebSocket connections for alert streaming."""
@@ -25,10 +26,7 @@ class ConnectionManager:
         self._lock = asyncio.Lock()
 
     async def connect(
-        self,
-        websocket: WebSocket,
-        client_id: str,
-        filters: dict | None = None
+        self, websocket: WebSocket, client_id: str, filters: dict | None = None
     ) -> None:
         """Accept a new WebSocket connection.
 
@@ -149,7 +147,7 @@ async def alert_websocket(
     severity: str | None = Query(None, description="Filter by severity (comma-separated)"),
     event_types: str | None = Query(None, description="Filter by event types (comma-separated)"),
     tenant_id: str | None = Query(None, description="Filter by tenant ID"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> None:
     """WebSocket endpoint for real-time alert streaming.
 
@@ -187,13 +185,15 @@ async def alert_websocket(
         await stream_manager.subscribe_client(client_id, filters)
 
         # Send initial connection success message
-        await websocket.send_json({
-            "type": "connection",
-            "status": "connected",
-            "client_id": client_id,
-            "filters": filters,
-            "timestamp": datetime.now(UTC).isoformat(),
-        })
+        await websocket.send_json(
+            {
+                "type": "connection",
+                "status": "connected",
+                "client_id": client_id,
+                "filters": filters,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
 
         # Handle incoming messages
         while True:
@@ -201,16 +201,10 @@ async def alert_websocket(
                 data = await websocket.receive_json()
                 await handle_client_message(data, client_id, stream_manager)
             except json.JSONDecodeError:
-                await websocket.send_json({
-                    "type": "error",
-                    "message": "Invalid JSON format"
-                })
+                await websocket.send_json({"type": "error", "message": "Invalid JSON format"})
             except Exception as e:
                 logger.error(f"Error handling message from {client_id}: {e}")
-                await websocket.send_json({
-                    "type": "error",
-                    "message": str(e)
-                })
+                await websocket.send_json({"type": "error", "message": str(e)})
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected: {client_id}")
@@ -222,9 +216,7 @@ async def alert_websocket(
 
 
 async def handle_client_message(
-    data: dict,
-    client_id: str,
-    stream_manager: AlertStreamManager
+    data: dict, client_id: str, stream_manager: AlertStreamManager
 ) -> None:
     """Handle incoming messages from WebSocket clients.
 
@@ -237,46 +229,61 @@ async def handle_client_message(
 
     if msg_type == "ping":
         # Simple ping/pong for keepalive
-        await manager.send_personal_message({
-            "type": "pong",
-            "timestamp": datetime.now(UTC).isoformat(),
-        }, client_id)
+        await manager.send_personal_message(
+            {
+                "type": "pong",
+                "timestamp": datetime.now(UTC).isoformat(),
+            },
+            client_id,
+        )
 
     elif msg_type == "acknowledge":
         # Acknowledge an alert
         alert_id = data.get("alert_id")
         if alert_id:
             await stream_manager.acknowledge_alert(alert_id, client_id)
-            await manager.send_personal_message({
-                "type": "acknowledged",
-                "alert_id": alert_id,
-            }, client_id)
+            await manager.send_personal_message(
+                {
+                    "type": "acknowledged",
+                    "alert_id": alert_id,
+                },
+                client_id,
+            )
 
     elif msg_type == "dismiss":
         # Dismiss an alert
         alert_id = data.get("alert_id")
         if alert_id:
             await stream_manager.dismiss_alert(alert_id, client_id)
-            await manager.send_personal_message({
-                "type": "dismissed",
-                "alert_id": alert_id,
-            }, client_id)
+            await manager.send_personal_message(
+                {
+                    "type": "dismissed",
+                    "alert_id": alert_id,
+                },
+                client_id,
+            )
 
     elif msg_type == "subscribe":
         # Update subscription filters
         filters = data.get("filters", {})
         await stream_manager.update_subscription(client_id, filters)
-        await manager.send_personal_message({
-            "type": "subscribed",
-            "filters": filters,
-        }, client_id)
+        await manager.send_personal_message(
+            {
+                "type": "subscribed",
+                "filters": filters,
+            },
+            client_id,
+        )
 
     elif msg_type == "unsubscribe":
         # Remove all filters (receive all alerts)
         await stream_manager.update_subscription(client_id, {})
-        await manager.send_personal_message({
-            "type": "unsubscribed",
-        }, client_id)
+        await manager.send_personal_message(
+            {
+                "type": "unsubscribed",
+            },
+            client_id,
+        )
 
     elif msg_type == "get_stats":
         # Get connection statistics
@@ -288,10 +295,9 @@ async def handle_client_message(
         await manager.send_personal_message(stats, client_id)
 
     else:
-        await manager.send_personal_message({
-            "type": "error",
-            "message": f"Unknown message type: {msg_type}"
-        }, client_id)
+        await manager.send_personal_message(
+            {"type": "error", "message": f"Unknown message type: {msg_type}"}, client_id
+        )
 
 
 @router.get("/ws/stats")

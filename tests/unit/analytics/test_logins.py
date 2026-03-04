@@ -34,17 +34,14 @@ class TestLoginAnalyticsService:
             region="California",
             latitude=37.386,
             longitude=-122.0838,
-            lookup_success=True
+            lookup_success=True,
         )
         return client
 
     @pytest.fixture
     def service(self, mock_db, mock_geo_client):
         """Create a LoginAnalyticsService with mocks."""
-        return LoginAnalyticsService(
-            db=mock_db,
-            geo_ip_client=mock_geo_client
-        )
+        return LoginAnalyticsService(db=mock_db, geo_ip_client=mock_geo_client)
 
     @pytest.mark.asyncio
     async def test_process_login_event_success(self, service, mock_db, mock_geo_client):
@@ -61,7 +58,7 @@ class TestLoginAnalyticsService:
             tenant_id="tenant-123",
             ip_address="8.8.8.8",
             login_time=login_time,
-            is_success=True
+            is_success=True,
         )
 
         # Verify Geo-IP lookup was called
@@ -93,7 +90,7 @@ class TestLoginAnalyticsService:
             ip_address="8.8.8.8",
             login_time=login_time,
             is_success=False,
-            failure_reason="Invalid password"
+            failure_reason="Invalid password",
         )
 
         assert result.is_success is False
@@ -115,7 +112,7 @@ class TestLoginAnalyticsService:
                 login_time=datetime.utcnow(),
                 is_success=True,
                 anomaly_flags=[],
-                risk_score=0
+                risk_score=0,
             ),
             LoginAnalyticsModel(
                 id=uuid4(),
@@ -126,8 +123,8 @@ class TestLoginAnalyticsService:
                 login_time=datetime.utcnow(),
                 is_success=False,
                 anomaly_flags=[AnomalyType.FAILED_LOGIN.value],
-                risk_score=20
-            )
+                risk_score=20,
+            ),
         ]
 
         # Mock execute to return logins
@@ -137,9 +134,7 @@ class TestLoginAnalyticsService:
         mock_db.execute.return_value = mock_result
 
         logins, total = await service.query_logins(
-            tenant_id="tenant-123",
-            is_success=True,
-            limit=10
+            tenant_id="tenant-123", is_success=True, limit=10
         )
 
         assert len(logins) == 2
@@ -160,7 +155,7 @@ class TestLoginAnalyticsService:
             last_latitude=40.7128,
             last_longitude=-74.0060,
             total_logins=10,
-            failed_attempts_24h=2
+            failed_attempts_24h=2,
         )
 
         # Mock execute results
@@ -175,8 +170,7 @@ class TestLoginAnalyticsService:
         mock_db.execute.side_effect = mock_execute
 
         summary = await service.get_user_login_summary(
-            user_email="user@example.com",
-            tenant_id="tenant-123"
+            user_email="user@example.com", tenant_id="tenant-123"
         )
 
         assert summary["user_email"] == "user@example.com"
@@ -193,8 +187,7 @@ class TestLoginAnalyticsService:
         mock_db.execute.return_value = mock_result
 
         summary = await service.get_user_login_summary(
-            user_email="newuser@example.com",
-            tenant_id="tenant-123"
+            user_email="newuser@example.com", tenant_id="tenant-123"
         )
 
         assert summary["user_email"] == "newuser@example.com"
@@ -209,10 +202,7 @@ class TestLoginAnalyticsService:
         mock_result.scalar_one_or_none.return_value = None
         mock_db.execute.return_value = mock_result
 
-        history = await service._get_or_create_user_history(
-            "newuser@example.com",
-            "tenant-123"
-        )
+        history = await service._get_or_create_user_history("newuser@example.com", "tenant-123")
 
         assert history.user_email == "newuser@example.com"
         assert history.tenant_id == "tenant-123"
@@ -228,17 +218,14 @@ class TestLoginAnalyticsService:
             tenant_id="tenant-123",
             known_countries=["US"],
             known_ips=["1.1.1.1"],
-            total_logins=5
+            total_logins=5,
         )
 
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = existing_history
         mock_db.execute.return_value = mock_result
 
-        history = await service._get_or_create_user_history(
-            "existing@example.com",
-            "tenant-123"
-        )
+        history = await service._get_or_create_user_history("existing@example.com", "tenant-123")
 
         assert history.user_email == "existing@example.com"
         assert history.total_logins == 5
@@ -266,22 +253,24 @@ class TestAnomalyDetectionIntegration:
         mock_db.execute.return_value = mock_result
 
         # Mock Geo-IP
-        service.geo_ip.lookup = AsyncMock(return_value=GeoLocation(
-            ip_address="8.8.8.8",
-            country="United States",
-            country_code="US",
-            city="Mountain View",
-            latitude=37.386,
-            longitude=-122.0838,
-            lookup_success=True
-        ))
+        service.geo_ip.lookup = AsyncMock(
+            return_value=GeoLocation(
+                ip_address="8.8.8.8",
+                country="United States",
+                country_code="US",
+                city="Mountain View",
+                latitude=37.386,
+                longitude=-122.0838,
+                lookup_success=True,
+            )
+        )
 
         result = await service.process_login_event(
             user_email="user@example.com",
             tenant_id="tenant-123",
             ip_address="8.8.8.8",
             login_time=datetime.utcnow(),
-            is_success=True
+            is_success=True,
         )
 
         # Verify Geo-IP was called
@@ -310,7 +299,7 @@ class TestAnomalyConfig:
             tenant_id="tenant-123",
             enabled=True,
             auto_add_known_countries=True,
-            impossible_travel_speed_kmh=900
+            impossible_travel_speed_kmh=900,
         )
 
         mock_result = MagicMock()
@@ -374,7 +363,7 @@ class TestProcessAuditLogSignins:
                 # Missing UserId and ClientIP
                 "CreationTime": "2024-01-01T12:00:00Z"
             },
-            processed=False
+            processed=False,
         )
 
         mock_result = MagicMock()
@@ -408,9 +397,7 @@ class TestLoginAnalyticsEdgeCases:
         """Test handling of Geo-IP lookup failure."""
         # Mock Geo-IP to return failed lookup
         service.geo_ip.lookup.return_value = GeoLocation(
-            ip_address="8.8.8.8",
-            lookup_success=False,
-            error_message="API error"
+            ip_address="8.8.8.8", lookup_success=False, error_message="API error"
         )
 
         mock_result = MagicMock()
@@ -422,7 +409,7 @@ class TestLoginAnalyticsEdgeCases:
             tenant_id="tenant-123",
             ip_address="8.8.8.8",
             login_time=datetime.utcnow(),
-            is_success=True
+            is_success=True,
         )
 
         # Should still create record even if Geo-IP fails
@@ -449,7 +436,7 @@ class TestLoginAnalyticsEdgeCases:
             tenant_id="tenant-123",
             ip_address="8.8.8.8",
             login_time=datetime.utcnow(),
-            is_success=True
+            is_success=True,
         )
 
         # Should not have impossible travel anomaly without coordinates
@@ -478,7 +465,7 @@ class TestUpdateUserHistory:
             known_countries=["US"],
             known_ips=["192.168.1.1"],
             total_logins=5,
-            failed_attempts_24h=0
+            failed_attempts_24h=0,
         )
 
     @pytest.fixture
@@ -495,11 +482,13 @@ class TestUpdateUserHistory:
             latitude=43.6532,
             longitude=-79.3832,
             login_time=datetime.utcnow(),
-            is_success=True
+            is_success=True,
         )
 
     @pytest.mark.asyncio
-    async def test_update_user_history_failed_login(self, service, mock_db, user_history, login_record):
+    async def test_update_user_history_failed_login(
+        self, service, mock_db, user_history, login_record
+    ):
         """Test that failed login increments failure counter."""
         login_record.is_success = False
         login_record.failure_reason = "Invalid password"
@@ -510,7 +499,7 @@ class TestUpdateUserHistory:
 
         anomaly_results = [
             MagicMock(type=AnomalyType.FAILED_LOGIN, detected=True),
-            MagicMock(type=AnomalyType.NEW_COUNTRY, detected=False)
+            MagicMock(type=AnomalyType.NEW_COUNTRY, detected=False),
         ]
 
         await service._update_user_history(user_history, login_record, anomaly_results)
@@ -519,7 +508,9 @@ class TestUpdateUserHistory:
         assert user_history.total_logins == 5  # Should not increment on failure
 
     @pytest.mark.asyncio
-    async def test_update_user_history_successful_login_resets_failures(self, service, mock_db, user_history, login_record):
+    async def test_update_user_history_successful_login_resets_failures(
+        self, service, mock_db, user_history, login_record
+    ):
         """Test that successful login resets failure counter."""
         user_history.failed_attempts_24h = 3
 
@@ -529,7 +520,7 @@ class TestUpdateUserHistory:
 
         anomaly_results = [
             MagicMock(type=AnomalyType.NEW_COUNTRY, detected=False),
-            MagicMock(type=AnomalyType.NEW_IP, detected=True)
+            MagicMock(type=AnomalyType.NEW_IP, detected=True),
         ]
 
         await service._update_user_history(user_history, login_record, anomaly_results)
@@ -538,20 +529,17 @@ class TestUpdateUserHistory:
         assert user_history.total_logins == 6  # Should increment on success
 
     @pytest.mark.asyncio
-    async def test_update_user_history_new_country_auto_add(self, service, mock_db, user_history, login_record):
+    async def test_update_user_history_new_country_auto_add(
+        self, service, mock_db, user_history, login_record
+    ):
         """Test auto-adding new country when config allows."""
-        config = AnomalyDetectionConfig(
-            tenant_id="tenant-123",
-            auto_add_known_countries=True
-        )
+        config = AnomalyDetectionConfig(tenant_id="tenant-123", auto_add_known_countries=True)
 
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = config
         mock_db.execute.return_value = mock_result
 
-        anomaly_results = [
-            MagicMock(type=AnomalyType.NEW_COUNTRY, detected=True)
-        ]
+        anomaly_results = [MagicMock(type=AnomalyType.NEW_COUNTRY, detected=True)]
 
         await service._update_user_history(user_history, login_record, anomaly_results)
 
@@ -559,20 +547,17 @@ class TestUpdateUserHistory:
         assert "US" in user_history.known_countries
 
     @pytest.mark.asyncio
-    async def test_update_user_history_new_country_no_auto_add(self, service, mock_db, user_history, login_record):
+    async def test_update_user_history_new_country_no_auto_add(
+        self, service, mock_db, user_history, login_record
+    ):
         """Test not adding new country when config disables auto-add."""
-        config = AnomalyDetectionConfig(
-            tenant_id="tenant-123",
-            auto_add_known_countries=False
-        )
+        config = AnomalyDetectionConfig(tenant_id="tenant-123", auto_add_known_countries=False)
 
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = config
         mock_db.execute.return_value = mock_result
 
-        anomaly_results = [
-            MagicMock(type=AnomalyType.NEW_COUNTRY, detected=True)
-        ]
+        anomaly_results = [MagicMock(type=AnomalyType.NEW_COUNTRY, detected=True)]
 
         await service._update_user_history(user_history, login_record, anomaly_results)
 
@@ -581,7 +566,9 @@ class TestUpdateUserHistory:
         assert "US" in user_history.known_countries
 
     @pytest.mark.asyncio
-    async def test_update_user_history_known_country_added_if_missing(self, service, mock_db, user_history, login_record):
+    async def test_update_user_history_known_country_added_if_missing(
+        self, service, mock_db, user_history, login_record
+    ):
         """Test that known country is added to list if somehow missing."""
         login_record.country_code = "US"  # Already known country
         user_history.known_countries = []  # But list is empty (data inconsistency)
@@ -590,16 +577,16 @@ class TestUpdateUserHistory:
         mock_result.scalar_one_or_none.return_value = None
         mock_db.execute.return_value = mock_result
 
-        anomaly_results = [
-            MagicMock(type=AnomalyType.NEW_COUNTRY, detected=False)
-        ]
+        anomaly_results = [MagicMock(type=AnomalyType.NEW_COUNTRY, detected=False)]
 
         await service._update_user_history(user_history, login_record, anomaly_results)
 
         assert "US" in user_history.known_countries
 
     @pytest.mark.asyncio
-    async def test_update_user_history_new_ip_added(self, service, mock_db, user_history, login_record):
+    async def test_update_user_history_new_ip_added(
+        self, service, mock_db, user_history, login_record
+    ):
         """Test that new IP is added to known IPs list."""
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None
@@ -613,15 +600,15 @@ class TestUpdateUserHistory:
         assert "192.168.1.1" in user_history.known_ips
 
     @pytest.mark.asyncio
-    async def test_update_user_history_no_config(self, service, mock_db, user_history, login_record):
+    async def test_update_user_history_no_config(
+        self, service, mock_db, user_history, login_record
+    ):
         """Test behavior when no anomaly config exists (defaults to auto-add)."""
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None  # No config
         mock_db.execute.return_value = mock_result
 
-        anomaly_results = [
-            MagicMock(type=AnomalyType.NEW_COUNTRY, detected=True)
-        ]
+        anomaly_results = [MagicMock(type=AnomalyType.NEW_COUNTRY, detected=True)]
 
         await service._update_user_history(user_history, login_record, anomaly_results)
 
@@ -781,7 +768,7 @@ class TestGetPreviousLogin:
             latitude=40.7128,
             longitude=-74.0060,
             login_time=datetime.utcnow() - timedelta(hours=1),
-            is_success=True
+            is_success=True,
         )
 
         mock_result = MagicMock()
@@ -818,12 +805,11 @@ class TestProcessAuditLogExtended:
     def service(self, mock_db):
         """Create a LoginAnalyticsService with mocked geo_ip."""
         svc = LoginAnalyticsService(db=mock_db)
-        svc.geo_ip = AsyncMock(return_value=GeoLocation(
-            ip_address="8.8.8.8",
-            country="US",
-            country_code="US",
-            lookup_success=True
-        ))
+        svc.geo_ip = AsyncMock(
+            return_value=GeoLocation(
+                ip_address="8.8.8.8", country="US", country_code="US", lookup_success=True
+            )
+        )
         return svc
 
     @pytest.mark.asyncio
@@ -839,10 +825,10 @@ class TestProcessAuditLogExtended:
                 "UserId": "user@example.com",
                 "ClientIP": "8.8.8.8",
                 "CreationTime": "2024-01-01T12:00:00Z",
-                "Status": {"ErrorCode": 0}
+                "Status": {"ErrorCode": 0},
             },
             processed=False,
-            o365_created_at=datetime.utcnow()
+            o365_created_at=datetime.utcnow(),
         )
 
         mock_result = MagicMock()
@@ -866,13 +852,10 @@ class TestProcessAuditLogExtended:
                 "UserPrincipalName": "user@example.com",
                 "IpAddress": "8.8.8.8",
                 "CreatedDateTime": "2024-01-01T12:00:00Z",
-                "Status": {
-                    "ErrorCode": 50126,
-                    "FailureReason": "Invalid username or password"
-                }
+                "Status": {"ErrorCode": 50126, "FailureReason": "Invalid username or password"},
             },
             processed=False,
-            o365_created_at=datetime.utcnow()
+            o365_created_at=datetime.utcnow(),
         )
 
         mock_result = MagicMock()
@@ -899,7 +882,7 @@ class TestProcessAuditLogExtended:
             },
             processed=False,
             o365_created_at=None,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
 
         # Make geo_ip.lookup raise an exception
@@ -927,10 +910,10 @@ class TestProcessAuditLogExtended:
             raw_data={
                 "UserPrincipalName": "user@example.com",  # Alternative to UserId
                 "IpAddress": "8.8.8.8",  # Alternative to ClientIP
-                "CreationTime": "2024-01-01T12:00:00Z"
+                "CreationTime": "2024-01-01T12:00:00Z",
             },
             processed=False,
-            o365_created_at=datetime.utcnow()
+            o365_created_at=datetime.utcnow(),
         )
 
         mock_result = MagicMock()
@@ -981,7 +964,7 @@ class TestAnomaliesWithPreviousLogin:
                     latitude=40.7128,
                     longitude=-74.0060,
                     login_time=datetime.utcnow() - timedelta(hours=2),
-                    is_success=True
+                    is_success=True,
                 )
                 result.scalar_one_or_none.return_value = previous
                 call_count += 1
@@ -1000,7 +983,7 @@ class TestAnomaliesWithPreviousLogin:
             city="Tokyo",
             latitude=35.6762,
             longitude=139.6503,
-            lookup_success=True
+            lookup_success=True,
         )
 
         result = await service.process_login_event(
@@ -1008,7 +991,7 @@ class TestAnomaliesWithPreviousLogin:
             tenant_id="tenant-123",
             ip_address="1.1.1.1",
             login_time=datetime.utcnow(),
-            is_success=True
+            is_success=True,
         )
 
         # Should detect impossible travel
@@ -1023,7 +1006,7 @@ class TestLoginAnalyticsInit:
         """Test service initialization with default clients."""
         mock_db = AsyncMock(spec=AsyncSession)
 
-        with patch('src.analytics.logins.get_geo_ip_client') as mock_geo:
+        with patch("src.analytics.logins.get_geo_ip_client") as mock_geo:
             mock_geo.return_value = AsyncMock()
             service = LoginAnalyticsService(db=mock_db)
 
@@ -1039,9 +1022,7 @@ class TestLoginAnalyticsInit:
         mock_detector = MagicMock()
 
         service = LoginAnalyticsService(
-            db=mock_db,
-            geo_ip_client=mock_geo,
-            anomaly_detector=mock_detector
+            db=mock_db, geo_ip_client=mock_geo, anomaly_detector=mock_detector
         )
 
         assert service.db is mock_db

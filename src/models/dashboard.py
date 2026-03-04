@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 class TimeRange(StrEnum):
     """Time range options for dashboard data."""
+
     DAY_7 = "7d"
     DAY_30 = "30d"
     DAY_90 = "90d"
@@ -15,6 +16,7 @@ class TimeRange(StrEnum):
 
 class LoginActivityPoint(BaseModel):
     """Single point in login activity timeline."""
+
     timestamp: datetime
     successful_logins: int
     failed_logins: int
@@ -23,6 +25,7 @@ class LoginActivityPoint(BaseModel):
 
 class LoginActivityTimeline(BaseModel):
     """Login activity timeline data."""
+
     data: list[LoginActivityPoint]
     time_range: TimeRange
     total_successful: int
@@ -32,6 +35,7 @@ class LoginActivityTimeline(BaseModel):
 
 class GeoLocationPoint(BaseModel):
     """Geographic location data point."""
+
     country_code: str
     country_name: str
     latitude: float
@@ -43,6 +47,7 @@ class GeoLocationPoint(BaseModel):
 
 class GeoHeatmapData(BaseModel):
     """Geographic heatmap data."""
+
     locations: list[GeoLocationPoint]
     total_countries: int
     top_country: str | None = None
@@ -51,6 +56,7 @@ class GeoHeatmapData(BaseModel):
 
 class AnomalyTrendPoint(BaseModel):
     """Single point in anomaly trend."""
+
     date: datetime
     count: int
     types: dict[str, int] = Field(default_factory=dict, description="Count by anomaly type")
@@ -58,6 +64,7 @@ class AnomalyTrendPoint(BaseModel):
 
 class AnomalyTrendData(BaseModel):
     """Anomaly trend data over time."""
+
     data: list[AnomalyTrendPoint]
     time_range: TimeRange
     total_anomalies: int
@@ -67,6 +74,7 @@ class AnomalyTrendData(BaseModel):
 
 class TopRiskUser(BaseModel):
     """Top risk user entry."""
+
     user_email: str
     tenant_id: str
     risk_score: int
@@ -78,6 +86,7 @@ class TopRiskUser(BaseModel):
 
 class TopRiskUsersData(BaseModel):
     """Top risk users list."""
+
     users: list[TopRiskUser]
     total_users: int
     avg_risk_score: float
@@ -85,6 +94,7 @@ class TopRiskUsersData(BaseModel):
 
 class AlertVolumePoint(BaseModel):
     """Single point in alert volume timeline."""
+
     timestamp: datetime
     critical: int
     high: int
@@ -95,6 +105,7 @@ class AlertVolumePoint(BaseModel):
 
 class AlertVolumeData(BaseModel):
     """Alert volume data by severity."""
+
     data: list[AlertVolumePoint]
     time_range: TimeRange
     total_by_severity: dict[str, int]
@@ -104,6 +115,7 @@ class AlertVolumeData(BaseModel):
 
 class AnomalyTypeBreakdown(BaseModel):
     """Breakdown of anomalies by type."""
+
     type: str
     count: int
     percentage: float
@@ -112,6 +124,7 @@ class AnomalyTypeBreakdown(BaseModel):
 
 class DashboardSummary(BaseModel):
     """Dashboard summary statistics."""
+
     total_logins_24h: int
     failed_logins_24h: int
     active_users_24h: int
@@ -125,6 +138,7 @@ class DashboardSummary(BaseModel):
 
 class DashboardDataResponse(BaseModel):
     """Complete dashboard data response."""
+
     summary: DashboardSummary
     login_timeline: LoginActivityTimeline
     geo_heatmap: GeoHeatmapData
@@ -138,16 +152,18 @@ class DashboardDataResponse(BaseModel):
 
 class ExportRequest(BaseModel):
     """Export dashboard data request."""
+
     time_range: TimeRange = TimeRange.DAY_30
     format: str = Field(default="pdf", pattern="^(pdf|png|csv|json)$")
     charts: list[str] = Field(
         default_factory=lambda: ["all"],
-        description="Charts to export: all, timeline, heatmap, anomalies, alerts, users"
+        description="Charts to export: all, timeline, heatmap, anomalies, alerts, users",
     )
 
 
 class ExportResponse(BaseModel):
     """Export response."""
+
     download_url: str
     filename: str
     format: str

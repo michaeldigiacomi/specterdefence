@@ -46,11 +46,7 @@ class TestMailboxRuleClient:
             "isEnabled": True,
             "createdDateTime": "2024-01-15T10:30:00Z",
             "conditions": {},
-            "actions": {
-                "forwardTo": [
-                    {"emailAddress": {"address": "external@gmail.com"}}
-                ]
-            },
+            "actions": {"forwardTo": [{"emailAddress": {"address": "external@gmail.com"}}]},
         }
 
     @pytest.fixture
@@ -62,11 +58,7 @@ class TestMailboxRuleClient:
             "isEnabled": True,
             "createdDateTime": "2024-01-15T14:00:00Z",
             "conditions": {},
-            "actions": {
-                "redirect": [
-                    {"emailAddress": {"address": "attacker@evil.com"}}
-                ]
-            },
+            "actions": {"redirect": [{"emailAddress": {"address": "attacker@evil.com"}}]},
         }
 
     @pytest.fixture
@@ -92,12 +84,7 @@ class TestMailboxRuleClient:
             "isEnabled": True,
             "createdDateTime": "2024-01-15T22:00:00Z",  # After hours
             "conditions": {},
-            "actions": {
-                "moveToFolder": {
-                    "id": "deleteditems",
-                    "displayName": "Deleted Items"
-                }
-            },
+            "actions": {"moveToFolder": {"id": "deleteditems", "displayName": "Deleted Items"}},
         }
 
     @pytest.mark.asyncio
@@ -139,7 +126,7 @@ class TestMailboxRuleClient:
         """Test user retrieval with pagination."""
         page1 = {
             "value": [{"id": "user-1", "displayName": "User One", "accountEnabled": True}],
-            "@odata.nextLink": "https://graph.microsoft.com/v1.0/users?$skip=1"
+            "@odata.nextLink": "https://graph.microsoft.com/v1.0/users?$skip=1",
         }
         page2 = {
             "value": [{"id": "user-2", "displayName": "User Two", "accountEnabled": True}],
@@ -292,7 +279,9 @@ class TestMailboxRuleClient:
         assert mailbox_client._contains_suspicious_keywords("Contact the bank immediately") is True
         assert mailbox_client._contains_suspicious_keywords("Wire transfer required") is True
         assert mailbox_client._contains_suspicious_keywords("Verify your account") is True
-        assert mailbox_client._contains_suspicious_keywords("Normal business communication") is False
+        assert (
+            mailbox_client._contains_suspicious_keywords("Normal business communication") is False
+        )
 
     def test_is_outside_business_hours(self, mailbox_client):
         """Test business hours detection."""

@@ -44,14 +44,11 @@ class TestDashboardSummaryEndpoint:
             active_tenants=5,
             avg_risk_score=35.5,
             login_success_rate=95.0,
-            top_threats=["impossible_travel", "new_country"]
+            top_threats=["impossible_travel", "new_country"],
         )
         mock_service.get_summary_stats.return_value = mock_summary
 
-        result = await dashboard_api.get_dashboard_summary(
-            tenant_id=None,
-            service=mock_service
-        )
+        result = await dashboard_api.get_dashboard_summary(tenant_id=None, service=mock_service)
 
         assert result.total_logins_24h == 1000
         assert result.failed_logins_24h == 50
@@ -72,13 +69,12 @@ class TestDashboardSummaryEndpoint:
             active_tenants=1,
             avg_risk_score=40.0,
             login_success_rate=96.0,
-            top_threats=[]
+            top_threats=[],
         )
         mock_service.get_summary_stats.return_value = mock_summary
 
         result = await dashboard_api.get_dashboard_summary(
-            tenant_id=tenant_id,
-            service=mock_service
+            tenant_id=tenant_id, service=mock_service
         )
 
         assert result.total_logins_24h == 500
@@ -90,10 +86,7 @@ class TestDashboardSummaryEndpoint:
         mock_service.get_summary_stats.side_effect = Exception("Database error")
 
         with pytest.raises(HTTPException) as exc_info:
-            await dashboard_api.get_dashboard_summary(
-                tenant_id=None,
-                service=mock_service
-            )
+            await dashboard_api.get_dashboard_summary(tenant_id=None, service=mock_service)
 
         assert exc_info.value.status_code == 500
         assert "Error fetching dashboard summary" in exc_info.value.detail
@@ -120,34 +113,28 @@ class TestLoginTimelineEndpoint:
                     timestamp=now - timedelta(hours=1),
                     successful_logins=100,
                     failed_logins=5,
-                    total_logins=105
+                    total_logins=105,
                 ),
                 LoginActivityPoint(
-                    timestamp=now,
-                    successful_logins=120,
-                    failed_logins=3,
-                    total_logins=123
-                )
+                    timestamp=now, successful_logins=120, failed_logins=3, total_logins=123
+                ),
             ],
             time_range=TimeRange.DAY_7,
             total_successful=220,
             total_failed=8,
-            change_percent=12.5
+            change_percent=12.5,
         )
         mock_service.get_login_activity_timeline.return_value = mock_timeline
 
         result = await dashboard_api.get_login_timeline(
-            time_range=TimeRange.DAY_7,
-            tenant_id=None,
-            service=mock_service
+            time_range=TimeRange.DAY_7, tenant_id=None, service=mock_service
         )
 
         assert len(result.data) == 2
         assert result.total_successful == 220
         assert result.change_percent == 12.5
         mock_service.get_login_activity_timeline.assert_called_once_with(
-            time_range=TimeRange.DAY_7,
-            tenant_id=None
+            time_range=TimeRange.DAY_7, tenant_id=None
         )
 
     @pytest.mark.asyncio
@@ -157,9 +144,7 @@ class TestLoginTimelineEndpoint:
 
         with pytest.raises(HTTPException) as exc_info:
             await dashboard_api.get_login_timeline(
-                time_range=TimeRange.DAY_30,
-                tenant_id=None,
-                service=mock_service
+                time_range=TimeRange.DAY_30, tenant_id=None, service=mock_service
             )
 
         assert exc_info.value.status_code == 500
@@ -189,7 +174,7 @@ class TestGeoHeatmapEndpoint:
                     longitude=-95.7129,
                     login_count=500,
                     user_count=100,
-                    risk_score_avg=25.5
+                    risk_score_avg=25.5,
                 ),
                 GeoLocationPoint(
                     country_code="GB",
@@ -198,19 +183,17 @@ class TestGeoHeatmapEndpoint:
                     longitude=-3.4360,
                     login_count=200,
                     user_count=50,
-                    risk_score_avg=30.0
-                )
+                    risk_score_avg=30.0,
+                ),
             ],
             total_countries=2,
             top_country="United States",
-            top_country_count=500
+            top_country_count=500,
         )
         mock_service.get_geo_heatmap_data.return_value = mock_heatmap
 
         result = await dashboard_api.get_geo_heatmap(
-            time_range=TimeRange.DAY_30,
-            tenant_id=None,
-            service=mock_service
+            time_range=TimeRange.DAY_30, tenant_id=None, service=mock_service
         )
 
         assert len(result.locations) == 2
@@ -222,17 +205,12 @@ class TestGeoHeatmapEndpoint:
     async def test_get_geo_heatmap_empty(self, mock_service):
         """Test geo heatmap with no data."""
         mock_heatmap = GeoHeatmapData(
-            locations=[],
-            total_countries=0,
-            top_country=None,
-            top_country_count=0
+            locations=[], total_countries=0, top_country=None, top_country_count=0
         )
         mock_service.get_geo_heatmap_data.return_value = mock_heatmap
 
         result = await dashboard_api.get_geo_heatmap(
-            time_range=TimeRange.DAY_7,
-            tenant_id=None,
-            service=mock_service
+            time_range=TimeRange.DAY_7, tenant_id=None, service=mock_service
         )
 
         assert len(result.locations) == 0
@@ -259,25 +237,21 @@ class TestAnomalyTrendEndpoint:
                 AnomalyTrendPoint(
                     date=now - timedelta(days=1),
                     count=5,
-                    types={"impossible_travel": 3, "new_country": 2}
+                    types={"impossible_travel": 3, "new_country": 2},
                 ),
                 AnomalyTrendPoint(
-                    date=now,
-                    count=3,
-                    types={"impossible_travel": 2, "new_country": 1}
-                )
+                    date=now, count=3, types={"impossible_travel": 2, "new_country": 1}
+                ),
             ],
             time_range=TimeRange.DAY_7,
             total_anomalies=8,
             top_type="impossible_travel",
-            change_percent=-25.0
+            change_percent=-25.0,
         )
         mock_service.get_anomaly_trend.return_value = mock_trend
 
         result = await dashboard_api.get_anomaly_trend(
-            time_range=TimeRange.DAY_7,
-            tenant_id=None,
-            service=mock_service
+            time_range=TimeRange.DAY_7, tenant_id=None, service=mock_service
         )
 
         assert len(result.data) == 2
@@ -309,7 +283,7 @@ class TestTopRiskUsersEndpoint:
                     anomaly_count=10,
                     last_anomaly_time=datetime.utcnow(),
                     top_anomaly_types=["impossible_travel", "new_country"],
-                    country_count=5
+                    country_count=5,
                 ),
                 TopRiskUser(
                     user_email="user2@example.com",
@@ -317,18 +291,16 @@ class TestTopRiskUsersEndpoint:
                     risk_score=70,
                     anomaly_count=7,
                     top_anomaly_types=["new_country"],
-                    country_count=3
-                )
+                    country_count=3,
+                ),
             ],
             total_users=2,
-            avg_risk_score=77.5
+            avg_risk_score=77.5,
         )
         mock_service.get_top_risk_users.return_value = mock_users
 
         result = await dashboard_api.get_top_risk_users(
-            limit=10,
-            tenant_id=None,
-            service=mock_service
+            limit=10, tenant_id=None, service=mock_service
         )
 
         assert len(result.users) == 2
@@ -340,15 +312,11 @@ class TestTopRiskUsersEndpoint:
     async def test_get_top_risk_users_with_limit(self, mock_service):
         """Test top risk users with custom limit."""
         mock_service.get_top_risk_users.return_value = TopRiskUsersData(
-            users=[],
-            total_users=0,
-            avg_risk_score=0.0
+            users=[], total_users=0, avg_risk_score=0.0
         )
 
         await dashboard_api.get_top_risk_users(
-            limit=5,
-            tenant_id="tenant-123",
-            service=mock_service
+            limit=5, tenant_id="tenant-123", service=mock_service
         )
 
         mock_service.get_top_risk_users.assert_called_once_with(limit=5, tenant_id="tenant-123")
@@ -377,33 +345,19 @@ class TestAlertVolumeEndpoint:
                     high=3,
                     medium=5,
                     low=10,
-                    total=19
+                    total=19,
                 ),
-                AlertVolumePoint(
-                    timestamp=now,
-                    critical=0,
-                    high=2,
-                    medium=4,
-                    low=8,
-                    total=14
-                )
+                AlertVolumePoint(timestamp=now, critical=0, high=2, medium=4, low=8, total=14),
             ],
             time_range=TimeRange.DAY_7,
-            total_by_severity={
-                "CRITICAL": 1,
-                "HIGH": 5,
-                "MEDIUM": 9,
-                "LOW": 18
-            },
+            total_by_severity={"CRITICAL": 1, "HIGH": 5, "MEDIUM": 9, "LOW": 18},
             peak_volume=19,
-            peak_time=now - timedelta(days=1)
+            peak_time=now - timedelta(days=1),
         )
         mock_service.get_alert_volume.return_value = mock_volume
 
         result = await dashboard_api.get_alert_volume(
-            time_range=TimeRange.DAY_7,
-            tenant_id=None,
-            service=mock_service
+            time_range=TimeRange.DAY_7, tenant_id=None, service=mock_service
         )
 
         assert len(result.data) == 2
@@ -425,30 +379,19 @@ class TestAnomalyBreakdownEndpoint:
         """Test successful anomaly breakdown retrieval."""
         mock_breakdown = [
             AnomalyTypeBreakdown(
-                type="impossible_travel",
-                count=50,
-                percentage=50.0,
-                avg_risk_score=75.0
+                type="impossible_travel", count=50, percentage=50.0, avg_risk_score=75.0
             ),
             AnomalyTypeBreakdown(
-                type="new_country",
-                count=30,
-                percentage=30.0,
-                avg_risk_score=60.0
+                type="new_country", count=30, percentage=30.0, avg_risk_score=60.0
             ),
             AnomalyTypeBreakdown(
-                type="failed_login",
-                count=20,
-                percentage=20.0,
-                avg_risk_score=40.0
-            )
+                type="failed_login", count=20, percentage=20.0, avg_risk_score=40.0
+            ),
         ]
         mock_service.get_anomaly_breakdown.return_value = mock_breakdown
 
         result = await dashboard_api.get_anomaly_breakdown(
-            time_range=TimeRange.DAY_30,
-            tenant_id=None,
-            service=mock_service
+            time_range=TimeRange.DAY_30, tenant_id=None, service=mock_service
         )
 
         assert len(result) == 3
@@ -487,30 +430,36 @@ class TestFullDashboardEndpoint:
             active_tenants=5,
             avg_risk_score=35.5,
             login_success_rate=95.0,
-            top_threats=["impossible_travel"]
+            top_threats=["impossible_travel"],
         )
 
         mock_service.get_login_activity_timeline.return_value = LoginActivityTimeline(
-            data=[LoginActivityPoint(timestamp=now, successful_logins=100, failed_logins=5, total_logins=105)],
+            data=[
+                LoginActivityPoint(
+                    timestamp=now, successful_logins=100, failed_logins=5, total_logins=105
+                )
+            ],
             time_range=TimeRange.DAY_30,
             total_successful=100,
             total_failed=5,
-            change_percent=0.0
+            change_percent=0.0,
         )
 
         mock_service.get_geo_heatmap_data.return_value = GeoHeatmapData(
-            locations=[GeoLocationPoint(
-                country_code="US",
-                country_name="United States",
-                latitude=37.0,
-                longitude=-95.0,
-                login_count=100,
-                user_count=20,
-                risk_score_avg=25.0
-            )],
+            locations=[
+                GeoLocationPoint(
+                    country_code="US",
+                    country_name="United States",
+                    latitude=37.0,
+                    longitude=-95.0,
+                    login_count=100,
+                    user_count=20,
+                    risk_score_avg=25.0,
+                )
+            ],
             total_countries=1,
             top_country="United States",
-            top_country_count=100
+            top_country_count=100,
         )
 
         mock_service.get_anomaly_trend.return_value = AnomalyTrendData(
@@ -518,20 +467,22 @@ class TestFullDashboardEndpoint:
             time_range=TimeRange.DAY_30,
             total_anomalies=5,
             top_type="impossible_travel",
-            change_percent=0.0
+            change_percent=0.0,
         )
 
         mock_service.get_top_risk_users.return_value = TopRiskUsersData(
-            users=[TopRiskUser(
-                user_email="test@example.com",
-                tenant_id="tenant-1",
-                risk_score=80,
-                anomaly_count=5,
-                top_anomaly_types=["impossible_travel"],
-                country_count=3
-            )],
+            users=[
+                TopRiskUser(
+                    user_email="test@example.com",
+                    tenant_id="tenant-1",
+                    risk_score=80,
+                    anomaly_count=5,
+                    top_anomaly_types=["impossible_travel"],
+                    country_count=3,
+                )
+            ],
             total_users=1,
-            avg_risk_score=80.0
+            avg_risk_score=80.0,
         )
 
         mock_service.get_alert_volume.return_value = AlertVolumeData(
@@ -539,17 +490,17 @@ class TestFullDashboardEndpoint:
             time_range=TimeRange.DAY_30,
             total_by_severity={"CRITICAL": 1, "HIGH": 2, "MEDIUM": 3, "LOW": 4},
             peak_volume=10,
-            peak_time=now
+            peak_time=now,
         )
 
         mock_service.get_anomaly_breakdown.return_value = [
-            AnomalyTypeBreakdown(type="impossible_travel", count=5, percentage=100.0, avg_risk_score=75.0)
+            AnomalyTypeBreakdown(
+                type="impossible_travel", count=5, percentage=100.0, avg_risk_score=75.0
+            )
         ]
 
         result = await dashboard_api.get_full_dashboard(
-            time_range=TimeRange.DAY_30,
-            tenant_id=None,
-            service=mock_service
+            time_range=TimeRange.DAY_30, tenant_id=None, service=mock_service
         )
 
         assert isinstance(result, DashboardDataResponse)
@@ -583,16 +534,10 @@ class TestExportEndpoint:
         """Test successful dashboard export request."""
         from src.models.dashboard import ExportRequest
 
-        request = ExportRequest(
-            time_range=TimeRange.DAY_30,
-            format="csv",
-            charts=["all"]
-        )
+        request = ExportRequest(time_range=TimeRange.DAY_30, format="csv", charts=["all"])
 
         result = await dashboard_api.export_dashboard(
-            request=request,
-            tenant_id=None,
-            service=mock_service
+            request=request, tenant_id=None, service=mock_service
         )
 
         assert result.format == "csv"
@@ -604,15 +549,10 @@ class TestExportEndpoint:
         """Test dashboard export to JSON."""
         from src.models.dashboard import ExportRequest
 
-        request = ExportRequest(
-            time_range=TimeRange.DAY_7,
-            format="json"
-        )
+        request = ExportRequest(time_range=TimeRange.DAY_7, format="json")
 
         result = await dashboard_api.export_dashboard(
-            request=request,
-            tenant_id="tenant-123",
-            service=mock_service
+            request=request, tenant_id="tenant-123", service=mock_service
         )
 
         assert result.format == "json"
@@ -631,10 +571,7 @@ class TestDownloadExportEndpoint:
     @pytest.mark.asyncio
     async def test_download_csv_success(self, mock_service):
         """Test successful CSV download."""
-        result = await dashboard_api.download_export(
-            format="csv",
-            service=mock_service
-        )
+        result = await dashboard_api.download_export(format="csv", service=mock_service)
 
         assert result.status_code == 200
         assert result.media_type == "text/csv"
@@ -643,10 +580,7 @@ class TestDownloadExportEndpoint:
     @pytest.mark.asyncio
     async def test_download_json_success(self, mock_service):
         """Test successful JSON download."""
-        result = await dashboard_api.download_export(
-            format="json",
-            service=mock_service
-        )
+        result = await dashboard_api.download_export(format="json", service=mock_service)
 
         assert result.status_code == 200
         assert result.media_type == "application/json"
@@ -655,10 +589,7 @@ class TestDownloadExportEndpoint:
     async def test_download_invalid_format(self, mock_service):
         """Test download with invalid format."""
         with pytest.raises(HTTPException) as exc_info:
-            await dashboard_api.download_export(
-                format="invalid",
-                service=mock_service
-            )
+            await dashboard_api.download_export(format="invalid", service=mock_service)
 
         assert exc_info.value.status_code == 400
         assert "Unsupported export format" in exc_info.value.detail
@@ -667,9 +598,6 @@ class TestDownloadExportEndpoint:
     async def test_download_pdf_not_supported(self, mock_service):
         """Test PDF export returns error."""
         with pytest.raises(HTTPException) as exc_info:
-            await dashboard_api.download_export(
-                format="pdf",
-                service=mock_service
-            )
+            await dashboard_api.download_export(format="pdf", service=mock_service)
 
         assert exc_info.value.status_code == 400

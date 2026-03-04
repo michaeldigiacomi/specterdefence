@@ -32,11 +32,10 @@ async def get_tenant_service(db: AsyncSession = Depends(get_db)) -> TenantServic
     "/",
     response_model=list[TenantResponse],
     summary="List all tenants",
-    description="Retrieve a list of all registered tenants. Optionally include inactive tenants."
+    description="Retrieve a list of all registered tenants. Optionally include inactive tenants.",
 )
 async def list_tenants(
-    include_inactive: bool = False,
-    service: TenantService = Depends(get_tenant_service)
+    include_inactive: bool = False, service: TenantService = Depends(get_tenant_service)
 ) -> list[TenantResponse]:
     """List all registered tenants.
 
@@ -55,12 +54,12 @@ async def list_tenants(
     response_model=TenantCreateResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new tenant",
-    description="Register a new Office 365 tenant. Validates credentials against Microsoft Graph."
+    description="Register a new Office 365 tenant. Validates credentials against Microsoft Graph.",
 )
 async def create_tenant(
     tenant: TenantCreate,
     validate: bool = True,
-    service: TenantService = Depends(get_tenant_service)
+    service: TenantService = Depends(get_tenant_service),
 ) -> TenantCreateResponse:
     """Create a new tenant registration.
 
@@ -82,22 +81,16 @@ async def create_tenant(
             success=True,
             tenant=result["tenant"],
             validation=result["validation"],
-            message="Tenant created successfully"
+            message="Tenant created successfully",
         )
     except TenantAlreadyExistsError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except TenantValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create tenant: {str(e)}"
+            detail=f"Failed to create tenant: {str(e)}",
         )
 
 
@@ -105,11 +98,10 @@ async def create_tenant(
     "/{tenant_id}",
     response_model=TenantResponse,
     summary="Get tenant by ID",
-    description="Retrieve details of a specific tenant by its internal ID."
+    description="Retrieve details of a specific tenant by its internal ID.",
 )
 async def get_tenant(
-    tenant_id: str,
-    service: TenantService = Depends(get_tenant_service)
+    tenant_id: str, service: TenantService = Depends(get_tenant_service)
 ) -> TenantResponse:
     """Get a specific tenant by ID.
 
@@ -126,8 +118,7 @@ async def get_tenant(
     tenant = await service.get_tenant(tenant_id)
     if not tenant:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tenant with ID {tenant_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tenant with ID {tenant_id} not found"
         )
     return service._to_response(tenant)
 
@@ -136,12 +127,10 @@ async def get_tenant(
     "/{tenant_id}",
     response_model=TenantResponse,
     summary="Update tenant",
-    description="Update tenant information (name, active status)."
+    description="Update tenant information (name, active status).",
 )
 async def update_tenant(
-    tenant_id: str,
-    update: TenantUpdate,
-    service: TenantService = Depends(get_tenant_service)
+    tenant_id: str, update: TenantUpdate, service: TenantService = Depends(get_tenant_service)
 ) -> TenantResponse:
     """Update a tenant.
 
@@ -159,8 +148,7 @@ async def update_tenant(
     updated = await service.update_tenant(tenant_id, update)
     if not updated:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tenant with ID {tenant_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tenant with ID {tenant_id} not found"
         )
     return updated
 
@@ -169,12 +157,10 @@ async def update_tenant(
     "/{tenant_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete tenant",
-    description="Soft-delete a tenant (sets is_active to False). Use hard delete for permanent removal."
+    description="Soft-delete a tenant (sets is_active to False). Use hard delete for permanent removal.",
 )
 async def delete_tenant(
-    tenant_id: str,
-    hard: bool = False,
-    service: TenantService = Depends(get_tenant_service)
+    tenant_id: str, hard: bool = False, service: TenantService = Depends(get_tenant_service)
 ) -> None:
     """Delete a tenant registration.
 
@@ -193,19 +179,17 @@ async def delete_tenant(
 
     if not deleted:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tenant with ID {tenant_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tenant with ID {tenant_id} not found"
         )
 
 
 @router.post(
     "/{tenant_id}/validate",
     summary="Validate tenant credentials",
-    description="Re-validate tenant credentials against Microsoft Graph."
+    description="Re-validate tenant credentials against Microsoft Graph.",
 )
 async def validate_tenant_credentials(
-    tenant_id: str,
-    service: TenantService = Depends(get_tenant_service)
+    tenant_id: str, service: TenantService = Depends(get_tenant_service)
 ):
     """Validate tenant credentials.
 
@@ -222,8 +206,7 @@ async def validate_tenant_credentials(
     tenant = await service.get_tenant(tenant_id)
     if not tenant:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tenant with ID {tenant_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tenant with ID {tenant_id} not found"
         )
 
     # Get decrypted secret with audit logging
@@ -231,9 +214,7 @@ async def validate_tenant_credentials(
 
     # Validate credentials
     validation = await service.validate_tenant(
-        tenant_id=tenant.tenant_id,
-        client_id=tenant.client_id,
-        client_secret=client_secret
+        tenant_id=tenant.tenant_id, client_id=tenant.client_id, client_secret=client_secret
     )
 
     return validation
@@ -253,25 +234,21 @@ async def validate_tenant_credentials(
     - Response latency
 
     Updates the tenant's connection_status field with the result.
-    """
+    """,
 )
 async def health_check_tenant(
     tenant_id: str,
-    permissions: list[str] | None = Query(
-        None,
-        description="Optional list of permissions to verify (default: AuditLog.Read.All)"
+    permissions: list[str]
+    | None = Query(
+        None, description="Optional list of permissions to verify (default: AuditLog.Read.All)"
     ),
     timeout: float = Query(
-        30.0,
-        ge=5.0,
-        le=120.0,
-        description="Request timeout in seconds (5-120)"
+        30.0, ge=5.0, le=120.0, description="Request timeout in seconds (5-120)"
     ),
     update_status: bool = Query(
-        True,
-        description="Whether to update the tenant's connection status in database"
+        True, description="Whether to update the tenant's connection status in database"
     ),
-    service: TenantService = Depends(get_tenant_service)
+    service: TenantService = Depends(get_tenant_service),
 ) -> TenantHealthCheckResponse:
     """Perform health check on a tenant connection.
 
@@ -293,18 +270,17 @@ async def health_check_tenant(
             tenant_id=tenant_id,
             required_permissions=permissions,
             timeout=timeout,
-            update_status=update_status
+            update_status=update_status,
         )
         return result
     except TenantNotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tenant with ID {tenant_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tenant with ID {tenant_id} not found"
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Health check failed: {str(e)}"
+            detail=f"Health check failed: {str(e)}",
         )
 
 
@@ -312,20 +288,17 @@ async def health_check_tenant(
     "/health-check/all",
     response_model=list[TenantHealthCheckResponse],
     summary="Test all tenant connections",
-    description="Perform health checks on all active tenants."
+    description="Perform health checks on all active tenants.",
 )
 async def health_check_all_tenants(
-    permissions: list[str] | None = Query(
-        None,
-        description="Optional list of permissions to verify (default: AuditLog.Read.All)"
+    permissions: list[str]
+    | None = Query(
+        None, description="Optional list of permissions to verify (default: AuditLog.Read.All)"
     ),
     timeout: float = Query(
-        30.0,
-        ge=5.0,
-        le=120.0,
-        description="Request timeout in seconds (5-120)"
+        30.0, ge=5.0, le=120.0, description="Request timeout in seconds (5-120)"
     ),
-    service: TenantService = Depends(get_tenant_service)
+    service: TenantService = Depends(get_tenant_service),
 ) -> list[TenantHealthCheckResponse]:
     """Perform health checks on all active tenants.
 
@@ -346,7 +319,7 @@ async def health_check_all_tenants(
                 tenant_id=tenant_response.id,
                 required_permissions=permissions,
                 timeout=timeout,
-                update_status=True
+                update_status=True,
             )
             results.append(result)
         except Exception as e:
@@ -359,18 +332,18 @@ async def health_check_all_tenants(
                 TenantHealthCheckInfo,
                 TenantHealthCheckPermissions,
             )
-            results.append(TenantHealthCheckResponse(
-                tenant_id=tenant_response.id,
-                status="error",
-                connectivity=TenantHealthCheckConnectivity(
-                    success=False,
-                    error=str(e)
-                ),
-                authentication=TenantHealthCheckAuth(success=False, error=str(e)),
-                permissions=TenantHealthCheckPermissions(success=False),
-                tenant_info=TenantHealthCheckInfo(),
-                timestamp=datetime.now(UTC),
-                message=f"Health check failed: {str(e)}"
-            ))
+
+            results.append(
+                TenantHealthCheckResponse(
+                    tenant_id=tenant_response.id,
+                    status="error",
+                    connectivity=TenantHealthCheckConnectivity(success=False, error=str(e)),
+                    authentication=TenantHealthCheckAuth(success=False, error=str(e)),
+                    permissions=TenantHealthCheckPermissions(success=False),
+                    tenant_info=TenantHealthCheckInfo(),
+                    timestamp=datetime.now(UTC),
+                    message=f"Health check failed: {str(e)}",
+                )
+            )
 
     return results

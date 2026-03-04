@@ -1,7 +1,7 @@
 """Audit log database models for SpecterDefence."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
@@ -23,6 +23,7 @@ def utc_now() -> datetime:
 
 class LogType(StrEnum):
     """Types of audit logs from Office 365."""
+
     SIGNIN = "signin"
     AUDIT_GENERAL = "audit_general"
     AZURE_ACTIVE_DIRECTORY = "azure_active_directory"
@@ -35,58 +36,40 @@ class AuditLogModel(Base):
 
     __tablename__ = "audit_logs"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[str] = mapped_column(
-        String(36),
-        index=True,
-        nullable=False,
-        comment="Internal tenant UUID (FK to tenants)"
+        String(36), index=True, nullable=False, comment="Internal tenant UUID (FK to tenants)"
     )
     log_type: Mapped[LogType] = mapped_column(
-        SQLEnum(LogType, name="log_type_enum"),
-        nullable=False,
-        comment="Type of audit log"
+        SQLEnum(LogType, name="log_type_enum"), nullable=False, comment="Type of audit log"
     )
     raw_data: Mapped[dict[str, Any]] = mapped_column(
-        JSONB,
-        nullable=False,
-        comment="Full O365 response as JSONB"
+        JSONB, nullable=False, comment="Full O365 response as JSONB"
     )
     processed: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-        comment="Whether the log has been processed"
+        Boolean, default=False, nullable=False, comment="Whether the log has been processed"
     )
     o365_created_at: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True,
-        index=True,
-        comment="Timestamp from O365 (CreationTime field)"
+        DateTime, nullable=True, index=True, comment="Timestamp from O365 (CreationTime field)"
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=utc_now,
         nullable=False,
-        comment="When this record was created in our database"
+        comment="When this record was created in our database",
     )
 
     # Relationships
     login_analytics: Mapped[list["LoginAnalyticsModel"]] = relationship(
-        "LoginAnalyticsModel",
-        back_populates="audit_log"
+        "LoginAnalyticsModel", back_populates="audit_log"
     )
 
     # Table arguments for additional indexes
     __table_args__ = (
         # Composite index for efficient querying by tenant and time
-        Index('ix_audit_logs_tenant_created', 'tenant_id', 'created_at'),
+        Index("ix_audit_logs_tenant_created", "tenant_id", "created_at"),
         # Index for finding unprocessed logs
-        Index('ix_audit_logs_processed', 'processed', 'created_at'),
+        Index("ix_audit_logs_processed", "processed", "created_at"),
     )
 
     def __repr__(self) -> str:
@@ -102,43 +85,28 @@ class CollectionStateModel(Base):
         String(36),
         primary_key=True,
         nullable=False,
-        comment="Internal tenant UUID (PK and FK to tenants)"
+        comment="Internal tenant UUID (PK and FK to tenants)",
     )
     last_collection_time: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True,
-        comment="Last successful collection timestamp"
+        DateTime, nullable=True, comment="Last successful collection timestamp"
     )
     next_page_token: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Pagination token for resuming interrupted collection"
+        Text, nullable=True, comment="Pagination token for resuming interrupted collection"
     )
     last_success_at: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True,
-        comment="Timestamp of last successful collection run"
+        DateTime, nullable=True, comment="Timestamp of last successful collection run"
     )
     last_error: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Last error message if collection failed"
+        Text, nullable=True, comment="Last error message if collection failed"
     )
     last_error_at: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True,
-        comment="When the last error occurred"
+        DateTime, nullable=True, comment="When the last error occurred"
     )
     total_logs_collected: Mapped[int] = mapped_column(
-        default=0,
-        nullable=False,
-        comment="Cumulative count of logs collected for this tenant"
+        default=0, nullable=False, comment="Cumulative count of logs collected for this tenant"
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=utc_now,
-        onupdate=utc_now,
-        nullable=False
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     def __repr__(self) -> str:
@@ -150,49 +118,32 @@ class ContentSubscriptionModel(Base):
 
     __tablename__ = "content_subscriptions"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[str] = mapped_column(
-        String(36),
-        index=True,
-        nullable=False,
-        comment="Internal tenant UUID"
+        String(36), index=True, nullable=False, comment="Internal tenant UUID"
     )
     content_type: Mapped[str] = mapped_column(
         String(100),
         nullable=False,
-        comment="Office 365 content type (e.g., Audit.AzureActiveDirectory)"
+        comment="Office 365 content type (e.g., Audit.AzureActiveDirectory)",
     )
     is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        nullable=False,
-        comment="Whether subscription is active"
+        Boolean, default=True, nullable=False, comment="Whether subscription is active"
     )
-    subscribed_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=utc_now,
-        nullable=False
-    )
+    subscribed_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     webhook_url: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Webhook URL if using push notifications"
+        Text, nullable=True, comment="Webhook URL if using push notifications"
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=utc_now,
-        onupdate=utc_now,
-        nullable=False
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     __table_args__ = (
         # Unique constraint to prevent duplicate subscriptions
-        Index('ix_content_subscriptions_tenant_type', 'tenant_id', 'content_type', unique=True),
+        Index("ix_content_subscriptions_tenant_type", "tenant_id", "content_type", unique=True),
     )
 
     def __repr__(self) -> str:
-        return f"<ContentSubscription(tenant_id={self.tenant_id}, content_type={self.content_type})>"
+        return (
+            f"<ContentSubscription(tenant_id={self.tenant_id}, content_type={self.content_type})>"
+        )

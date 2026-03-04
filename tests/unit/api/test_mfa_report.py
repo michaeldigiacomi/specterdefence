@@ -111,10 +111,7 @@ class TestMFAReportAPI:
         """Test getting MFA enrollment summary."""
         mock_service.get_enrollment_summary.return_value = sample_summary
 
-        result = await mfa_report_api.get_mfa_summary(
-            tenant_id="tenant-123",
-            service=mock_service
-        )
+        result = await mfa_report_api.get_mfa_summary(tenant_id="tenant-123", service=mock_service)
 
         assert result.tenant_id == "tenant-123"
         assert result.total_users == 100
@@ -133,10 +130,7 @@ class TestMFAReportAPI:
             "offset": 0,
         }
 
-        result = await mfa_report_api.list_mfa_users(
-            tenant_id="tenant-123",
-            service=mock_service
-        )
+        result = await mfa_report_api.list_mfa_users(tenant_id="tenant-123", service=mock_service)
 
         assert result.total == 1
         assert len(result.items) == 1
@@ -154,10 +148,7 @@ class TestMFAReportAPI:
         }
 
         result = await mfa_report_api.list_mfa_users(
-            tenant_id="tenant-123",
-            is_mfa_registered=True,
-            is_admin=False,
-            service=mock_service
+            tenant_id="tenant-123", is_mfa_registered=True, is_admin=False, service=mock_service
         )
 
         assert result.total == 1
@@ -178,8 +169,7 @@ class TestMFAReportAPI:
         }
 
         result = await mfa_report_api.get_users_without_mfa(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.total == 1
@@ -199,8 +189,7 @@ class TestMFAReportAPI:
         }
 
         result = await mfa_report_api.get_users_without_mfa(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.total == 1
@@ -212,8 +201,7 @@ class TestMFAReportAPI:
         mock_service.get_admins_without_mfa.return_value = []
 
         result = await mfa_report_api.get_admins_without_mfa(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.total == 0
@@ -248,8 +236,7 @@ class TestMFAReportAPI:
         mock_service.get_admins_without_mfa.return_value = [admin_user]
 
         result = await mfa_report_api.get_admins_without_mfa(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.total == 1
@@ -282,9 +269,7 @@ class TestMFAReportAPI:
         }
 
         result = await mfa_report_api.get_mfa_trends(
-            tenant_id="tenant-123",
-            days=30,
-            service=mock_service
+            tenant_id="tenant-123", days=30, service=mock_service
         )
 
         assert result.tenant_id == "tenant-123"
@@ -305,8 +290,7 @@ class TestMFAReportAPI:
         }
 
         result = await mfa_report_api.get_method_distribution(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.tenant_id == "tenant-123"
@@ -332,8 +316,7 @@ class TestMFAReportAPI:
         }
 
         result = await mfa_report_api.get_strength_distribution(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.tenant_id == "tenant-123"
@@ -343,7 +326,9 @@ class TestMFAReportAPI:
         assert result.no_mfa_percentage == 15.0
 
     @pytest.mark.asyncio
-    async def test_get_compliance_report(self, mock_service, sample_summary, sample_non_compliant_user):
+    async def test_get_compliance_report(
+        self, mock_service, sample_summary, sample_non_compliant_user
+    ):
         """Test getting full compliance report."""
         mock_service.get_enrollment_summary.return_value = sample_summary
         mock_service.get_users_without_mfa.return_value = {
@@ -357,8 +342,7 @@ class TestMFAReportAPI:
         }
 
         result = await mfa_report_api.get_compliance_report(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.tenant_id == "tenant-123"
@@ -380,16 +364,14 @@ class TestMFAReportAPI:
         }
 
         from src.models.mfa_report import MFAScanRequest
+
         request = MFAScanRequest(
             tenant_id="tenant-123",
             full_scan=True,
             check_compliance=True,
         )
 
-        result = await mfa_report_api.scan_mfa(
-            request=request,
-            service=mock_service
-        )
+        result = await mfa_report_api.scan_mfa(request=request, service=mock_service)
 
         assert result.success is True
         assert result.users_scanned == 100
@@ -401,16 +383,14 @@ class TestMFAReportAPI:
         mock_service.scan_tenant_mfa.side_effect = ValueError("Tenant not found")
 
         from src.models.mfa_report import MFAScanRequest
+
         request = MFAScanRequest(
             tenant_id="nonexistent-tenant",
             full_scan=True,
         )
 
         with pytest.raises(HTTPException) as exc_info:
-            await mfa_report_api.scan_mfa(
-                request=request,
-                service=mock_service
-            )
+            await mfa_report_api.scan_mfa(request=request, service=mock_service)
 
         assert exc_info.value.status_code == 404
 
@@ -430,14 +410,13 @@ class TestMFAReportAPI:
         mock_service.set_user_exemption.return_value = user
 
         from src.models.mfa_report import MFAExemptionRequest
+
         request = MFAExemptionRequest(
             exemption_reason="Service account",
         )
 
         result = await mfa_report_api.set_user_exemption(
-            user_id=user_id,
-            request=request,
-            service=mock_service
+            user_id=user_id, request=request, service=mock_service
         )
 
         assert result.success is True
@@ -450,15 +429,14 @@ class TestMFAReportAPI:
         mock_service.set_user_exemption.return_value = None
 
         from src.models.mfa_report import MFAExemptionRequest
+
         request = MFAExemptionRequest(
             exemption_reason="Test",
         )
 
         with pytest.raises(HTTPException) as exc_info:
             await mfa_report_api.set_user_exemption(
-                user_id="nonexistent-id",
-                request=request,
-                service=mock_service
+                user_id="nonexistent-id", request=request, service=mock_service
             )
 
         assert exc_info.value.status_code == 404
@@ -487,9 +465,7 @@ class TestMFAReportAPI:
         }
 
         result = await mfa_report_api.list_mfa_alerts(
-            tenant_id="tenant-123",
-            resolved=False,
-            service=mock_service
+            tenant_id="tenant-123", resolved=False, service=mock_service
         )
 
         assert result["total"] == 1
@@ -512,14 +488,13 @@ class TestMFAReportAPI:
         mock_service.resolve_alert.return_value = alert
 
         from src.models.mfa_report import MFAResolveAlertRequest
+
         request = MFAResolveAlertRequest(
             resolved_by="admin@example.com",
         )
 
         result = await mfa_report_api.resolve_alert(
-            alert_id=alert_id,
-            request=request,
-            service=mock_service
+            alert_id=alert_id, request=request, service=mock_service
         )
 
         assert result.success is True
@@ -532,15 +507,14 @@ class TestMFAReportAPI:
         mock_service.resolve_alert.return_value = None
 
         from src.models.mfa_report import MFAResolveAlertRequest
+
         request = MFAResolveAlertRequest(
             resolved_by="admin@example.com",
         )
 
         with pytest.raises(HTTPException) as exc_info:
             await mfa_report_api.resolve_alert(
-                alert_id="nonexistent-id",
-                request=request,
-                service=mock_service
+                alert_id="nonexistent-id", request=request, service=mock_service
             )
 
         assert exc_info.value.status_code == 404

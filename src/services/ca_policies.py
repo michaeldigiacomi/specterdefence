@@ -49,10 +49,7 @@ class CAPoliciesService:
         self.db = db_session
 
     async def scan_tenant_policies(
-        self,
-        tenant_id: str,
-        trigger_alerts: bool = True,
-        compare_baseline: bool = True
+        self, tenant_id: str, trigger_alerts: bool = True, compare_baseline: bool = True
     ) -> dict[str, Any]:
         """Scan all Conditional Access policies for a tenant.
 
@@ -74,9 +71,7 @@ class CAPoliciesService:
 
         # Create Graph client
         graph_client = MSGraphClient(
-            tenant_id=tenant.tenant_id,
-            client_id=tenant.client_id,
-            client_secret=client_secret
+            tenant_id=tenant.tenant_id, client_id=tenant.client_id, client_secret=client_secret
         )
 
         # Create CA policies client
@@ -125,7 +120,7 @@ class CAPoliciesService:
                         policy_data=policy_data,
                         analysis=analysis,
                         ca_client=ca_client,
-                        trigger_alerts=trigger_alerts
+                        trigger_alerts=trigger_alerts,
                     )
 
                     if policy_result.get("is_updated"):
@@ -137,9 +132,7 @@ class CAPoliciesService:
                 else:
                     # Create new policy
                     policy_result = await self._create_policy(
-                        tenant_id=tenant_id,
-                        policy_data=policy_data,
-                        analysis=analysis
+                        tenant_id=tenant_id, policy_data=policy_data, analysis=analysis
                     )
                     results["new_policies"] += 1
 
@@ -148,7 +141,7 @@ class CAPoliciesService:
                         await self._trigger_alert(
                             policy=policy_result,
                             change_type=ChangeType.CREATED,
-                            changes_summary=["New Conditional Access policy detected"]
+                            changes_summary=["New Conditional Access policy detected"],
                         )
                         results["alerts_triggered"] += 1
 
@@ -188,7 +181,7 @@ class CAPoliciesService:
         policy_data: dict[str, Any],
         analysis: dict[str, Any],
         ca_client: CAPoliciesClient,
-        trigger_alerts: bool
+        trigger_alerts: bool,
     ) -> dict[str, Any]:
         """Process an existing policy, detecting changes.
 
@@ -229,7 +222,7 @@ class CAPoliciesService:
                 security_impact="high" if new_state == "disabled" else "low",
                 mfa_removed=(new_state == "disabled" and existing_policy.is_mfa_required),
                 previous_state={"state": old_state},
-                new_state={"state": new_state}
+                new_state={"state": new_state},
             )
 
             # Trigger alert for policy disable
@@ -238,7 +231,7 @@ class CAPoliciesService:
                     policy=existing_policy,
                     change_type=ChangeType.DISABLED,
                     changes_summary=["Policy has been disabled"],
-                    change_id=change_record.id if change_record else None
+                    change_id=change_record.id if change_record else None,
                 )
                 alert_triggered = True
 
@@ -275,7 +268,7 @@ class CAPoliciesService:
                 broadened_scope=comparison["broadened_scope"],
                 narrowed_scope=comparison["narrowed_scope"],
                 previous_state=old_analysis,
-                new_state=analysis
+                new_state=analysis,
             )
 
             # Trigger alert for significant changes
@@ -285,7 +278,9 @@ class CAPoliciesService:
                     change_type=change_type,
                     changes_summary=comparison["changes_summary"],
                     change_id=change_record.id if change_record else None,
-                    severity=self.SEVERITY_MAPPING.get(comparison["security_impact"], AlertSeverity.MEDIUM)
+                    severity=self.SEVERITY_MAPPING.get(
+                        comparison["security_impact"], AlertSeverity.MEDIUM
+                    ),
                 )
                 alert_triggered = True
 
@@ -299,10 +294,7 @@ class CAPoliciesService:
         }
 
     async def _create_policy(
-        self,
-        tenant_id: str,
-        policy_data: dict[str, Any],
-        analysis: dict[str, Any]
+        self, tenant_id: str, policy_data: dict[str, Any], analysis: dict[str, Any]
     ) -> CAPolicyModel:
         """Create a new CA policy record.
 
@@ -367,10 +359,7 @@ class CAPoliciesService:
         return policy
 
     async def _update_policy(
-        self,
-        policy: CAPolicyModel,
-        policy_data: dict[str, Any],
-        analysis: dict[str, Any]
+        self, policy: CAPolicyModel, policy_data: dict[str, Any], analysis: dict[str, Any]
     ) -> None:
         """Update an existing CA policy record.
 
@@ -388,7 +377,9 @@ class CAPoliciesService:
         policy.requires_compliant_device = analysis["requires_compliant_device"]
         policy.requires_hybrid_joined_device = analysis["requires_hybrid_joined_device"]
         policy.sign_in_frequency = analysis["sign_in_frequency"]
-        policy.sign_in_frequency_authentication_type = analysis["sign_in_frequency_authentication_type"]
+        policy.sign_in_frequency_authentication_type = analysis[
+            "sign_in_frequency_authentication_type"
+        ]
         policy.applies_to_all_users = analysis["applies_to_all_users"]
         policy.applies_to_all_apps = analysis["applies_to_all_apps"]
         policy.includes_guests_or_external = analysis["includes_guests_or_external"]
@@ -412,11 +403,7 @@ class CAPoliciesService:
 
         await self.db.commit()
 
-    async def _detect_deleted_policies(
-        self,
-        tenant_id: str,
-        current_policy_ids: set
-    ) -> int:
+    async def _detect_deleted_policies(self, tenant_id: str, current_policy_ids: set) -> int:
         """Detect policies that have been deleted.
 
         Args:
@@ -430,7 +417,7 @@ class CAPoliciesService:
             select(CAPolicyModel).where(
                 and_(
                     CAPolicyModel.tenant_id == tenant_id,
-                    CAPolicyModel.state != PolicyState.DISABLED  # Already marked disabled
+                    CAPolicyModel.state != PolicyState.DISABLED,  # Already marked disabled
                 )
             )
         )
@@ -451,7 +438,7 @@ class CAPoliciesService:
                     changes_summary=["Policy has been deleted from Azure AD"],
                     security_impact="high",
                     previous_state=policy.policy_data,
-                    new_state={}
+                    new_state={},
                 )
 
                 # Trigger alert
@@ -459,7 +446,7 @@ class CAPoliciesService:
                     policy=policy,
                     change_type=ChangeType.DELETED,
                     changes_summary=["Policy has been permanently deleted"],
-                    severity=AlertSeverity.HIGH
+                    severity=AlertSeverity.HIGH,
                 )
 
                 deleted_count += 1
@@ -478,7 +465,7 @@ class CAPoliciesService:
         narrowed_scope: bool = False,
         previous_state: dict[str, Any] | None = None,
         new_state: dict[str, Any] | None = None,
-        changed_by: str | None = None
+        changed_by: str | None = None,
     ) -> CAPolicyChangeModel | None:
         """Record a policy change.
 
@@ -528,7 +515,7 @@ class CAPoliciesService:
         change_type: ChangeType,
         changes_summary: list[str],
         change_id: Any | None = None,
-        severity: AlertSeverity | None = None
+        severity: AlertSeverity | None = None,
     ) -> None:
         """Trigger an alert for a policy change.
 
@@ -561,7 +548,9 @@ class CAPoliciesService:
                 alert_type=change_type,
                 severity=severity,
                 title=policy.generate_alert_title(change_type),
-                description=policy.generate_alert_description(change_type, {"changes": changes_summary}),
+                description=policy.generate_alert_description(
+                    change_type, {"changes": changes_summary}
+                ),
                 detection_reasons=changes_summary,
                 alert_metadata={
                     "policy_id": policy.policy_id,
@@ -571,7 +560,7 @@ class CAPoliciesService:
                     "applies_to_all_users": policy.applies_to_all_users,
                     "applies_to_all_apps": policy.applies_to_all_apps,
                     "changes": changes_summary,
-                }
+                },
             )
 
             self.db.add(alert)
@@ -595,11 +584,7 @@ class CAPoliciesService:
             logger.error(f"Error triggering alert for policy {policy.id}: {e}")
 
     async def _update_baseline_status(
-        self,
-        tenant_id: str,
-        policy_id: str,
-        compliant: bool,
-        violations: list[str]
+        self, tenant_id: str, policy_id: str, compliant: bool, violations: list[str]
     ) -> None:
         """Update policy baseline compliance status.
 
@@ -614,11 +599,7 @@ class CAPoliciesService:
             policy.baseline_compliant = compliant
             await self.db.commit()
 
-    async def _get_existing_policy(
-        self,
-        tenant_id: str,
-        policy_id: str
-    ) -> CAPolicyModel | None:
+    async def _get_existing_policy(self, tenant_id: str, policy_id: str) -> CAPolicyModel | None:
         """Get existing policy from database.
 
         Args:
@@ -630,10 +611,7 @@ class CAPoliciesService:
         """
         result = await self.db.execute(
             select(CAPolicyModel).where(
-                and_(
-                    CAPolicyModel.tenant_id == tenant_id,
-                    CAPolicyModel.policy_id == policy_id
-                )
+                and_(CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.policy_id == policy_id)
             )
         )
         return result.scalar_one_or_none()
@@ -647,9 +625,7 @@ class CAPoliciesService:
         Returns:
             Tenant model or None
         """
-        result = await self.db.execute(
-            select(TenantModel).where(TenantModel.id == tenant_id)
-        )
+        result = await self.db.execute(select(TenantModel).where(TenantModel.id == tenant_id))
         return result.scalar_one_or_none()
 
     async def _get_baseline_config(self, tenant_id: str) -> CABaselineConfigModel | None:
@@ -662,17 +638,12 @@ class CAPoliciesService:
             Baseline config or None
         """
         result = await self.db.execute(
-            select(CABaselineConfigModel).where(
-                CABaselineConfigModel.tenant_id == tenant_id
-            )
+            select(CABaselineConfigModel).where(CABaselineConfigModel.tenant_id == tenant_id)
         )
         return result.scalar_one_or_none()
 
     async def set_baseline_config(
-        self,
-        tenant_id: str,
-        config_data: dict[str, Any],
-        created_by: str | None = None
+        self, tenant_id: str, config_data: dict[str, Any], created_by: str | None = None
     ) -> CABaselineConfigModel:
         """Set or update security baseline configuration.
 
@@ -691,7 +662,9 @@ class CAPoliciesService:
             existing.require_mfa_for_admins = config_data.get("require_mfa_for_admins", True)
             existing.require_mfa_for_all_users = config_data.get("require_mfa_for_all_users", False)
             existing.block_legacy_auth = config_data.get("block_legacy_auth", True)
-            existing.require_compliant_or_hybrid_joined = config_data.get("require_compliant_or_hybrid_joined", False)
+            existing.require_compliant_or_hybrid_joined = config_data.get(
+                "require_compliant_or_hybrid_joined", False
+            )
             existing.block_high_risk_signins = config_data.get("block_high_risk_signins", True)
             existing.block_unknown_locations = config_data.get("block_unknown_locations", False)
             existing.require_mfa_for_guests = config_data.get("require_mfa_for_guests", True)
@@ -705,7 +678,9 @@ class CAPoliciesService:
                 require_mfa_for_admins=config_data.get("require_mfa_for_admins", True),
                 require_mfa_for_all_users=config_data.get("require_mfa_for_all_users", False),
                 block_legacy_auth=config_data.get("block_legacy_auth", True),
-                require_compliant_or_hybrid_joined=config_data.get("require_compliant_or_hybrid_joined", False),
+                require_compliant_or_hybrid_joined=config_data.get(
+                    "require_compliant_or_hybrid_joined", False
+                ),
                 block_high_risk_signins=config_data.get("block_high_risk_signins", True),
                 block_unknown_locations=config_data.get("block_unknown_locations", False),
                 require_mfa_for_guests=config_data.get("require_mfa_for_guests", True),
@@ -725,7 +700,7 @@ class CAPoliciesService:
         state: PolicyState | None = None,
         is_baseline_policy: bool | None = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> dict[str, Any]:
         """Get CA policies with filtering.
 
@@ -777,9 +752,7 @@ class CAPoliciesService:
         Returns:
             Policy model or None
         """
-        result = await self.db.execute(
-            select(CAPolicyModel).where(CAPolicyModel.id == policy_id)
-        )
+        result = await self.db.execute(select(CAPolicyModel).where(CAPolicyModel.id == policy_id))
         return result.scalar_one_or_none()
 
     async def get_policy_changes(
@@ -788,7 +761,7 @@ class CAPoliciesService:
         tenant_id: str | None = None,
         change_type: ChangeType | None = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> dict[str, Any]:
         """Get policy change history.
 
@@ -837,7 +810,7 @@ class CAPoliciesService:
         acknowledged: bool | None = None,
         severity: AlertSeverity | None = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> dict[str, Any]:
         """Get CA policy alerts.
 
@@ -881,9 +854,7 @@ class CAPoliciesService:
         }
 
     async def acknowledge_alert(
-        self,
-        alert_id: str,
-        acknowledged_by: str
+        self, alert_id: str, acknowledged_by: str
     ) -> CAPolicyAlertModel | None:
         """Acknowledge a CA policy alert.
 
@@ -912,9 +883,7 @@ class CAPoliciesService:
         return alert
 
     async def get_disabled_policies(
-        self,
-        tenant_id: str | None = None,
-        limit: int = 100
+        self, tenant_id: str | None = None, limit: int = 100
     ) -> list[CAPolicyModel]:
         """Get disabled CA policies.
 
@@ -925,9 +894,7 @@ class CAPoliciesService:
         Returns:
             List of disabled policies
         """
-        query = select(CAPolicyModel).where(
-            CAPolicyModel.state == PolicyState.DISABLED
-        )
+        query = select(CAPolicyModel).where(CAPolicyModel.state == PolicyState.DISABLED)
 
         if tenant_id:
             query = query.where(CAPolicyModel.tenant_id == tenant_id)
@@ -939,9 +906,7 @@ class CAPoliciesService:
         return list(result.scalars().all())
 
     async def get_mfa_policies(
-        self,
-        tenant_id: str | None = None,
-        limit: int = 100
+        self, tenant_id: str | None = None, limit: int = 100
     ) -> list[CAPolicyModel]:
         """Get policies that require MFA.
 
@@ -953,10 +918,7 @@ class CAPoliciesService:
             List of MFA policies
         """
         query = select(CAPolicyModel).where(
-            and_(
-                CAPolicyModel.is_mfa_required,
-                CAPolicyModel.state == PolicyState.ENABLED
-            )
+            and_(CAPolicyModel.is_mfa_required, CAPolicyModel.state == PolicyState.ENABLED)
         )
 
         if tenant_id:
@@ -981,8 +943,7 @@ class CAPoliciesService:
         enabled_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
                 and_(
-                    CAPolicyModel.tenant_id == tenant_id,
-                    CAPolicyModel.state == PolicyState.ENABLED
+                    CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.state == PolicyState.ENABLED
                 )
             )
         )
@@ -990,7 +951,7 @@ class CAPoliciesService:
             select(func.count(CAPolicyModel.id)).where(
                 and_(
                     CAPolicyModel.tenant_id == tenant_id,
-                    CAPolicyModel.state == PolicyState.DISABLED
+                    CAPolicyModel.state == PolicyState.DISABLED,
                 )
             )
         )
@@ -998,7 +959,7 @@ class CAPoliciesService:
             select(func.count(CAPolicyModel.id)).where(
                 and_(
                     CAPolicyModel.tenant_id == tenant_id,
-                    CAPolicyModel.state == PolicyState.REPORT_ONLY
+                    CAPolicyModel.state == PolicyState.REPORT_ONLY,
                 )
             )
         )
@@ -1006,30 +967,21 @@ class CAPoliciesService:
         # Get MFA policies count
         mfa_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
-                and_(
-                    CAPolicyModel.tenant_id == tenant_id,
-                    CAPolicyModel.is_mfa_required
-                )
+                and_(CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.is_mfa_required)
             )
         )
 
         # Get baseline policies count
         baseline_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
-                and_(
-                    CAPolicyModel.tenant_id == tenant_id,
-                    CAPolicyModel.is_baseline_policy
-                )
+                and_(CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.is_baseline_policy)
             )
         )
 
         # Get baseline compliant count
         compliant_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
-                and_(
-                    CAPolicyModel.tenant_id == tenant_id,
-                    CAPolicyModel.baseline_compliant
-                )
+                and_(CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.baseline_compliant)
             )
         )
 
@@ -1038,7 +990,7 @@ class CAPoliciesService:
             select(func.count(CAPolicyChangeModel.id)).where(
                 and_(
                     CAPolicyChangeModel.tenant_id == tenant_id,
-                    CAPolicyChangeModel.detected_at >= datetime.utcnow() - timedelta(days=7)
+                    CAPolicyChangeModel.detected_at >= datetime.utcnow() - timedelta(days=7),
                 )
             )
         )
@@ -1049,7 +1001,7 @@ class CAPoliciesService:
                 and_(
                     CAPolicyAlertModel.tenant_id == tenant_id,
                     CAPolicyAlertModel.severity.in_([AlertSeverity.HIGH, AlertSeverity.CRITICAL]),
-                    not CAPolicyAlertModel.is_acknowledged
+                    not CAPolicyAlertModel.is_acknowledged,
                 )
             )
         )
@@ -1057,20 +1009,14 @@ class CAPoliciesService:
         # Get policies covering all users
         all_users_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
-                and_(
-                    CAPolicyModel.tenant_id == tenant_id,
-                    CAPolicyModel.applies_to_all_users
-                )
+                and_(CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.applies_to_all_users)
             )
         )
 
         # Get policies covering all apps
         all_apps_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
-                and_(
-                    CAPolicyModel.tenant_id == tenant_id,
-                    CAPolicyModel.applies_to_all_apps
-                )
+                and_(CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.applies_to_all_apps)
             )
         )
 

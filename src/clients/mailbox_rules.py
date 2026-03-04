@@ -16,16 +16,34 @@ class MailboxRuleClient:
 
     # Suspicious keywords in auto-reply messages
     SUSPICIOUS_KEYWORDS = [
-        "bank", "wire transfer", "payment", "invoice", "urgent",
-        "confidential", "secret", "password", "credential", "login",
-        "verify", "verification", "security update", "account suspended",
-        "immediate action", "click here", "verify account"
+        "bank",
+        "wire transfer",
+        "payment",
+        "invoice",
+        "urgent",
+        "confidential",
+        "secret",
+        "password",
+        "credential",
+        "login",
+        "verify",
+        "verification",
+        "security update",
+        "account suspended",
+        "immediate action",
+        "click here",
+        "verify account",
     ]
 
     # Known malicious domains (simplified list - expand as needed)
     SUSPICIOUS_DOMAINS = [
-        "tempmail", "guerrillamail", "10minutemail", "throwaway",
-        "mailinator", "yopmail", "fakeinbox"
+        "tempmail",
+        "guerrillamail",
+        "10minutemail",
+        "throwaway",
+        "mailinator",
+        "yopmail",
+        "fakeinbox",
     ]
 
     def __init__(self, graph_client: MSGraphClient) -> None:
@@ -62,7 +80,7 @@ class MailboxRuleClient:
                 response = await client.get(
                     url,
                     headers={"Authorization": f"Bearer {token}"},
-                    params=params if url == "https://graph.microsoft.com/v1.0/users" else None
+                    params=params if url == "https://graph.microsoft.com/v1.0/users" else None,
                 )
 
                 if response.status_code != 200:
@@ -92,10 +110,7 @@ class MailboxRuleClient:
         url = f"https://graph.microsoft.com/beta/users/{user_id}/mailFolders/inbox/messageRules"
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                url,
-                headers={"Authorization": f"Bearer {token}"}
-            )
+            response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
 
             if response.status_code == 404:
                 # User might not have a mailbox
@@ -103,7 +118,9 @@ class MailboxRuleClient:
 
             if response.status_code != 200:
                 error_text = response.text
-                logger.warning(f"Failed to fetch rules for {user_id}: {response.status_code} - {error_text}")
+                logger.warning(
+                    f"Failed to fetch rules for {user_id}: {response.status_code} - {error_text}"
+                )
                 return []
 
             data = response.json()
@@ -164,7 +181,7 @@ class MailboxRuleClient:
             "created_outside_business_hours": False,
             "detection_reasons": [],
             "severity": "LOW",
-            "status": "benign"
+            "status": "benign",
         }
 
         # Get actions
@@ -176,10 +193,16 @@ class MailboxRuleClient:
             analysis["rule_type"] = "forwarding"
             forward_recipients = actions.get("forwardTo", [])
             if forward_recipients:
-                analysis["forward_to"] = forward_recipients[0].get("emailAddress", {}).get("address", "")
+                analysis["forward_to"] = (
+                    forward_recipients[0].get("emailAddress", {}).get("address", "")
+                )
                 analysis["forward_to_external"] = self._is_external_address(analysis["forward_to"])
                 if analysis["forward_to_external"]:
-                    analysis["external_domain"] = analysis["forward_to"].split("@")[-1] if "@" in analysis["forward_to"] else None
+                    analysis["external_domain"] = (
+                        analysis["forward_to"].split("@")[-1]
+                        if "@" in analysis["forward_to"]
+                        else None
+                    )
                     analysis["detection_reasons"].append("Forwarding to external email address")
 
         # Check for redirect
@@ -188,7 +211,9 @@ class MailboxRuleClient:
             analysis["rule_type"] = "redirect"
             redirect_recipients = actions.get("redirect", [])
             if redirect_recipients:
-                analysis["redirect_to"] = redirect_recipients[0].get("emailAddress", {}).get("address", "")
+                analysis["redirect_to"] = (
+                    redirect_recipients[0].get("emailAddress", {}).get("address", "")
+                )
                 analysis["detection_reasons"].append("Email redirect rule detected")
 
         # Check for auto-reply
@@ -207,7 +232,9 @@ class MailboxRuleClient:
             folder_id = actions.get("moveToFolder", {}).get("id", "").lower()
             folder_name = actions.get("moveToFolder", {}).get("displayName", "").lower()
 
-            if any(x in folder_id or x in folder_name for x in ["deleted", "junk", "spam", "archive"]):
+            if any(
+                x in folder_id or x in folder_name for x in ["deleted", "junk", "spam", "archive"]
+            ):
                 analysis["is_hidden_folder_redirect"] = True
                 analysis["detection_reasons"].append("Moves emails to hidden/deleted folder")
 
@@ -220,7 +247,9 @@ class MailboxRuleClient:
         if created_date_time:
             try:
                 created_dt = datetime.fromisoformat(created_date_time.replace("Z", "+00:00"))
-                analysis["created_outside_business_hours"] = self._is_outside_business_hours(created_dt)
+                analysis["created_outside_business_hours"] = self._is_outside_business_hours(
+                    created_dt
+                )
                 if analysis["created_outside_business_hours"]:
                     analysis["detection_reasons"].append("Rule created outside business hours")
             except (ValueError, AttributeError):
@@ -248,9 +277,18 @@ class MailboxRuleClient:
 
         # Common consumer email providers
         consumer_domains = [
-            "gmail.com", "yahoo.com", "hotmail.com", "outlook.com",
-            "aol.com", "icloud.com", "mail.com", "protonmail.com",
-            "yandex.com", "qq.com", "163.com", "126.com"
+            "gmail.com",
+            "yahoo.com",
+            "hotmail.com",
+            "outlook.com",
+            "aol.com",
+            "icloud.com",
+            "mail.com",
+            "protonmail.com",
+            "yandex.com",
+            "qq.com",
+            "163.com",
+            "126.com",
         ]
 
         if domain in consumer_domains:
@@ -354,11 +392,8 @@ class MailboxRuleClient:
         async with httpx.AsyncClient() as client:
             response = await client.patch(
                 url,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
-                },
-                json={"isEnabled": False}
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json={"isEnabled": False},
             )
 
             return response.status_code == 200
@@ -378,9 +413,6 @@ class MailboxRuleClient:
         url = f"https://graph.microsoft.com/beta/users/{user_id}/mailFolders/inbox/messageRules/{rule_id}"
 
         async with httpx.AsyncClient() as client:
-            response = await client.delete(
-                url,
-                headers={"Authorization": f"Bearer {token}"}
-            )
+            response = await client.delete(url, headers={"Authorization": f"Bearer {token}"})
 
             return response.status_code == 204

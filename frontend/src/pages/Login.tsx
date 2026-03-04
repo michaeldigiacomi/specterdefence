@@ -11,7 +11,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) return;
-    
+
     loginMutation.mutate({ username, password });
   };
 
@@ -40,8 +40,8 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Username Field */}
             <div>
-              <label 
-                htmlFor="username" 
+              <label
+                htmlFor="username"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Username
@@ -65,8 +65,8 @@ export default function Login() {
 
             {/* Password Field */}
             <div>
-              <label 
-                htmlFor="password" 
+              <label
+                htmlFor="password"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Password
@@ -129,13 +129,6 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Help Text */}
-          <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            Default credentials:{' '}
-            <span className="font-mono text-gray-700 dark:text-gray-300">
-              admin / admin123
-            </span>
-          </p>
         </div>
 
         {/* Footer */}

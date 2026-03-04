@@ -129,9 +129,7 @@ class TestCAPoliciesService:
         # Mock _get_baseline_config to return None (no existing config)
         with patch.object(service, "_get_baseline_config", return_value=None):
             result = await service.set_baseline_config(
-                tenant_id="tenant-1",
-                config_data=config_data,
-                created_by="test-user"
+                tenant_id="tenant-1", config_data=config_data, created_by="test-user"
             )
 
         assert result.require_mfa_for_admins is True
@@ -155,8 +153,7 @@ class TestCAPoliciesService:
 
         with patch.object(service, "_get_baseline_config", return_value=existing):
             result = await service.set_baseline_config(
-                tenant_id="tenant-1",
-                config_data=config_data
+                tenant_id="tenant-1", config_data=config_data
             )
 
         assert result.require_mfa_for_admins is False
@@ -178,8 +175,7 @@ class TestCAPoliciesService:
         service.db.execute = AsyncMock(return_value=mock_result)
 
         result = await service.acknowledge_alert(
-            alert_id=str(alert.id),
-            acknowledged_by="test-user"
+            alert_id=str(alert.id), acknowledged_by="test-user"
         )
 
         assert result is not None
@@ -195,8 +191,7 @@ class TestCAPoliciesService:
         service.db.execute = AsyncMock(return_value=mock_result)
 
         result = await service.acknowledge_alert(
-            alert_id="nonexistent-id",
-            acknowledged_by="test-user"
+            alert_id="nonexistent-id", acknowledged_by="test-user"
         )
 
         assert result is None

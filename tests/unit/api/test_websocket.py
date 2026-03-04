@@ -152,6 +152,7 @@ class TestConnectionManager:
 
         # Use run_coroutine_threadsafe or similar for sync test
         import asyncio
+
         asyncio.run(manager.connect(mock_websocket, "client_1", {}))
         assert manager.get_connection_count() == 1
 
@@ -204,7 +205,7 @@ class TestWebSocketStats:
     async def test_get_websocket_stats(self):
         """Test getting WebSocket statistics."""
         # Mock the global manager
-        with patch('src.api.websocket.manager') as mock_manager:
+        with patch("src.api.websocket.manager") as mock_manager:
             mock_manager.get_connection_count.return_value = 5
             mock_manager.get_client_ids.return_value = ["c1", "c2", "c3", "c4", "c5"]
 
@@ -227,7 +228,7 @@ class TestClientMessageHandling:
     @pytest.mark.asyncio
     async def test_handle_ping_message(self, mock_stream_manager):
         """Test handling ping message."""
-        with patch('src.api.websocket.manager') as mock_conn_manager:
+        with patch("src.api.websocket.manager") as mock_conn_manager:
             mock_conn_manager.send_personal_message = AsyncMock(return_value=True)
 
             data = {"type": "ping"}
@@ -242,7 +243,7 @@ class TestClientMessageHandling:
         """Test handling acknowledge message."""
         mock_stream_manager.acknowledge_alert = AsyncMock(return_value=True)
 
-        with patch('src.api.websocket.manager') as mock_conn_manager:
+        with patch("src.api.websocket.manager") as mock_conn_manager:
             mock_conn_manager.send_personal_message = AsyncMock(return_value=True)
 
             data = {"type": "acknowledge", "alert_id": "alert-123"}
@@ -256,7 +257,7 @@ class TestClientMessageHandling:
         """Test handling dismiss message."""
         mock_stream_manager.dismiss_alert = AsyncMock(return_value=True)
 
-        with patch('src.api.websocket.manager') as mock_conn_manager:
+        with patch("src.api.websocket.manager") as mock_conn_manager:
             mock_conn_manager.send_personal_message = AsyncMock(return_value=True)
 
             data = {"type": "dismiss", "alert_id": "alert-123"}
@@ -270,7 +271,7 @@ class TestClientMessageHandling:
         """Test handling subscribe message."""
         mock_stream_manager.update_subscription = AsyncMock()
 
-        with patch('src.api.websocket.manager') as mock_conn_manager:
+        with patch("src.api.websocket.manager") as mock_conn_manager:
             mock_conn_manager.send_personal_message = AsyncMock(return_value=True)
 
             filters = {"severity": ["CRITICAL"]}
@@ -284,7 +285,7 @@ class TestClientMessageHandling:
         """Test handling unsubscribe message."""
         mock_stream_manager.update_subscription = AsyncMock()
 
-        with patch('src.api.websocket.manager') as mock_conn_manager:
+        with patch("src.api.websocket.manager") as mock_conn_manager:
             mock_conn_manager.send_personal_message = AsyncMock(return_value=True)
 
             data = {"type": "unsubscribe"}
@@ -295,7 +296,7 @@ class TestClientMessageHandling:
     @pytest.mark.asyncio
     async def test_handle_unknown_message_type(self, mock_stream_manager):
         """Test handling unknown message type."""
-        with patch('src.api.websocket.manager') as mock_conn_manager:
+        with patch("src.api.websocket.manager") as mock_conn_manager:
             mock_conn_manager.send_personal_message = AsyncMock(return_value=True)
 
             data = {"type": "unknown_type"}
@@ -327,6 +328,7 @@ class TestAlertStreamService:
 
         # Track callback
         callback_called = False
+
         def callback(a):
             nonlocal callback_called
             callback_called = True

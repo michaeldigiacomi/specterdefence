@@ -19,11 +19,13 @@ logger = logging.getLogger(__name__)
 
 class AlertRuleNotFoundError(Exception):
     """Exception raised when an alert rule is not found."""
+
     pass
 
 
 class AlertWebhookNotFoundError(Exception):
     """Exception raised when an alert webhook is not found."""
+
     pass
 
 
@@ -109,10 +111,7 @@ class AlertRuleService:
         # Filter by tenant (None = global, specific = tenant-specific)
         if tenant_id is not None:
             query = query.where(
-                or_(
-                    AlertWebhookModel.tenant_id == tenant_id,
-                    AlertWebhookModel.tenant_id.is_(None)
-                )
+                or_(AlertWebhookModel.tenant_id == tenant_id, AlertWebhookModel.tenant_id.is_(None))
             )
 
         if not include_inactive:
@@ -232,9 +231,7 @@ class AlertRuleService:
         Returns:
             Rule model or None if not found
         """
-        result = await self.db.execute(
-            select(AlertRuleModel).where(AlertRuleModel.id == rule_id)
-        )
+        result = await self.db.execute(select(AlertRuleModel).where(AlertRuleModel.id == rule_id))
         return result.scalar_one_or_none()
 
     async def list_rules(
@@ -256,10 +253,7 @@ class AlertRuleService:
         # Filter by tenant (None = global, specific = tenant-specific)
         if tenant_id is not None:
             query = query.where(
-                or_(
-                    AlertRuleModel.tenant_id == tenant_id,
-                    AlertRuleModel.tenant_id.is_(None)
-                )
+                or_(AlertRuleModel.tenant_id == tenant_id, AlertRuleModel.tenant_id.is_(None))
             )
 
         if not include_inactive:
@@ -358,10 +352,7 @@ class AlertRuleService:
         # Filter by tenant (get global rules and tenant-specific rules)
         if tenant_id is not None:
             query = query.where(
-                or_(
-                    AlertRuleModel.tenant_id == tenant_id,
-                    AlertRuleModel.tenant_id.is_(None)
-                )
+                or_(AlertRuleModel.tenant_id == tenant_id, AlertRuleModel.tenant_id.is_(None))
             )
 
         result = await self.db.execute(query)

@@ -27,12 +27,19 @@ class TestAlertProcessor:
     @pytest.mark.asyncio
     async def test_map_anomaly_to_event_type(self, processor):
         """Test mapping anomaly flags to event types."""
-        assert processor._map_anomaly_to_event_type("impossible_travel") == EventType.IMPOSSIBLE_TRAVEL
+        assert (
+            processor._map_anomaly_to_event_type("impossible_travel") == EventType.IMPOSSIBLE_TRAVEL
+        )
         assert processor._map_anomaly_to_event_type("new_country") == EventType.NEW_COUNTRY
         assert processor._map_anomaly_to_event_type("new_ip") == EventType.NEW_IP
-        assert processor._map_anomaly_to_event_type("multiple_failures") == EventType.MULTIPLE_FAILURES
+        assert (
+            processor._map_anomaly_to_event_type("multiple_failures") == EventType.MULTIPLE_FAILURES
+        )
         assert processor._map_anomaly_to_event_type("failed_login") == EventType.BRUTE_FORCE
-        assert processor._map_anomaly_to_event_type("suspicious_location") == EventType.SUSPICIOUS_LOCATION
+        assert (
+            processor._map_anomaly_to_event_type("suspicious_location")
+            == EventType.SUSPICIOUS_LOCATION
+        )
         assert processor._map_anomaly_to_event_type("unknown_flag") is None
 
     def test_risk_score_to_severity(self, processor):
@@ -236,7 +243,7 @@ class TestAlertProcessor:
         mock_engine.process_event = AsyncMock(return_value=[{"status": "sent"}])
         mock_engine.close = AsyncMock()
 
-        with patch('src.services.alert_processor.AlertEngine', return_value=mock_engine):
+        with patch("src.services.alert_processor.AlertEngine", return_value=mock_engine):
             await processor.process_login_analytics(login_data, None)
 
         # Should process both flags
@@ -255,6 +262,7 @@ class TestAlertProcessor:
     @pytest.mark.asyncio
     async def test_start_stop(self, processor):
         """Test starting and stopping the processor."""
+
         # Just test that start sets _running to True and creates a task
         async def mock_run_loop():
             pass
@@ -275,6 +283,6 @@ class TestAlertProcessor:
         """Test starting when already running."""
         processor._running = True
 
-        with patch('asyncio.create_task') as mock_create_task:
+        with patch("asyncio.create_task") as mock_create_task:
             await processor.start()
             mock_create_task.assert_not_called()

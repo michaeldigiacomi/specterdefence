@@ -14,11 +14,7 @@ class MSGraphClient:
     """Microsoft Graph API client."""
 
     def __init__(
-        self,
-        tenant_id: str,
-        client_id: str,
-        client_secret: str,
-        timeout: float = 30.0
+        self, tenant_id: str, client_id: str, client_secret: str, timeout: float = 30.0
     ) -> None:
         """Initialize MSAL client.
 
@@ -65,8 +61,7 @@ class MSGraphClient:
             error_description = result.get("error_description", "Unknown error")
             error_code = result.get("error", "unknown_error")
             raise MSGraphAuthError(
-                f"Failed to get access token: {error_description}",
-                error_code=error_code
+                f"Failed to get access token: {error_description}", error_code=error_code
             )
         except MSGraphAuthError:
             # Re-raise MSGraphAuthError as-is
@@ -77,11 +72,10 @@ class MSGraphClient:
             if "throttle" in error_msg or "429" in error_msg:
                 raise MSGraphAuthError(
                     "Authentication request throttled. Please try again later.",
-                    error_code="throttled"
+                    error_code="throttled",
                 ) from e
             raise MSGraphAuthError(
-                f"Authentication error: {str(e)}",
-                error_code="auth_error"
+                f"Authentication error: {str(e)}", error_code="auth_error"
             ) from e
 
     async def validate_credentials(self) -> dict[str, Any]:
@@ -99,7 +93,7 @@ class MSGraphClient:
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.get(
                 f"{settings.MS_GRAPH_API_URL}/organization",
-                headers={"Authorization": f"Bearer {token}"}
+                headers={"Authorization": f"Bearer {token}"},
             )
 
             if response.status_code == 200:
@@ -115,13 +109,12 @@ class MSGraphClient:
                 return {"valid": True, "display_name": "", "tenant_id": ""}
             elif response.status_code == 401:
                 raise MSGraphAuthError(
-                    "Invalid credentials or insufficient permissions",
-                    error_code="unauthorized"
+                    "Invalid credentials or insufficient permissions", error_code="unauthorized"
                 )
             else:
                 raise MSGraphAPIError(
                     f"API error: {response.status_code} - {response.text}",
-                    status_code=response.status_code
+                    status_code=response.status_code,
                 )
 
     async def check_permissions(self, required_permissions: list[str]) -> dict[str, Any]:
@@ -148,8 +141,7 @@ class MSGraphClient:
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             # Get the service principal's OAuth2 permissions
             await client.get(
-                f"{settings.MS_GRAPH_API_URL}/me",
-                headers={"Authorization": f"Bearer {token}"}
+                f"{settings.MS_GRAPH_API_URL}/me", headers={"Authorization": f"Bearer {token}"}
             )
 
             # For app-only tokens, try to check audit log access directly
@@ -162,43 +154,43 @@ class MSGraphClient:
                     audit_response = await client.get(
                         f"{settings.MS_GRAPH_API_URL}/auditLogs/directoryAudits",
                         headers={"Authorization": f"Bearer {token}"},
-                        params={"$top": 1}
+                        params={"$top": 1},
                     )
 
                     if audit_response.status_code == 200:
                         permission_results[permission] = {
                             "granted": True,
                             "test_endpoint": "/auditLogs/directoryAudits",
-                            "test_result": "success"
+                            "test_result": "success",
                         }
                     elif audit_response.status_code == 403:
                         permission_results[permission] = {
                             "granted": False,
                             "test_endpoint": "/auditLogs/directoryAudits",
                             "test_result": "forbidden",
-                            "error": "Permission not granted or admin consent required"
+                            "error": "Permission not granted or admin consent required",
                         }
                     else:
                         permission_results[permission] = {
                             "granted": False,
                             "test_endpoint": "/auditLogs/directoryAudits",
                             "test_result": "error",
-                            "error": f"HTTP {audit_response.status_code}"
+                            "error": f"HTTP {audit_response.status_code}",
                         }
                 else:
                     # For other permissions, we'd need to implement specific tests
                     permission_results[permission] = {
                         "granted": "unknown",
                         "test_endpoint": None,
-                        "test_result": "not_implemented"
+                        "test_result": "not_implemented",
                     }
 
             granted = [
-                perm for perm, result in permission_results.items()
-                if result.get("granted") is True
+                perm for perm, result in permission_results.items() if result.get("granted") is True
             ]
             missing = [
-                perm for perm, result in permission_results.items()
+                perm
+                for perm, result in permission_results.items()
                 if result.get("granted") is False
             ]
 
@@ -206,7 +198,7 @@ class MSGraphClient:
                 "has_permissions": len(missing) == 0,
                 "granted_permissions": granted,
                 "missing_permissions": missing,
-                "details": permission_results
+                "details": permission_results,
             }
 
     async def health_check(self, required_permissions: list[str] | None = None) -> dict[str, Any]:
@@ -235,7 +227,7 @@ class MSGraphClient:
             "authentication": {"success": False, "error": None},
             "permissions": {"success": False, "granted": [], "missing": []},
             "tenant_info": {},
-            "timestamp": datetime.now(UTC).isoformat()
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         try:
@@ -243,19 +235,18 @@ class MSGraphClient:
             start_time = time.time()
 
             try:
-                await asyncio.wait_for(
-                    self.get_access_token(),
-                    timeout=self.timeout
-                )
+                await asyncio.wait_for(self.get_access_token(), timeout=self.timeout)
                 result["authentication"]["success"] = True
             except TimeoutError:
                 result["status"] = "timeout"
-                result["authentication"]["error"] = f"Authentication timed out after {self.timeout}s"
+                result["authentication"][
+                    "error"
+                ] = f"Authentication timed out after {self.timeout}s"
                 return result
             except MSGraphAuthError as e:
                 result["status"] = "error"
                 result["authentication"]["error"] = str(e)
-                result["authentication"]["error_code"] = getattr(e, 'error_code', 'unknown')
+                result["authentication"]["error_code"] = getattr(e, "error_code", "unknown")
                 return result
 
             latency_ms = (time.time() - start_time) * 1000
@@ -264,20 +255,20 @@ class MSGraphClient:
 
             # Get tenant info
             try:
-                tenant_info = await asyncio.wait_for(
-                    self.get_tenant_info(),
-                    timeout=self.timeout
-                )
+                tenant_info = await asyncio.wait_for(self.get_tenant_info(), timeout=self.timeout)
                 result["tenant_info"] = {
                     "display_name": tenant_info.get("displayName"),
                     "tenant_id": tenant_info.get("id"),
                     "verified_domains": [
-                        d.get("name") for d in tenant_info.get("verifiedDomains", [])
+                        d.get("name")
+                        for d in tenant_info.get("verifiedDomains", [])
                         if d.get("isVerified")
-                    ]
+                    ],
                 }
             except TimeoutError:
-                result["connectivity"]["error"] = f"Tenant info request timed out after {self.timeout}s"
+                result["connectivity"][
+                    "error"
+                ] = f"Tenant info request timed out after {self.timeout}s"
             except Exception as e:
                 result["connectivity"]["error"] = str(e)
 
@@ -285,15 +276,16 @@ class MSGraphClient:
             if required_permissions:
                 try:
                     perm_check = await asyncio.wait_for(
-                        self.check_permissions(required_permissions),
-                        timeout=self.timeout
+                        self.check_permissions(required_permissions), timeout=self.timeout
                     )
                     result["permissions"]["success"] = perm_check["has_permissions"]
                     result["permissions"]["granted"] = perm_check["granted_permissions"]
                     result["permissions"]["missing"] = perm_check["missing_permissions"]
                     result["permissions"]["details"] = perm_check["details"]
                 except TimeoutError:
-                    result["permissions"]["error"] = f"Permission check timed out after {self.timeout}s"
+                    result["permissions"][
+                        "error"
+                    ] = f"Permission check timed out after {self.timeout}s"
                 except Exception as e:
                     result["permissions"]["error"] = str(e)
             else:
@@ -325,7 +317,7 @@ class MSGraphClient:
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.get(
                 f"{settings.MS_GRAPH_API_URL}/organization",
-                headers={"Authorization": f"Bearer {token}"}
+                headers={"Authorization": f"Bearer {token}"},
             )
 
             if response.status_code == 200:
@@ -354,10 +346,7 @@ class MSGraphAPIError(Exception):
 
 
 async def validate_tenant_credentials(
-    tenant_id: str,
-    client_id: str,
-    client_secret: str,
-    timeout: float = 30.0
+    tenant_id: str, client_id: str, client_secret: str, timeout: float = 30.0
 ) -> dict[str, Any]:
     """Validate tenant credentials against Microsoft Graph.
 

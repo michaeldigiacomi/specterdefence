@@ -167,7 +167,7 @@ class TestImpossibleTravelDetection:
             curr_location=boston,
             curr_time=curr_time,
             prev_country="US",
-            curr_country="US"
+            curr_country="US",
         )
 
         assert result.type == AnomalyType.IMPOSSIBLE_TRAVEL
@@ -188,7 +188,7 @@ class TestImpossibleTravelDetection:
             curr_location=tokyo,
             curr_time=curr_time,
             prev_country="US",
-            curr_country="JP"
+            curr_country="JP",
         )
 
         assert result.type == AnomalyType.IMPOSSIBLE_TRAVEL
@@ -210,7 +210,7 @@ class TestImpossibleTravelDetection:
             curr_location=tokyo,
             curr_time=curr_time,
             prev_country="US",
-            curr_country="JP"
+            curr_country="JP",
         )
 
         assert result.detected is True
@@ -230,7 +230,7 @@ class TestImpossibleTravelDetection:
             curr_location=paris,
             curr_time=curr_time,
             prev_country="GB",
-            curr_country="FR"
+            curr_country="FR",
         )
 
         assert result.detected is False
@@ -250,7 +250,7 @@ class TestImpossibleTravelDetection:
             curr_location=nyc,
             curr_time=curr_time,
             prev_country="US",
-            curr_country="US"
+            curr_country="US",
         )
 
         assert result.detected is True
@@ -270,7 +270,7 @@ class TestImpossibleTravelDetection:
             curr_location=loc,
             curr_time=curr_time,
             prev_country="US",
-            curr_country="US"
+            curr_country="US",
         )
 
         assert result.detected is False
@@ -285,10 +285,7 @@ class TestImpossibleTravelDetection:
         curr_time = datetime(2024, 1, 1, 12, 3, 0)  # 3 minutes later
 
         result = detector.detect_impossible_travel(
-            prev_location=loc1,
-            prev_time=prev_time,
-            curr_location=loc2,
-            curr_time=curr_time
+            prev_location=loc1, prev_time=prev_time, curr_location=loc2, curr_time=curr_time
         )
 
         assert result.detected is False
@@ -306,10 +303,7 @@ class TestImpossibleTravelDetection:
         curr_time = datetime(2024, 1, 1, 13, 0, 0)  # 1 hour later
 
         result = detector.detect_impossible_travel(
-            prev_location=loc1,
-            prev_time=prev_time,
-            curr_location=loc2,
-            curr_time=curr_time
+            prev_location=loc1, prev_time=prev_time, curr_location=loc2, curr_time=curr_time
         )
 
         # Should be possible (just barely)
@@ -324,10 +318,7 @@ class TestImpossibleTravelDetection:
         curr_time = datetime(2024, 1, 1, 11, 0, 0)  # 1 hour BEFORE
 
         result = detector.detect_impossible_travel(
-            prev_location=nyc,
-            prev_time=prev_time,
-            curr_location=tokyo,
-            curr_time=curr_time
+            prev_location=nyc, prev_time=prev_time, curr_location=tokyo, curr_time=curr_time
         )
 
         # Should still work with abs value, but detected based on distance
@@ -345,27 +336,20 @@ class TestRiskScoreCalculation:
     def test_risk_score_zero_when_time_sufficient(self, detector):
         """Test risk score is zero when time is sufficient."""
         score = detector.calculate_risk_score(
-            actual_time_min=120,  # 2 hours
-            min_travel_time_min=60  # 1 hour needed
+            actual_time_min=120, min_travel_time_min=60  # 2 hours  # 1 hour needed
         )
 
         assert score == 0
 
     def test_risk_score_maximum_when_no_time(self, detector):
         """Test risk score is 100 when no time elapsed."""
-        score = detector.calculate_risk_score(
-            actual_time_min=0,
-            min_travel_time_min=60
-        )
+        score = detector.calculate_risk_score(actual_time_min=0, min_travel_time_min=60)
 
         assert score == 100
 
     def test_risk_score_half_when_half_time(self, detector):
         """Test risk score when actual time is half of minimum."""
-        score = detector.calculate_risk_score(
-            actual_time_min=30,
-            min_travel_time_min=60
-        )
+        score = detector.calculate_risk_score(actual_time_min=30, min_travel_time_min=60)
 
         assert score == 50
 
@@ -373,7 +357,7 @@ class TestRiskScoreCalculation:
         """Test risk score doesn't exceed 100."""
         score = detector.calculate_risk_score(
             actual_time_min=-10,  # Negative time (shouldn't happen but test anyway)
-            min_travel_time_min=60
+            min_travel_time_min=60,
         )
 
         assert score == 100
@@ -382,10 +366,7 @@ class TestRiskScoreCalculation:
         """Test risk score with 30 min difference for long distance."""
         # Distance that needs 600 min (10 hours) at 900 km/h
         # But took 30 min
-        score = detector.calculate_risk_score(
-            actual_time_min=30,
-            min_travel_time_min=600
-        )
+        score = detector.calculate_risk_score(actual_time_min=30, min_travel_time_min=600)
 
         assert score == 95
 
@@ -393,19 +374,13 @@ class TestRiskScoreCalculation:
         """Test risk score with 5 min difference for long distance."""
         # Distance that needs 600 min (10 hours) at 900 km/h
         # But took 5 min
-        score = detector.calculate_risk_score(
-            actual_time_min=5,
-            min_travel_time_min=600
-        )
+        score = detector.calculate_risk_score(actual_time_min=5, min_travel_time_min=600)
 
         assert score == 99
 
     def test_risk_score_zero_min_travel_time(self, detector):
         """Test risk score when min travel time is zero."""
-        score = detector.calculate_risk_score(
-            actual_time_min=10,
-            min_travel_time_min=0
-        )
+        score = detector.calculate_risk_score(actual_time_min=10, min_travel_time_min=0)
 
         assert score == 0
 
@@ -437,14 +412,14 @@ class TestMinTravelTimeCalculation:
         detector = AnomalyDetector(travel_speed_kmh=0)
 
         time = detector.calculate_min_travel_time(100)
-        assert time == float('inf')
+        assert time == float("inf")
 
     def test_min_travel_time_negative_speed(self):
         """Test travel time with negative speed (should return infinity)."""
         detector = AnomalyDetector(travel_speed_kmh=-100)
 
         time = detector.calculate_min_travel_time(100)
-        assert time == float('inf')
+        assert time == float("inf")
 
 
 class TestNewCountryDetection:
@@ -553,10 +528,7 @@ class TestFailedLoginDetection:
 
     def test_single_failure(self, detector):
         """Test single failed login."""
-        result = detector.detect_failed_login(
-            is_success=False,
-            failure_reason="Invalid password"
-        )
+        result = detector.detect_failed_login(is_success=False, failure_reason="Invalid password")
 
         assert result.detected is True
         assert result.risk_score == 20
@@ -565,9 +537,7 @@ class TestFailedLoginDetection:
     def test_multiple_failures_threshold(self, detector):
         """Test multiple failures at threshold (3 failures = medium risk)."""
         result = detector.detect_failed_login(
-            is_success=False,
-            failure_reason="Invalid password",
-            recent_failures=3
+            is_success=False, failure_reason="Invalid password", recent_failures=3
         )
 
         assert result.type == AnomalyType.MULTIPLE_FAILURES
@@ -577,9 +547,7 @@ class TestFailedLoginDetection:
     def test_many_failures_high_risk(self, detector):
         """Test 5 failed logins in 10 min = high risk."""
         result = detector.detect_failed_login(
-            is_success=False,
-            failure_reason="Account locked",
-            recent_failures=5
+            is_success=False, failure_reason="Account locked", recent_failures=5
         )
 
         assert result.type == AnomalyType.MULTIPLE_FAILURES
@@ -589,9 +557,7 @@ class TestFailedLoginDetection:
     def test_two_failures_no_flag(self, detector):
         """Test 2 failed logins (below threshold)."""
         result = detector.detect_failed_login(
-            is_success=False,
-            failure_reason="Invalid password",
-            recent_failures=2
+            is_success=False, failure_reason="Invalid password", recent_failures=2
         )
 
         # Should be FAILED_LOGIN, not MULTIPLE_FAILURES
@@ -626,13 +592,13 @@ class TestAnalyzeLogin:
             "latitude": 40.7128,
             "longitude": -74.0060,
             "login_time": datetime(2024, 1, 1, 12, 0, 0),
-            "is_success": True
+            "is_success": True,
         }
 
         user_history = {
             "known_countries": ["US"],
             "known_ips": ["192.168.1.1"],
-            "failed_attempts_24h": 0
+            "failed_attempts_24h": 0,
         }
 
         results = detector.analyze_login(current_login, user_history=user_history)
@@ -648,13 +614,17 @@ class TestAnalyzeLogin:
             "ip_address": "192.168.1.1",
             "login_time": datetime(2024, 1, 1, 12, 0, 0),
             "is_success": False,
-            "failure_reason": "Invalid credentials"
+            "failure_reason": "Invalid credentials",
         }
 
         results = detector.analyze_login(current_login)
 
         # Should detect failed login
-        failed_results = [r for r in results if r.type in (AnomalyType.FAILED_LOGIN, AnomalyType.MULTIPLE_FAILURES)]
+        failed_results = [
+            r
+            for r in results
+            if r.type in (AnomalyType.FAILED_LOGIN, AnomalyType.MULTIPLE_FAILURES)
+        ]
         assert len(failed_results) > 0
         assert any(r.detected for r in failed_results)
 
@@ -668,13 +638,13 @@ class TestAnalyzeLogin:
             "latitude": 35.6762,
             "longitude": 139.6503,
             "login_time": datetime(2024, 1, 1, 12, 0, 0),
-            "is_success": True
+            "is_success": True,
         }
 
         user_history = {
             "known_countries": ["US"],
             "known_ips": ["192.168.1.1"],
-            "failed_attempts_24h": 0
+            "failed_attempts_24h": 0,
         }
 
         results = detector.analyze_login(current_login, user_history=user_history)
@@ -694,7 +664,7 @@ class TestAnalyzeLogin:
             "latitude": 35.6762,
             "longitude": 139.6503,
             "login_time": datetime(2024, 1, 1, 13, 0, 0),  # 1 hour later
-            "is_success": True
+            "is_success": True,
         }
 
         previous_login = {
@@ -702,7 +672,7 @@ class TestAnalyzeLogin:
             "longitude": -74.0060,
             "country_code": "US",
             "city": "New York",
-            "login_time": datetime(2024, 1, 1, 12, 0, 0)
+            "login_time": datetime(2024, 1, 1, 12, 0, 0),
         }
 
         results = detector.analyze_login(current_login, previous_login=previous_login)
@@ -722,7 +692,7 @@ class TestAnalyzeLogin:
             "city": "New York",
             # Missing latitude/longitude
             "login_time": datetime(2024, 1, 1, 12, 0, 0),
-            "is_success": True
+            "is_success": True,
         }
 
         results = detector.analyze_login(current_login, user_history={"known_countries": []})
@@ -739,7 +709,7 @@ class TestAnalyzeLogin:
             "latitude": 999,  # Invalid
             "longitude": -74.0060,
             "login_time": datetime(2024, 1, 1, 12, 0, 0),
-            "is_success": True
+            "is_success": True,
         }
 
         results = detector.analyze_login(current_login, user_history={"known_countries": []})
@@ -756,14 +726,14 @@ class TestAnalyzeLogin:
             "latitude": 40.7128,
             "longitude": -74.0060,
             "login_time": datetime(2024, 1, 1, 12, 0, 0),
-            "is_success": True
+            "is_success": True,
         }
 
         previous_login = {
             "latitude": 999,  # Invalid
             "longitude": -74.0060,
             "country_code": "US",
-            "login_time": datetime(2024, 1, 1, 11, 0, 0)
+            "login_time": datetime(2024, 1, 1, 11, 0, 0),
         }
 
         results = detector.analyze_login(current_login, previous_login=previous_login)
@@ -833,10 +803,7 @@ class TestFalsePositiveFiltering:
         curr_time = datetime(2024, 1, 1, 12, 3, 0)  # 3 minutes - within threshold
 
         result = detector.detect_impossible_travel(
-            prev_location=loc1,
-            prev_time=prev_time,
-            curr_location=loc2,
-            curr_time=curr_time
+            prev_location=loc1, prev_time=prev_time, curr_location=loc2, curr_time=curr_time
         )
 
         # Should not flag due to short time window
@@ -852,10 +819,7 @@ class TestFalsePositiveFiltering:
         curr_time = datetime(2024, 1, 1, 23, 58, 0)  # 3 min later, below 5 min threshold
 
         result = detector.detect_impossible_travel(
-            prev_location=loc1,
-            prev_time=prev_time,
-            curr_location=loc2,
-            curr_time=curr_time
+            prev_location=loc1, prev_time=prev_time, curr_location=loc2, curr_time=curr_time
         )
 
         # 3 minutes is below the threshold, so should not be flagged
@@ -903,7 +867,7 @@ class TestMissingDataHandling:
             curr_location=loc2,
             curr_time=curr_time,
             prev_country=None,
-            curr_country=None
+            curr_country=None,
         )
 
         # Should work even with None countries

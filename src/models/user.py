@@ -1,6 +1,6 @@
 """User model for local authentication."""
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -18,46 +18,19 @@ class UserModel(Base):
 
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(
-        primary_key=True,
-        autoincrement=True
-    )
-    username: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
-        unique=True,
-        index=True
-    )
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-        comment="Bcrypt hash of user password"
+        String(255), nullable=False, comment="Bcrypt hash of user password"
     )
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        nullable=False
-    )
-    is_admin: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False
-    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     last_login: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True,
-        comment="Timestamp of last successful login"
+        DateTime, nullable=True, comment="Timestamp of last successful login"
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=utc_now,
-        nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=utc_now,
-        onupdate=utc_now,
-        nullable=False
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     def __repr__(self) -> str:

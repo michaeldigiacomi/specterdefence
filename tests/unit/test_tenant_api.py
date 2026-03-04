@@ -34,15 +34,13 @@ async def db_session():
 @pytest_asyncio.fixture
 async def async_client(db_session):
     """Create async test client with test DB."""
+
     async def override_get_db():
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
 
     app.dependency_overrides.clear()
@@ -68,14 +66,14 @@ class TestTenantAPI:
                 "valid": True,
                 "display_name": "Test Organization",
                 "tenant_id": "12345678-1234-1234-1234-123456789012",
-                "verified_domains": [{"name": "test.com", "isDefault": True}]
+                "verified_domains": [{"name": "test.com", "isDefault": True}],
             }
 
             tenant_data = {
                 "name": "Test Tenant",
                 "tenant_id": "12345678-1234-1234-1234-123456789012",
                 "client_id": "87654321-4321-4321-4321-210987654321",
-                "client_secret": "test-secret-123"
+                "client_secret": "test-secret-123",
             }
 
             response = await async_client.post("/api/v1/tenants/", json=tenant_data)
@@ -96,13 +94,10 @@ class TestTenantAPI:
             "name": "Test Tenant No Validate",
             "tenant_id": "11111111-1111-1111-1111-111111111111",
             "client_id": "22222222-2222-2222-2222-222222222222",
-            "client_secret": "test-secret-456"
+            "client_secret": "test-secret-456",
         }
 
-        response = await async_client.post(
-            "/api/v1/tenants/?validate=false",
-            json=tenant_data
-        )
+        response = await async_client.post("/api/v1/tenants/?validate=false", json=tenant_data)
 
         assert response.status_code == 201
         data = response.json()
@@ -116,16 +111,13 @@ class TestTenantAPI:
             "src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock
         ) as mock_validate:
             # Setup mock to return invalid credentials
-            mock_validate.return_value = {
-                "valid": False,
-                "error": "Invalid client secret"
-            }
+            mock_validate.return_value = {"valid": False, "error": "Invalid client secret"}
 
             tenant_data = {
                 "name": "Invalid Tenant",
                 "tenant_id": "33333333-3333-3333-3333-333333333333",
                 "client_id": "44444444-4444-4444-4444-444444444444",
-                "client_secret": "wrong-secret"
+                "client_secret": "wrong-secret",
             }
 
             response = await async_client.post("/api/v1/tenants/", json=tenant_data)
@@ -140,21 +132,15 @@ class TestTenantAPI:
             "name": "Duplicate Tenant",
             "tenant_id": "55555555-5555-5555-5555-555555555555",
             "client_id": "66666666-6666-6666-6666-666666666666",
-            "client_secret": "secret"
+            "client_secret": "secret",
         }
 
         # Create first tenant
-        response = await async_client.post(
-            "/api/v1/tenants/?validate=false",
-            json=tenant_data
-        )
+        response = await async_client.post("/api/v1/tenants/?validate=false", json=tenant_data)
         assert response.status_code == 201
 
         # Try to create duplicate
-        response = await async_client.post(
-            "/api/v1/tenants/?validate=false",
-            json=tenant_data
-        )
+        response = await async_client.post("/api/v1/tenants/?validate=false", json=tenant_data)
         assert response.status_code == 409
         assert "already exists" in response.json()["detail"]
 
@@ -166,12 +152,11 @@ class TestTenantAPI:
             "name": "Get Test Tenant",
             "tenant_id": "77777777-7777-7777-7777-777777777777",
             "client_id": "88888888-8888-8888-8888-888888888888",
-            "client_secret": "secret"
+            "client_secret": "secret",
         }
 
         create_response = await async_client.post(
-            "/api/v1/tenants/?validate=false",
-            json=tenant_data
+            "/api/v1/tenants/?validate=false", json=tenant_data
         )
         tenant_id = create_response.json()["tenant"]["id"]
 
@@ -201,21 +186,17 @@ class TestTenantAPI:
             "name": "Update Test Tenant",
             "tenant_id": "99999999-9999-9999-9999-999999999999",
             "client_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-            "client_secret": "secret"
+            "client_secret": "secret",
         }
 
         create_response = await async_client.post(
-            "/api/v1/tenants/?validate=false",
-            json=tenant_data
+            "/api/v1/tenants/?validate=false", json=tenant_data
         )
         tenant_id = create_response.json()["tenant"]["id"]
 
         # Update the tenant
         update_data = {"name": "Updated Name", "is_active": False}
-        response = await async_client.patch(
-            f"/api/v1/tenants/{tenant_id}",
-            json=update_data
-        )
+        response = await async_client.patch(f"/api/v1/tenants/{tenant_id}", json=update_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -226,10 +207,7 @@ class TestTenantAPI:
     async def test_update_tenant_not_found(self, async_client):
         """Test updating non-existent tenant returns 404."""
         update_data = {"name": "New Name"}
-        response = await async_client.patch(
-            "/api/v1/tenants/non-existent-id",
-            json=update_data
-        )
+        response = await async_client.patch("/api/v1/tenants/non-existent-id", json=update_data)
 
         assert response.status_code == 404
 
@@ -241,12 +219,11 @@ class TestTenantAPI:
             "name": "Delete Test Tenant",
             "tenant_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
             "client_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
-            "client_secret": "secret"
+            "client_secret": "secret",
         }
 
         create_response = await async_client.post(
-            "/api/v1/tenants/?validate=false",
-            json=tenant_data
+            "/api/v1/tenants/?validate=false", json=tenant_data
         )
         tenant_id = create_response.json()["tenant"]["id"]
 
@@ -269,12 +246,11 @@ class TestTenantAPI:
             "name": "Hard Delete Test Tenant",
             "tenant_id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
             "client_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
-            "client_secret": "secret"
+            "client_secret": "secret",
         }
 
         create_response = await async_client.post(
-            "/api/v1/tenants/?validate=false",
-            json=tenant_data
+            "/api/v1/tenants/?validate=false", json=tenant_data
         )
         tenant_id = create_response.json()["tenant"]["id"]
 
@@ -302,12 +278,11 @@ class TestTenantAPI:
             "name": "Validate Test Tenant",
             "tenant_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
             "client_id": "11111111-2222-3333-4444-555555555555",
-            "client_secret": "secret"
+            "client_secret": "secret",
         }
 
         create_response = await async_client.post(
-            "/api/v1/tenants/?validate=false",
-            json=tenant_data
+            "/api/v1/tenants/?validate=false", json=tenant_data
         )
         tenant_id = create_response.json()["tenant"]["id"]
 
@@ -319,7 +294,7 @@ class TestTenantAPI:
                 "valid": True,
                 "display_name": "Test Org",
                 "tenant_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
-                "verified_domains": []
+                "verified_domains": [],
             }
 
             response = await async_client.post(f"/api/v1/tenants/{tenant_id}/validate")
@@ -356,7 +331,7 @@ class TestTenantAPI:
             "name": "Invalid Tenant",
             "tenant_id": "not-a-valid-uuid",
             "client_id": "22222222-2222-2222-2222-222222222222",
-            "client_secret": "secret"
+            "client_secret": "secret",
         }
 
         response = await async_client.post("/api/v1/tenants/?validate=false", json=tenant_data)
@@ -375,7 +350,7 @@ class TestTenantAPI:
                 "name": f"Tenant {i}",
                 "tenant_id": f"{i:08d}-0000-0000-0000-000000000000",
                 "client_id": f"{i+10:08d}-0000-0000-0000-000000000000",
-                "client_secret": f"secret{i}"
+                "client_secret": f"secret{i}",
             }
             await async_client.post("/api/v1/tenants/?validate=false", json=tenant_data)
 

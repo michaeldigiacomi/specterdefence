@@ -293,6 +293,7 @@ class TestMFAReportService:
 
         # Use side_effect to return different results for different calls
         call_count = 0
+
         async def mock_execute(query):
             nonlocal call_count
             call_count += 1
@@ -330,6 +331,7 @@ class TestMFAReportService:
 
         # Use side_effect to return different results for different calls
         call_count = 0
+
         async def mock_execute(query):
             nonlocal call_count
             call_count += 1
@@ -575,6 +577,7 @@ class TestMFAReportService:
 
         # Use side_effect to return different results for different calls
         call_count = 0
+
         async def mock_execute(query):
             nonlocal call_count
             call_count += 1

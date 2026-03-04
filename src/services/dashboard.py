@@ -61,9 +61,7 @@ class DashboardService:
             return "week"
 
     async def get_login_activity_timeline(
-        self,
-        time_range: TimeRange,
-        tenant_id: str | None = None
+        self, time_range: TimeRange, tenant_id: str | None = None
     ) -> LoginActivityTimeline:
         """Get login activity timeline data."""
         start_date, end_date, prev_start = self._get_time_range(time_range)
@@ -73,7 +71,7 @@ class DashboardService:
         query = select(LoginAnalyticsModel).where(
             and_(
                 LoginAnalyticsModel.login_time >= start_date,
-                LoginAnalyticsModel.login_time <= end_date
+                LoginAnalyticsModel.login_time <= end_date,
             )
         )
 
@@ -84,7 +82,9 @@ class DashboardService:
         logins = result.scalars().all()
 
         # Group by time interval
-        data_points: dict[datetime, dict[str, int]] = defaultdict(lambda: {"success": 0, "failed": 0})
+        data_points: dict[datetime, dict[str, int]] = defaultdict(
+            lambda: {"success": 0, "failed": 0}
+        )
 
         for login in logins:
             if interval == "hour":
@@ -116,7 +116,7 @@ class DashboardService:
                 timestamp=ts,
                 successful_logins=counts["success"],
                 failed_logins=counts["failed"],
-                total_logins=counts["success"] + counts["failed"]
+                total_logins=counts["success"] + counts["failed"],
             )
             for ts, counts in filled_data
         ]
@@ -129,7 +129,7 @@ class DashboardService:
         prev_query = select(LoginAnalyticsModel).where(
             and_(
                 LoginAnalyticsModel.login_time >= prev_start,
-                LoginAnalyticsModel.login_time < start_date
+                LoginAnalyticsModel.login_time < start_date,
             )
         )
         if tenant_id:
@@ -148,7 +148,7 @@ class DashboardService:
             time_range=time_range,
             total_successful=total_successful,
             total_failed=total_failed,
-            change_percent=change_percent
+            change_percent=change_percent,
         )
 
     def _fill_timeline_gaps(
@@ -156,7 +156,7 @@ class DashboardService:
         data: list[tuple[datetime, dict[str, int]]],
         start: datetime,
         end: datetime,
-        interval: str
+        interval: str,
     ) -> list[tuple[datetime, dict[str, int]]]:
         """Fill in missing time intervals with zeros."""
         if not data:
@@ -182,9 +182,7 @@ class DashboardService:
         return filled
 
     async def get_geo_heatmap_data(
-        self,
-        time_range: TimeRange,
-        tenant_id: str | None = None
+        self, time_range: TimeRange, tenant_id: str | None = None
     ) -> GeoHeatmapData:
         """Get geographic heatmap data."""
         start_date, end_date, _ = self._get_time_range(time_range)
@@ -197,14 +195,14 @@ class DashboardService:
             LoginAnalyticsModel.longitude,
             func.count(LoginAnalyticsModel.id).label("login_count"),
             func.count(func.distinct(LoginAnalyticsModel.user_email)).label("user_count"),
-            func.avg(LoginAnalyticsModel.risk_score).label("avg_risk")
+            func.avg(LoginAnalyticsModel.risk_score).label("avg_risk"),
         ).where(
             and_(
                 LoginAnalyticsModel.login_time >= start_date,
                 LoginAnalyticsModel.login_time <= end_date,
                 LoginAnalyticsModel.country_code.isnot(None),
                 LoginAnalyticsModel.latitude.isnot(None),
-                LoginAnalyticsModel.longitude.isnot(None)
+                LoginAnalyticsModel.longitude.isnot(None),
             )
         )
 
@@ -215,7 +213,7 @@ class DashboardService:
             LoginAnalyticsModel.country_code,
             LoginAnalyticsModel.country,
             LoginAnalyticsModel.latitude,
-            LoginAnalyticsModel.longitude
+            LoginAnalyticsModel.longitude,
         )
 
         result = await self.db.execute(query)
@@ -227,15 +225,17 @@ class DashboardService:
 
         for row in rows:
             if row.country_code and row.latitude and row.longitude:
-                locations.append(GeoLocationPoint(
-                    country_code=row.country_code.upper(),
-                    country_name=row.country or row.country_code,
-                    latitude=row.latitude,
-                    longitude=row.longitude,
-                    login_count=row.login_count,
-                    user_count=row.user_count,
-                    risk_score_avg=round(row.avg_risk or 0, 2)
-                ))
+                locations.append(
+                    GeoLocationPoint(
+                        country_code=row.country_code.upper(),
+                        country_name=row.country or row.country_code,
+                        latitude=row.latitude,
+                        longitude=row.longitude,
+                        login_count=row.login_count,
+                        user_count=row.user_count,
+                        risk_score_avg=round(row.avg_risk or 0, 2),
+                    )
+                )
 
                 if row.login_count > top_count:
                     top_count = row.login_count
@@ -245,13 +245,11 @@ class DashboardService:
             locations=locations,
             total_countries=len(locations),
             top_country=top_country,
-            top_country_count=top_count
+            top_country_count=top_count,
         )
 
     async def get_anomaly_trend(
-        self,
-        time_range: TimeRange,
-        tenant_id: str | None = None
+        self, time_range: TimeRange, tenant_id: str | None = None
     ) -> AnomalyTrendData:
         """Get anomaly trend data."""
         start_date, end_date, prev_start = self._get_time_range(time_range)
@@ -262,7 +260,7 @@ class DashboardService:
             and_(
                 LoginAnalyticsModel.login_time >= start_date,
                 LoginAnalyticsModel.login_time <= end_date,
-                LoginAnalyticsModel.anomaly_flags != []
+                LoginAnalyticsModel.anomaly_flags != [],
             )
         )
 
@@ -301,11 +299,7 @@ class DashboardService:
         filled_data = self._fill_anomaly_gaps(sorted_points, start_date, end_date, interval)
 
         points = [
-            AnomalyTrendPoint(
-                date=ts,
-                count=data["count"],
-                types=dict(data["types"])
-            )
+            AnomalyTrendPoint(date=ts, count=data["count"], types=dict(data["types"]))
             for ts, data in filled_data
         ]
 
@@ -317,7 +311,7 @@ class DashboardService:
             and_(
                 LoginAnalyticsModel.login_time >= prev_start,
                 LoginAnalyticsModel.login_time < start_date,
-                LoginAnalyticsModel.anomaly_flags != []
+                LoginAnalyticsModel.anomaly_flags != [],
             )
         )
         if tenant_id:
@@ -335,7 +329,7 @@ class DashboardService:
             time_range=time_range,
             total_anomalies=total_anomalies,
             top_type=top_type,
-            change_percent=change_percent
+            change_percent=change_percent,
         )
 
     def _fill_anomaly_gaps(
@@ -343,7 +337,7 @@ class DashboardService:
         data: list[tuple[datetime, dict[str, Any]]],
         start: datetime,
         end: datetime,
-        interval: str
+        interval: str,
     ) -> list[tuple[datetime, dict[str, Any]]]:
         """Fill in missing time intervals with zeros for anomalies."""
         if not data:
@@ -369,9 +363,7 @@ class DashboardService:
         return filled
 
     async def get_top_risk_users(
-        self,
-        limit: int = 10,
-        tenant_id: str | None = None
+        self, limit: int = 10, tenant_id: str | None = None
     ) -> TopRiskUsersData:
         """Get top risk users."""
         # Query users with highest risk scores
@@ -380,18 +372,17 @@ class DashboardService:
             LoginAnalyticsModel.tenant_id,
             func.max(LoginAnalyticsModel.risk_score).label("max_risk"),
             func.count(LoginAnalyticsModel.id).label("anomaly_count"),
-            func.max(LoginAnalyticsModel.login_time).label("last_anomaly")
-        ).where(
-            LoginAnalyticsModel.anomaly_flags != []
-        )
+            func.max(LoginAnalyticsModel.login_time).label("last_anomaly"),
+        ).where(LoginAnalyticsModel.anomaly_flags != [])
 
         if tenant_id:
             query = query.where(LoginAnalyticsModel.tenant_id == tenant_id)
 
-        query = query.group_by(
-            LoginAnalyticsModel.user_email,
-            LoginAnalyticsModel.tenant_id
-        ).order_by(desc("max_risk")).limit(limit)
+        query = (
+            query.group_by(LoginAnalyticsModel.user_email, LoginAnalyticsModel.tenant_id)
+            .order_by(desc("max_risk"))
+            .limit(limit)
+        )
 
         result = await self.db.execute(query)
         rows = result.all()
@@ -401,11 +392,11 @@ class DashboardService:
 
         for row in rows:
             # Get top anomaly types for this user
-            types_query = select(
-                func.unnest(LoginAnalyticsModel.anomaly_flags).label("flag")
-            ).where(
-                LoginAnalyticsModel.user_email == row.user_email
-            ).distinct()
+            types_query = (
+                select(func.unnest(LoginAnalyticsModel.anomaly_flags).label("flag"))
+                .where(LoginAnalyticsModel.user_email == row.user_email)
+                .distinct()
+            )
 
             types_result = await self.db.execute(types_query)
             anomaly_types = [r[0] for r in types_result.all()]
@@ -413,50 +404,38 @@ class DashboardService:
             # Get unique country count
             country_query = select(
                 func.count(func.distinct(LoginAnalyticsModel.country_code))
-            ).where(
-                LoginAnalyticsModel.user_email == row.user_email
-            )
+            ).where(LoginAnalyticsModel.user_email == row.user_email)
             country_result = await self.db.execute(country_query)
             country_count = country_result.scalar() or 0
 
-            users.append(TopRiskUser(
-                user_email=row.user_email,
-                tenant_id=row.tenant_id,
-                risk_score=row.max_risk,
-                anomaly_count=row.anomaly_count,
-                last_anomaly_time=row.last_anomaly,
-                top_anomaly_types=anomaly_types[:5],
-                country_count=country_count
-            ))
+            users.append(
+                TopRiskUser(
+                    user_email=row.user_email,
+                    tenant_id=row.tenant_id,
+                    risk_score=row.max_risk,
+                    anomaly_count=row.anomaly_count,
+                    last_anomaly_time=row.last_anomaly,
+                    top_anomaly_types=anomaly_types[:5],
+                    country_count=country_count,
+                )
+            )
 
             total_risk += row.max_risk
 
         avg_risk = round(total_risk / len(users), 2) if users else 0.0
 
-        return TopRiskUsersData(
-            users=users,
-            total_users=len(users),
-            avg_risk_score=avg_risk
-        )
+        return TopRiskUsersData(users=users, total_users=len(users), avg_risk_score=avg_risk)
 
     async def get_alert_volume(
-        self,
-        time_range: TimeRange,
-        tenant_id: str | None = None
+        self, time_range: TimeRange, tenant_id: str | None = None
     ) -> AlertVolumeData:
         """Get alert volume data by severity."""
         start_date, end_date, _ = self._get_time_range(time_range)
         interval = self._get_interval(time_range)
 
         # Query alerts grouped by time and severity
-        query = select(
-            AlertHistoryModel.sent_at,
-            AlertHistoryModel.severity
-        ).where(
-            and_(
-                AlertHistoryModel.sent_at >= start_date,
-                AlertHistoryModel.sent_at <= end_date
-            )
+        query = select(AlertHistoryModel.sent_at, AlertHistoryModel.severity).where(
+            and_(AlertHistoryModel.sent_at >= start_date, AlertHistoryModel.sent_at <= end_date)
         )
 
         if tenant_id:
@@ -484,7 +463,9 @@ class DashboardService:
                     hour=0, minute=0, second=0, microsecond=0
                 )
 
-            severity = alert.severity.value if hasattr(alert.severity, 'value') else str(alert.severity)
+            severity = (
+                alert.severity.value if hasattr(alert.severity, "value") else str(alert.severity)
+            )
             data_points[key][severity] += 1
             data_points[key]["total"] += 1
 
@@ -503,7 +484,7 @@ class DashboardService:
                 high=counts["HIGH"],
                 medium=counts["MEDIUM"],
                 low=counts["LOW"],
-                total=counts["total"]
+                total=counts["total"],
             )
             for ts, counts in filled_data
         ]
@@ -513,7 +494,7 @@ class DashboardService:
             "CRITICAL": sum(p.critical for p in points),
             "HIGH": sum(p.high for p in points),
             "MEDIUM": sum(p.medium for p in points),
-            "LOW": sum(p.low for p in points)
+            "LOW": sum(p.low for p in points),
         }
 
         return AlertVolumeData(
@@ -521,7 +502,7 @@ class DashboardService:
             time_range=time_range,
             total_by_severity=total_by_severity,
             peak_volume=peak_volume,
-            peak_time=peak_time
+            peak_time=peak_time,
         )
 
     def _fill_alert_gaps(
@@ -529,7 +510,7 @@ class DashboardService:
         data: list[tuple[datetime, dict[str, int]]],
         start: datetime,
         end: datetime,
-        interval: str
+        interval: str,
     ) -> list[tuple[datetime, dict[str, int]]]:
         """Fill in missing time intervals with zeros for alerts."""
         if not data:
@@ -543,7 +524,9 @@ class DashboardService:
             if current in data_dict:
                 filled.append((current, data_dict[current]))
             else:
-                filled.append((current, {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "total": 0}))
+                filled.append(
+                    (current, {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "total": 0})
+                )
 
             if interval == "hour":
                 current += timedelta(hours=1)
@@ -555,22 +538,17 @@ class DashboardService:
         return filled
 
     async def get_anomaly_breakdown(
-        self,
-        time_range: TimeRange,
-        tenant_id: str | None = None
+        self, time_range: TimeRange, tenant_id: str | None = None
     ) -> list[AnomalyTypeBreakdown]:
         """Get breakdown of anomalies by type."""
         start_date, end_date, _ = self._get_time_range(time_range)
 
         # Query all anomalies
-        query = select(
-            LoginAnalyticsModel.anomaly_flags,
-            LoginAnalyticsModel.risk_score
-        ).where(
+        query = select(LoginAnalyticsModel.anomaly_flags, LoginAnalyticsModel.risk_score).where(
             and_(
                 LoginAnalyticsModel.login_time >= start_date,
                 LoginAnalyticsModel.login_time <= end_date,
-                LoginAnalyticsModel.anomaly_flags != []
+                LoginAnalyticsModel.anomaly_flags != [],
             )
         )
 
@@ -581,9 +559,7 @@ class DashboardService:
         rows = result.all()
 
         # Aggregate by type
-        type_stats: dict[str, dict[str, Any]] = defaultdict(
-            lambda: {"count": 0, "risk_sum": 0}
-        )
+        type_stats: dict[str, dict[str, Any]] = defaultdict(lambda: {"count": 0, "risk_sum": 0})
 
         total_count = 0
 
@@ -594,32 +570,31 @@ class DashboardService:
                 total_count += 1
 
         breakdown = []
-        for anomaly_type, stats in sorted(type_stats.items(), key=lambda x: x[1]["count"], reverse=True):
+        for anomaly_type, stats in sorted(
+            type_stats.items(), key=lambda x: x[1]["count"], reverse=True
+        ):
             percentage = round((stats["count"] / total_count) * 100, 2) if total_count > 0 else 0
             avg_risk = round(stats["risk_sum"] / stats["count"], 2) if stats["count"] > 0 else 0
 
-            breakdown.append(AnomalyTypeBreakdown(
-                type=anomaly_type,
-                count=stats["count"],
-                percentage=percentage,
-                avg_risk_score=avg_risk
-            ))
+            breakdown.append(
+                AnomalyTypeBreakdown(
+                    type=anomaly_type,
+                    count=stats["count"],
+                    percentage=percentage,
+                    avg_risk_score=avg_risk,
+                )
+            )
 
         return breakdown
 
-    async def get_summary_stats(
-        self,
-        tenant_id: str | None = None
-    ) -> DashboardSummary:
+    async def get_summary_stats(self, tenant_id: str | None = None) -> DashboardSummary:
         """Get dashboard summary statistics."""
         now = datetime.utcnow()
         day_ago = now - timedelta(days=1)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
         # Login stats (24h)
-        login_query = select(LoginAnalyticsModel).where(
-            LoginAnalyticsModel.login_time >= day_ago
-        )
+        login_query = select(LoginAnalyticsModel).where(LoginAnalyticsModel.login_time >= day_ago)
         if tenant_id:
             login_query = login_query.where(LoginAnalyticsModel.tenant_id == tenant_id)
 
@@ -634,7 +609,7 @@ class DashboardService:
         anomaly_query = select(LoginAnalyticsModel).where(
             and_(
                 LoginAnalyticsModel.login_time >= today_start,
-                LoginAnalyticsModel.anomaly_flags != []
+                LoginAnalyticsModel.anomaly_flags != [],
             )
         )
         if tenant_id:
@@ -644,9 +619,7 @@ class DashboardService:
         anomalies_today = len(anomaly_result.scalars().all())
 
         # Alerts today
-        alert_query = select(AlertHistoryModel).where(
-            AlertHistoryModel.sent_at >= today_start
-        )
+        alert_query = select(AlertHistoryModel).where(AlertHistoryModel.sent_at >= today_start)
         if tenant_id:
             alert_query = alert_query.where(AlertHistoryModel.tenant_id == tenant_id)
 
@@ -655,6 +628,7 @@ class DashboardService:
 
         # Active tenants
         from src.models.db import TenantModel
+
         tenant_query = select(TenantModel).where(TenantModel.is_active)
         tenant_result = await self.db.execute(tenant_query)
         active_tenants = len(tenant_result.scalars().all())
@@ -670,7 +644,9 @@ class DashboardService:
         avg_risk = risk_result.scalar() or 0
 
         # Login success rate
-        success_rate = ((total_logins - failed_logins) / total_logins * 100) if total_logins > 0 else 100
+        success_rate = (
+            ((total_logins - failed_logins) / total_logins * 100) if total_logins > 0 else 100
+        )
 
         # Top threats (anomaly types today)
         threat_types: dict[str, int] = defaultdict(int)
@@ -689,5 +665,5 @@ class DashboardService:
             active_tenants=active_tenants,
             avg_risk_score=round(avg_risk, 2),
             login_success_rate=round(success_rate, 2),
-            top_threats=top_threats
+            top_threats=top_threats,
         )

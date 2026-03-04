@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 class AlertStatus(StrEnum):
     """Status of an alert in the stream."""
+
     NEW = "new"
     ACKNOWLEDGED = "acknowledged"
     DISMISSED = "dismissed"
@@ -34,6 +35,7 @@ class AlertStatus(StrEnum):
 @dataclass
 class StreamAlert:
     """Alert data structure for streaming."""
+
     id: str
     severity: SeverityLevel
     event_type: str
@@ -211,11 +213,7 @@ class AlertStreamService:
             timestamp=db_alert.sent_at,
         )
 
-    async def acknowledge_alert(
-        self,
-        alert_id: str,
-        acknowledged_by: str
-    ) -> bool:
+    async def acknowledge_alert(self, alert_id: str, acknowledged_by: str) -> bool:
         """Mark an alert as acknowledged.
 
         Args:
@@ -264,7 +262,7 @@ class AlertStreamManager:
     def __init__(
         self,
         stream_service: AlertStreamService,
-        connection_manager: Any  # ConnectionManager from websocket.py
+        connection_manager: Any,  # ConnectionManager from websocket.py
     ):
         """Initialize the stream manager.
 
@@ -315,10 +313,13 @@ class AlertStreamManager:
 
         # Send initial batch
         if recent:
-            await self.connection_manager.send_personal_message({
-                "type": "initial_alerts",
-                "alerts": [alert.to_dict() for alert in recent],
-            }, client_id)
+            await self.connection_manager.send_personal_message(
+                {
+                    "type": "initial_alerts",
+                    "alerts": [alert.to_dict() for alert in recent],
+                },
+                client_id,
+            )
 
     async def unsubscribe_client(self, client_id: str) -> None:
         """Unsubscribe a client from the alert stream.
@@ -338,10 +339,13 @@ class AlertStreamManager:
         self._client_filters[client_id] = filters
 
         # Send updated filter confirmation
-        await self.connection_manager.send_personal_message({
-            "type": "filters_updated",
-            "filters": filters,
-        }, client_id)
+        await self.connection_manager.send_personal_message(
+            {
+                "type": "filters_updated",
+                "filters": filters,
+            },
+            client_id,
+        )
 
     async def acknowledge_alert(self, alert_id: str, client_id: str) -> bool:
         """Acknowledge an alert.
@@ -357,11 +361,13 @@ class AlertStreamManager:
 
         if success:
             # Broadcast to all clients
-            await self.connection_manager.broadcast({
-                "type": "alert_acknowledged",
-                "alert_id": alert_id,
-                "acknowledged_by": client_id,
-            })
+            await self.connection_manager.broadcast(
+                {
+                    "type": "alert_acknowledged",
+                    "alert_id": alert_id,
+                    "acknowledged_by": client_id,
+                }
+            )
 
         return success
 
@@ -379,11 +385,13 @@ class AlertStreamManager:
 
         if success:
             # Broadcast to all clients
-            await self.connection_manager.broadcast({
-                "type": "alert_dismissed",
-                "alert_id": alert_id,
-                "dismissed_by": client_id,
-            })
+            await self.connection_manager.broadcast(
+                {
+                    "type": "alert_dismissed",
+                    "alert_id": alert_id,
+                    "dismissed_by": client_id,
+                }
+            )
 
         return success
 

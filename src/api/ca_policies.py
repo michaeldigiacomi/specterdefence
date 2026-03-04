@@ -34,20 +34,31 @@ router = APIRouter()
 # Pydantic Models for API Requests/Responses
 # =============================================================================
 
+
 class SetBaselineRequest(BaseModel):
     """Request model for setting security baseline."""
+
     require_mfa_for_admins: bool = Field(default=True, description="Require MFA for admin accounts")
     require_mfa_for_all_users: bool = Field(default=False, description="Require MFA for all users")
     block_legacy_auth: bool = Field(default=True, description="Block legacy authentication")
-    require_compliant_or_hybrid_joined: bool = Field(default=False, description="Require compliant or hybrid joined devices")
+    require_compliant_or_hybrid_joined: bool = Field(
+        default=False, description="Require compliant or hybrid joined devices"
+    )
     block_high_risk_signins: bool = Field(default=True, description="Block high risk sign-ins")
-    block_unknown_locations: bool = Field(default=False, description="Block sign-ins from unknown locations")
-    require_mfa_for_guests: bool = Field(default=True, description="Require MFA for guest/external users")
-    custom_requirements: dict = Field(default_factory=dict, description="Custom baseline requirements")
+    block_unknown_locations: bool = Field(
+        default=False, description="Block sign-ins from unknown locations"
+    )
+    require_mfa_for_guests: bool = Field(
+        default=True, description="Require MFA for guest/external users"
+    )
+    custom_requirements: dict = Field(
+        default_factory=dict, description="Custom baseline requirements"
+    )
 
 
 class BaselineResponse(BaseModel):
     """Response model for baseline configuration."""
+
     id: str
     tenant_id: str
     require_mfa_for_admins: bool
@@ -65,6 +76,7 @@ class BaselineResponse(BaseModel):
 
 class AcknowledgeAlertResponse(BaseModel):
     """Response model for acknowledging an alert."""
+
     success: bool
     alert: CAPolicyAlertResponse | None
     message: str
@@ -74,6 +86,7 @@ class AcknowledgeAlertResponse(BaseModel):
 # Dependencies
 # =============================================================================
 
+
 async def get_ca_policies_service(db: AsyncSession = Depends(get_db)) -> CAPoliciesService:
     """Dependency to get CA policies service."""
     return CAPoliciesService(db)
@@ -82,6 +95,7 @@ async def get_ca_policies_service(db: AsyncSession = Depends(get_db)) -> CAPolic
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
 
 def _format_policy_response(policy: CAPolicyModel) -> CAPolicyResponse:
     """Format a policy model for response."""
@@ -142,11 +156,12 @@ def _format_alert_response(alert: CAPolicyAlertModel) -> CAPolicyAlertResponse:
 # CA Policies Endpoints
 # =============================================================================
 
+
 @router.get(
     "/",
     response_model=CAPolicyListResponse,
     summary="List Conditional Access policies",
-    description="List Conditional Access policies across all tenants with optional filtering."
+    description="List Conditional Access policies across all tenants with optional filtering.",
 )
 async def list_ca_policies(
     tenant_id: str | None = None,
@@ -154,7 +169,7 @@ async def list_ca_policies(
     is_baseline_policy: bool | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    service: CAPoliciesService = Depends(get_ca_policies_service),
 ) -> CAPolicyListResponse:
     """List Conditional Access policies with filtering.
 
@@ -177,7 +192,7 @@ async def list_ca_policies(
         except ValueError:
             raise HTTPException(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid state: {state}. Must be one of: enabled, disabled, reportOnly"
+                detail=f"Invalid state: {state}. Must be one of: enabled, disabled, reportOnly",
             )
 
     result = await service.get_policies(
@@ -185,7 +200,7 @@ async def list_ca_policies(
         state=state_enum,
         is_baseline_policy=is_baseline_policy,
         limit=limit,
-        offset=offset
+        offset=offset,
     )
 
     return CAPolicyListResponse(
@@ -200,11 +215,10 @@ async def list_ca_policies(
     "/{policy_id}",
     response_model=CAPolicyResponse,
     summary="Get Conditional Access policy",
-    description="Get a specific Conditional Access policy by ID."
+    description="Get a specific Conditional Access policy by ID.",
 )
 async def get_ca_policy(
-    policy_id: str,
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    policy_id: str, service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> CAPolicyResponse:
     """Get a specific Conditional Access policy.
 
@@ -222,7 +236,7 @@ async def get_ca_policy(
     if not policy:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"CA policy with ID {policy_id} not found"
+            detail=f"CA policy with ID {policy_id} not found",
         )
 
     return _format_policy_response(policy)
@@ -232,13 +246,13 @@ async def get_ca_policy(
     "/{policy_id}/changes",
     response_model=CAPolicyChangeListResponse,
     summary="Get policy change history",
-    description="Get the change history for a specific Conditional Access policy."
+    description="Get the change history for a specific Conditional Access policy.",
 )
 async def get_policy_changes(
     policy_id: str,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    service: CAPoliciesService = Depends(get_ca_policies_service),
 ) -> CAPolicyChangeListResponse:
     """Get change history for a CA policy.
 
@@ -256,14 +270,10 @@ async def get_policy_changes(
     if not policy:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"CA policy with ID {policy_id} not found"
+            detail=f"CA policy with ID {policy_id} not found",
         )
 
-    result = await service.get_policy_changes(
-        policy_id=policy.id,
-        limit=limit,
-        offset=offset
-    )
+    result = await service.get_policy_changes(policy_id=policy.id, limit=limit, offset=offset)
 
     return CAPolicyChangeListResponse(
         items=[_format_change_response(change) for change in result["items"]],
@@ -277,18 +287,19 @@ async def get_policy_changes(
 # Tenant-Specific Endpoints
 # =============================================================================
 
+
 @router.get(
     "/tenants/{tenant_id}/policies",
     response_model=CAPolicyListResponse,
     summary="Get tenant CA policies",
-    description="Get all Conditional Access policies for a specific tenant."
+    description="Get all Conditional Access policies for a specific tenant.",
 )
 async def get_tenant_ca_policies(
     tenant_id: str,
     state: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    service: CAPoliciesService = Depends(get_ca_policies_service),
 ) -> CAPolicyListResponse:
     """Get CA policies for a specific tenant.
 
@@ -309,15 +320,11 @@ async def get_tenant_ca_policies(
             state_enum = PolicyState(state.lower())
         except ValueError:
             raise HTTPException(
-                status_code=http_status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid state: {state}"
+                status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Invalid state: {state}"
             )
 
     result = await service.get_policies(
-        tenant_id=tenant_id,
-        state=state_enum,
-        limit=limit,
-        offset=offset
+        tenant_id=tenant_id, state=state_enum, limit=limit, offset=offset
     )
 
     return CAPolicyListResponse(
@@ -332,12 +339,12 @@ async def get_tenant_ca_policies(
     "/tenants/{tenant_id}/disabled",
     response_model=list[CAPolicyResponse],
     summary="Get disabled policies",
-    description="Get all disabled Conditional Access policies for a tenant."
+    description="Get all disabled Conditional Access policies for a tenant.",
 )
 async def get_disabled_policies(
     tenant_id: str,
     limit: int = Query(default=100, ge=1, le=500),
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    service: CAPoliciesService = Depends(get_ca_policies_service),
 ) -> list[CAPolicyResponse]:
     """Get disabled CA policies.
 
@@ -357,12 +364,12 @@ async def get_disabled_policies(
     "/tenants/{tenant_id}/mfa",
     response_model=list[CAPolicyResponse],
     summary="Get MFA policies",
-    description="Get all Conditional Access policies that require MFA for a tenant."
+    description="Get all Conditional Access policies that require MFA for a tenant.",
 )
 async def get_mfa_policies(
     tenant_id: str,
     limit: int = Query(default=100, ge=1, le=500),
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    service: CAPoliciesService = Depends(get_ca_policies_service),
 ) -> list[CAPolicyResponse]:
     """Get MFA policies.
 
@@ -382,11 +389,10 @@ async def get_mfa_policies(
     "/tenants/{tenant_id}/summary",
     response_model=CAPolicySummary,
     summary="Get policies summary",
-    description="Get summary of Conditional Access policies for a tenant."
+    description="Get summary of Conditional Access policies for a tenant.",
 )
 async def get_ca_policies_summary(
-    tenant_id: str,
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    tenant_id: str, service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> CAPolicySummary:
     """Get summary of CA policies.
 
@@ -419,16 +425,16 @@ async def get_ca_policies_summary(
 # Scan Endpoints
 # =============================================================================
 
+
 @router.post(
     "/scan",
     response_model=CAPolicyScanResponse,
     status_code=http_status.HTTP_202_ACCEPTED,
     summary="Trigger CA policy scan",
-    description="Trigger a manual scan of Conditional Access policies for a tenant."
+    description="Trigger a manual scan of Conditional Access policies for a tenant.",
 )
 async def scan_ca_policies(
-    request: CAPolicyScanRequest,
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    request: CAPolicyScanRequest, service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> CAPolicyScanResponse:
     """Trigger a manual scan of Conditional Access policies.
 
@@ -446,7 +452,7 @@ async def scan_ca_policies(
         results = await service.scan_tenant_policies(
             tenant_id=request.tenant_id,
             trigger_alerts=request.trigger_alerts,
-            compare_baseline=request.compare_baseline
+            compare_baseline=request.compare_baseline,
         )
 
         return CAPolicyScanResponse(
@@ -457,18 +463,14 @@ async def scan_ca_policies(
             alerts_triggered=results["alerts_triggered"],
             baseline_violations=results["baseline_violations"],
             message=f"Scan completed successfully. Found {results['policies_found']} policies, "
-                    f"{results['changes_detected']} changes detected, "
-                    f"{results['alerts_triggered']} alerts triggered."
+            f"{results['changes_detected']} changes detected, "
+            f"{results['alerts_triggered']} alerts triggered.",
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(
-            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Scan failed: {str(e)}"
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Scan failed: {str(e)}"
         )
 
 
@@ -476,18 +478,19 @@ async def scan_ca_policies(
 # Change History Endpoints
 # =============================================================================
 
+
 @router.get(
     "/changes",
     response_model=CAPolicyChangeListResponse,
     summary="List policy changes",
-    description="List Conditional Access policy changes across all tenants with optional filtering."
+    description="List Conditional Access policy changes across all tenants with optional filtering.",
 )
 async def list_policy_changes(
     tenant_id: str | None = None,
     change_type: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    service: CAPoliciesService = Depends(get_ca_policies_service),
 ) -> CAPolicyChangeListResponse:
     """List CA policy changes with filtering.
 
@@ -509,14 +512,11 @@ async def list_policy_changes(
         except ValueError:
             raise HTTPException(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid change type: {change_type}"
+                detail=f"Invalid change type: {change_type}",
             )
 
     result = await service.get_policy_changes(
-        tenant_id=tenant_id,
-        change_type=change_type_enum,
-        limit=limit,
-        offset=offset
+        tenant_id=tenant_id, change_type=change_type_enum, limit=limit, offset=offset
     )
 
     return CAPolicyChangeListResponse(
@@ -531,11 +531,12 @@ async def list_policy_changes(
 # Alert Endpoints
 # =============================================================================
 
+
 @router.get(
     "/alerts",
     response_model=CAPolicyAlertListResponse,
     summary="List CA policy alerts",
-    description="List Conditional Access policy alerts with optional filtering."
+    description="List Conditional Access policy alerts with optional filtering.",
 )
 async def list_ca_policy_alerts(
     tenant_id: str | None = None,
@@ -543,7 +544,7 @@ async def list_ca_policy_alerts(
     severity: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    service: CAPoliciesService = Depends(get_ca_policies_service),
 ) -> CAPolicyAlertListResponse:
     """List CA policy alerts.
 
@@ -564,8 +565,7 @@ async def list_ca_policy_alerts(
             severity_enum = AlertSeverity(severity.upper())
         except ValueError:
             raise HTTPException(
-                status_code=http_status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid severity: {severity}"
+                status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Invalid severity: {severity}"
             )
 
     result = await service.get_alerts(
@@ -573,7 +573,7 @@ async def list_ca_policy_alerts(
         acknowledged=acknowledged,
         severity=severity_enum,
         limit=limit,
-        offset=offset
+        offset=offset,
     )
 
     return CAPolicyAlertListResponse(
@@ -588,12 +588,12 @@ async def list_ca_policy_alerts(
     "/alerts/{alert_id}/acknowledge",
     response_model=AcknowledgeAlertResponse,
     summary="Acknowledge alert",
-    description="Acknowledge a Conditional Access policy alert."
+    description="Acknowledge a Conditional Access policy alert.",
 )
 async def acknowledge_alert(
     alert_id: str,
     request: AcknowledgeAlertRequest,
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    service: CAPoliciesService = Depends(get_ca_policies_service),
 ) -> AcknowledgeAlertResponse:
     """Acknowledge a CA policy alert.
 
@@ -612,14 +612,11 @@ async def acknowledge_alert(
 
     if not alert:
         raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"Alert with ID {alert_id} not found"
+            status_code=http_status.HTTP_404_NOT_FOUND, detail=f"Alert with ID {alert_id} not found"
         )
 
     return AcknowledgeAlertResponse(
-        success=True,
-        alert=_format_alert_response(alert),
-        message="Alert acknowledged successfully"
+        success=True, alert=_format_alert_response(alert), message="Alert acknowledged successfully"
     )
 
 
@@ -627,15 +624,15 @@ async def acknowledge_alert(
 # Baseline Endpoints
 # =============================================================================
 
+
 @router.get(
     "/tenants/{tenant_id}/baseline",
     response_model=BaselineResponse,
     summary="Get baseline configuration",
-    description="Get the security baseline configuration for a tenant."
+    description="Get the security baseline configuration for a tenant.",
 )
 async def get_baseline_config(
-    tenant_id: str,
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    tenant_id: str, service: CAPoliciesService = Depends(get_ca_policies_service)
 ) -> BaselineResponse:
     """Get security baseline configuration.
 
@@ -654,7 +651,7 @@ async def get_baseline_config(
     if not baseline:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"Baseline configuration for tenant {tenant_id} not found"
+            detail=f"Baseline configuration for tenant {tenant_id} not found",
         )
 
     return BaselineResponse(
@@ -678,13 +675,13 @@ async def get_baseline_config(
     "/tenants/{tenant_id}/baseline",
     response_model=BaselineResponse,
     summary="Set baseline configuration",
-    description="Set or update the security baseline configuration for a tenant."
+    description="Set or update the security baseline configuration for a tenant.",
 )
 async def set_baseline_config(
     tenant_id: str,
     request: SetBaselineRequest,
     created_by: str | None = None,
-    service: CAPoliciesService = Depends(get_ca_policies_service)
+    service: CAPoliciesService = Depends(get_ca_policies_service),
 ) -> BaselineResponse:
     """Set or update security baseline configuration.
 
@@ -699,9 +696,7 @@ async def set_baseline_config(
     """
     config_data = request.model_dump()
     baseline = await service.set_baseline_config(
-        tenant_id=tenant_id,
-        config_data=config_data,
-        created_by=created_by
+        tenant_id=tenant_id, config_data=config_data, created_by=created_by
     )
 
     return BaselineResponse(

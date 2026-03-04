@@ -92,9 +92,7 @@ class TestCAPoliciesAPI:
         }
 
         result = await ca_policies_api.list_ca_policies(
-            tenant_id="tenant-123",
-            state=None,
-            service=mock_service
+            tenant_id="tenant-123", state=None, service=mock_service
         )
 
         assert result.total == 1
@@ -112,9 +110,7 @@ class TestCAPoliciesAPI:
         }
 
         result = await ca_policies_api.list_ca_policies(
-            tenant_id="tenant-123",
-            state="enabled",
-            service=mock_service
+            tenant_id="tenant-123", state="enabled", service=mock_service
         )
 
         assert result.total == 1
@@ -127,9 +123,7 @@ class TestCAPoliciesAPI:
         """Test listing CA policies with invalid state filter."""
         with pytest.raises(HTTPException) as exc_info:
             await ca_policies_api.list_ca_policies(
-                tenant_id="tenant-123",
-                state="invalid",
-                service=mock_service
+                tenant_id="tenant-123", state="invalid", service=mock_service
             )
 
         assert exc_info.value.status_code == 400
@@ -141,8 +135,7 @@ class TestCAPoliciesAPI:
         mock_service.get_policy_by_id.return_value = sample_policy
 
         result = await ca_policies_api.get_ca_policy(
-            policy_id=str(sample_policy.id),
-            service=mock_service
+            policy_id=str(sample_policy.id), service=mock_service
         )
 
         assert result.display_name == "Require MFA for Admins"
@@ -154,10 +147,7 @@ class TestCAPoliciesAPI:
         mock_service.get_policy_by_id.return_value = None
 
         with pytest.raises(HTTPException) as exc_info:
-            await ca_policies_api.get_ca_policy(
-                policy_id="nonexistent-id",
-                service=mock_service
-            )
+            await ca_policies_api.get_ca_policy(policy_id="nonexistent-id", service=mock_service)
 
         assert exc_info.value.status_code == 404
 
@@ -173,8 +163,7 @@ class TestCAPoliciesAPI:
         }
 
         result = await ca_policies_api.get_policy_changes(
-            policy_id=str(sample_policy.id),
-            service=mock_service
+            policy_id=str(sample_policy.id), service=mock_service
         )
 
         assert result.total == 1
@@ -191,8 +180,7 @@ class TestCAPoliciesAPI:
         }
 
         result = await ca_policies_api.get_tenant_ca_policies(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.total == 1
@@ -204,8 +192,7 @@ class TestCAPoliciesAPI:
         mock_service.get_disabled_policies.return_value = [sample_policy]
 
         result = await ca_policies_api.get_disabled_policies(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert len(result) == 1
@@ -216,8 +203,7 @@ class TestCAPoliciesAPI:
         mock_service.get_mfa_policies.return_value = [sample_policy]
 
         result = await ca_policies_api.get_mfa_policies(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert len(result) == 1
@@ -242,8 +228,7 @@ class TestCAPoliciesAPI:
         }
 
         result = await ca_policies_api.get_ca_policies_summary(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.total_policies == 10
@@ -265,16 +250,14 @@ class TestCAPoliciesAPI:
         }
 
         from src.models.ca_policies import CAPolicyScanRequest
+
         request = CAPolicyScanRequest(
             tenant_id="tenant-123",
             trigger_alerts=True,
             compare_baseline=True,
         )
 
-        result = await ca_policies_api.scan_ca_policies(
-            request=request,
-            service=mock_service
-        )
+        result = await ca_policies_api.scan_ca_policies(request=request, service=mock_service)
 
         assert result.success is True
         assert result.policies_found == 5
@@ -285,16 +268,14 @@ class TestCAPoliciesAPI:
         mock_service.scan_tenant_policies.side_effect = ValueError("Tenant not found")
 
         from src.models.ca_policies import CAPolicyScanRequest
+
         request = CAPolicyScanRequest(
             tenant_id="nonexistent-tenant",
             trigger_alerts=True,
         )
 
         with pytest.raises(HTTPException) as exc_info:
-            await ca_policies_api.scan_ca_policies(
-                request=request,
-                service=mock_service
-            )
+            await ca_policies_api.scan_ca_policies(request=request, service=mock_service)
 
         assert exc_info.value.status_code == 404
 
@@ -309,8 +290,7 @@ class TestCAPoliciesAPI:
         }
 
         result = await ca_policies_api.list_policy_changes(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.total == 1
@@ -326,9 +306,7 @@ class TestCAPoliciesAPI:
         }
 
         result = await ca_policies_api.list_policy_changes(
-            tenant_id="tenant-123",
-            change_type="disabled",
-            service=mock_service
+            tenant_id="tenant-123", change_type="disabled", service=mock_service
         )
 
         assert result.total == 1
@@ -341,9 +319,7 @@ class TestCAPoliciesAPI:
         """Test listing policy changes with invalid type filter."""
         with pytest.raises(HTTPException) as exc_info:
             await ca_policies_api.list_policy_changes(
-                tenant_id="tenant-123",
-                change_type="invalid",
-                service=mock_service
+                tenant_id="tenant-123", change_type="invalid", service=mock_service
             )
 
         assert exc_info.value.status_code == 400
@@ -360,8 +336,7 @@ class TestCAPoliciesAPI:
         }
 
         result = await ca_policies_api.list_ca_policy_alerts(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.total == 1
@@ -377,9 +352,7 @@ class TestCAPoliciesAPI:
         }
 
         result = await ca_policies_api.list_ca_policy_alerts(
-            tenant_id="tenant-123",
-            severity="HIGH",
-            service=mock_service
+            tenant_id="tenant-123", severity="HIGH", service=mock_service
         )
 
         assert result.total == 1
@@ -392,9 +365,7 @@ class TestCAPoliciesAPI:
         """Test listing CA policy alerts with invalid severity filter."""
         with pytest.raises(HTTPException) as exc_info:
             await ca_policies_api.list_ca_policy_alerts(
-                tenant_id="tenant-123",
-                severity="invalid",
-                service=mock_service
+                tenant_id="tenant-123", severity="invalid", service=mock_service
             )
 
         assert exc_info.value.status_code == 400
@@ -408,14 +379,11 @@ class TestCAPoliciesAPI:
         mock_service.acknowledge_alert.return_value = sample_alert
 
         from src.models.ca_policies import AcknowledgeAlertRequest
-        request = AcknowledgeAlertRequest(
-            acknowledged_by="admin@example.com"
-        )
+
+        request = AcknowledgeAlertRequest(acknowledged_by="admin@example.com")
 
         result = await ca_policies_api.acknowledge_alert(
-            alert_id=str(sample_alert.id),
-            request=request,
-            service=mock_service
+            alert_id=str(sample_alert.id), request=request, service=mock_service
         )
 
         assert result.success is True
@@ -427,15 +395,12 @@ class TestCAPoliciesAPI:
         mock_service.acknowledge_alert.return_value = None
 
         from src.models.ca_policies import AcknowledgeAlertRequest
-        request = AcknowledgeAlertRequest(
-            acknowledged_by="admin@example.com"
-        )
+
+        request = AcknowledgeAlertRequest(acknowledged_by="admin@example.com")
 
         with pytest.raises(HTTPException) as exc_info:
             await ca_policies_api.acknowledge_alert(
-                alert_id="nonexistent-id",
-                request=request,
-                service=mock_service
+                alert_id="nonexistent-id", request=request, service=mock_service
             )
 
         assert exc_info.value.status_code == 404
@@ -461,8 +426,7 @@ class TestCAPoliciesAPI:
         mock_service._get_baseline_config.return_value = baseline
 
         result = await ca_policies_api.get_baseline_config(
-            tenant_id="tenant-123",
-            service=mock_service
+            tenant_id="tenant-123", service=mock_service
         )
 
         assert result.require_mfa_for_admins is True
@@ -474,10 +438,7 @@ class TestCAPoliciesAPI:
         mock_service._get_baseline_config.return_value = None
 
         with pytest.raises(HTTPException) as exc_info:
-            await ca_policies_api.get_baseline_config(
-                tenant_id="tenant-123",
-                service=mock_service
-            )
+            await ca_policies_api.get_baseline_config(tenant_id="tenant-123", service=mock_service)
 
         assert exc_info.value.status_code == 404
 
@@ -502,6 +463,7 @@ class TestCAPoliciesAPI:
         mock_service.set_baseline_config.return_value = baseline
 
         from src.api.ca_policies import SetBaselineRequest
+
         request = SetBaselineRequest(
             require_mfa_for_admins=True,
             require_mfa_for_all_users=True,
@@ -513,9 +475,7 @@ class TestCAPoliciesAPI:
         )
 
         result = await ca_policies_api.set_baseline_config(
-            tenant_id="tenant-123",
-            request=request,
-            service=mock_service
+            tenant_id="tenant-123", request=request, service=mock_service
         )
 
         assert result.require_mfa_for_admins is True
@@ -542,15 +502,14 @@ class TestCAPoliciesAPI:
         mock_service.set_baseline_config.return_value = baseline
 
         from src.api.ca_policies import SetBaselineRequest
+
         request = SetBaselineRequest(
             require_mfa_for_admins=False,
             block_legacy_auth=True,
         )
 
         result = await ca_policies_api.set_baseline_config(
-            tenant_id="tenant-123",
-            request=request,
-            service=mock_service
+            tenant_id="tenant-123", request=request, service=mock_service
         )
 
         assert result.require_mfa_for_admins is False

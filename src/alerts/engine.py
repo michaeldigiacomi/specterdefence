@@ -110,12 +110,14 @@ class AlertEngine:
 
             if is_duplicate:
                 logger.info(f"Skipping duplicate alert for rule {rule.id}")
-                results.append({
-                    "rule_id": str(rule.id),
-                    "status": "skipped",
-                    "reason": "duplicate",
-                    "webhook_id": None,
-                })
+                results.append(
+                    {
+                        "rule_id": str(rule.id),
+                        "status": "skipped",
+                        "reason": "duplicate",
+                        "webhook_id": None,
+                    }
+                )
                 continue
 
             # Send alert to all webhooks
@@ -165,10 +167,7 @@ class AlertEngine:
         # Also match tenant for proper scoping
         if tenant_id:
             query = query.where(
-                or_(
-                    AlertHistoryModel.tenant_id == tenant_id,
-                    AlertHistoryModel.tenant_id.is_(None)
-                )
+                or_(AlertHistoryModel.tenant_id == tenant_id, AlertHistoryModel.tenant_id.is_(None))
             )
 
         result = await self.db.execute(query)
@@ -346,10 +345,7 @@ class AlertEngine:
         # Apply filters
         if tenant_id:
             query = query.where(
-                or_(
-                    AlertHistoryModel.tenant_id == tenant_id,
-                    AlertHistoryModel.tenant_id.is_(None)
-                )
+                or_(AlertHistoryModel.tenant_id == tenant_id, AlertHistoryModel.tenant_id.is_(None))
             )
 
         if event_type:

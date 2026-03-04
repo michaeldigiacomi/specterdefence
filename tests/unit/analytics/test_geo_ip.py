@@ -25,7 +25,7 @@ class TestGeoLocation:
             timezone="America/Los_Angeles",
             isp="Google LLC",
             is_private=False,
-            lookup_success=True
+            lookup_success=True,
         )
 
         assert geo.ip_address == "8.8.8.8"
@@ -48,9 +48,7 @@ class TestGeoLocation:
     def test_geo_location_error(self):
         """Test GeoLocation with error message."""
         geo = GeoLocation(
-            ip_address="invalid",
-            lookup_success=False,
-            error_message="Invalid IP address"
+            ip_address="invalid", lookup_success=False, error_message="Invalid IP address"
         )
 
         assert geo.lookup_success is False
@@ -105,11 +103,7 @@ class TestGeoIPClient:
     def test_cache_operations(self, client):
         """Test cache storage and retrieval."""
         ip = "8.8.8.8"
-        geo = GeoLocation(
-            ip_address=ip,
-            country="US",
-            lookup_success=True
-        )
+        geo = GeoLocation(ip_address=ip, country="US", lookup_success=True)
 
         # Store in cache
         cache_key = client._get_cache_key(ip)
@@ -176,14 +170,14 @@ class TestGeoIPClient:
             "lat": 37.386,
             "lon": -122.0838,
             "timezone": "America/Los_Angeles",
-            "isp": "Google LLC"
+            "isp": "Google LLC",
         }
         mock_response.raise_for_status = MagicMock()
 
         mock_client = AsyncMock()
         mock_client.get.return_value = mock_response
 
-        with patch.object(client, '_get_client', return_value=mock_client):
+        with patch.object(client, "_get_client", return_value=mock_client):
             result = await client.lookup("8.8.8.8")
 
         assert result.lookup_success is True
@@ -198,11 +192,7 @@ class TestGeoIPClient:
         """Test that cached results are returned without API call."""
         # Pre-populate cache
         ip = "8.8.8.8"
-        cached_geo = GeoLocation(
-            ip_address=ip,
-            country="Cached Country",
-            lookup_success=True
-        )
+        cached_geo = GeoLocation(ip_address=ip, country="Cached Country", lookup_success=True)
         cache_key = client._get_cache_key(ip)
         client._cache[cache_key] = cached_geo
         client._cache_timestamps[cache_key] = datetime.now()
@@ -210,7 +200,7 @@ class TestGeoIPClient:
         # Create mock to verify it's not called
         mock_get_client = AsyncMock()
 
-        with patch.object(client, '_get_client', mock_get_client):
+        with patch.object(client, "_get_client", mock_get_client):
             result = await client.lookup(ip)
 
         assert result is cached_geo
@@ -220,16 +210,13 @@ class TestGeoIPClient:
     async def test_lookup_with_failed_response(self, client):
         """Test handling of failed API response."""
         mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "status": "fail",
-            "message": "invalid query"
-        }
+        mock_response.json.return_value = {"status": "fail", "message": "invalid query"}
         mock_response.raise_for_status = MagicMock()
 
         mock_client = AsyncMock()
         mock_client.get.return_value = mock_response
 
-        with patch.object(client, '_get_client', return_value=mock_client):
+        with patch.object(client, "_get_client", return_value=mock_client):
             result = await client.lookup("invalid")
 
         assert result.lookup_success is False
@@ -241,7 +228,7 @@ class TestGeoIPClient:
         mock_client = AsyncMock()
         mock_client.get.side_effect = httpx.HTTPError("Connection error")
 
-        with patch.object(client, '_get_client', return_value=mock_client):
+        with patch.object(client, "_get_client", return_value=mock_client):
             result = await client.lookup("8.8.8.8")
 
         assert result.lookup_success is False
@@ -253,7 +240,7 @@ class TestGeoIPClient:
         mock_client = AsyncMock()
         mock_client.get.side_effect = ValueError("Unexpected error")
 
-        with patch.object(client, '_get_client', return_value=mock_client):
+        with patch.object(client, "_get_client", return_value=mock_client):
             result = await client.lookup("8.8.8.8")
 
         assert result.lookup_success is False
@@ -272,14 +259,14 @@ class TestGeoIPClient:
             "lat": 37.386,
             "lon": -122.0838,
             "timezone": "America/Los_Angeles",
-            "isp": "Google LLC"
+            "isp": "Google LLC",
         }
         mock_response.raise_for_status = MagicMock()
 
         mock_client = AsyncMock()
         mock_client.get.return_value = mock_response
 
-        with patch.object(client, '_get_client', return_value=mock_client):
+        with patch.object(client, "_get_client", return_value=mock_client):
             results = await client.lookup_batch(["8.8.8.8", "192.168.1.1"])
 
         assert len(results) == 2
@@ -390,6 +377,7 @@ class TestGlobalClient:
         """Test that get_geo_ip_client creates new client on first call."""
         # Reset the global client
         import src.analytics.geo_ip as geo_ip_module
+
         geo_ip_module._geo_ip_client = None
 
         client = get_geo_ip_client()
@@ -400,12 +388,10 @@ class TestGlobalClient:
     @pytest.mark.asyncio
     async def test_lookup_ip_convenience_function(self):
         """Test the convenience lookup_ip function."""
-        with patch('src.analytics.geo_ip.get_geo_ip_client') as mock_get_client:
+        with patch("src.analytics.geo_ip.get_geo_ip_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_client.lookup.return_value = GeoLocation(
-                ip_address="8.8.8.8",
-                country="US",
-                lookup_success=True
+                ip_address="8.8.8.8", country="US", lookup_success=True
             )
             mock_get_client.return_value = mock_client
 
@@ -457,7 +443,7 @@ class TestGeoIPClientEdgeCases:
         mock_client = AsyncMock()
         mock_client.get.return_value = mock_response
 
-        with patch.object(client, '_get_client', return_value=mock_client):
+        with patch.object(client, "_get_client", return_value=mock_client):
             result = await client.lookup("8.8.8.8")
 
         assert result.lookup_success is True

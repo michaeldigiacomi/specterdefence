@@ -21,18 +21,17 @@ from src.services.k8s_secrets_storage import (
 )
 
 # Audit logger for credential access
-audit_logger = logging.getLogger('specterdefence.audit')
+audit_logger = logging.getLogger("specterdefence.audit")
 if not audit_logger.handlers:
     audit_handler = logging.StreamHandler()
-    audit_handler.setFormatter(logging.Formatter(
-        '%(asctime)s - AUDIT - %(message)s'
-    ))
+    audit_handler.setFormatter(logging.Formatter("%(asctime)s - AUDIT - %(message)s"))
     audit_logger.addHandler(audit_handler)
     audit_logger.setLevel(logging.WARNING)
 
 
 class StorageBackend(Enum):
     """Storage backend types."""
+
     DATABASE = "database"
     K8S_SECRETS = "k8s_secrets"
     HYBRID = "hybrid"  # Metadata in DB, secrets in K8s
@@ -40,17 +39,20 @@ class StorageBackend(Enum):
 
 class CredentialStorageError(Exception):
     """Raised when credential storage operations fail."""
+
     pass
 
 
 class CredentialNotFoundError(CredentialStorageError):
     """Raised when credentials are not found."""
+
     pass
 
 
 @dataclass
 class StoredCredential:
     """Container for stored credential with metadata."""
+
     tenant_id: str
     client_id: str
     client_secret: str
@@ -74,7 +76,7 @@ class CredentialStorageManager:
         db: AsyncSession,
         default_backend: StorageBackend = StorageBackend.DATABASE,
         encryption_service: EnhancedEncryptionService | None = None,
-        k8s_storage: K8sSecretsStorage | None = None
+        k8s_storage: K8sSecretsStorage | None = None,
     ) -> None:
         """Initialize credential storage manager.
 
@@ -96,7 +98,7 @@ class CredentialStorageManager:
         client_secret: str,
         name: str,
         backend: StorageBackend | None = None,
-        encrypt: bool = True
+        encrypt: bool = True,
     ) -> StoredCredential:
         """Store credentials using specified backend.
 
@@ -123,34 +125,22 @@ class CredentialStorageManager:
         )
 
         if backend == StorageBackend.DATABASE:
-            return await self._store_in_database(
-                tenant_id, client_id, client_secret, name, encrypt
-            )
+            return await self._store_in_database(tenant_id, client_id, client_secret, name, encrypt)
         elif backend == StorageBackend.K8S_SECRETS:
-            return await self._store_in_k8s(
-                tenant_id, client_id, client_secret, name
-            )
+            return await self._store_in_k8s(tenant_id, client_id, client_secret, name)
         elif backend == StorageBackend.HYBRID:
-            return await self._store_hybrid(
-                tenant_id, client_id, client_secret, name
-            )
+            return await self._store_hybrid(tenant_id, client_id, client_secret, name)
         else:
             raise CredentialStorageError(f"Unsupported backend: {backend}")
 
     async def _store_in_database(
-        self,
-        tenant_id: str,
-        client_id: str,
-        client_secret: str,
-        name: str,
-        encrypt: bool
+        self, tenant_id: str, client_id: str, client_secret: str, name: str, encrypt: bool
     ) -> StoredCredential:
         """Store credentials in database with encryption."""
         if encrypt:
             # Use AES-256-GCM for new credentials
             encrypted_secret = self.encryption.encrypt(
-                client_secret,
-                algorithm=EnhancedEncryptionService.ALGORITHM_AES256_GCM
+                client_secret, algorithm=EnhancedEncryptionService.ALGORITHM_AES256_GCM
             )
             key_version = self.encryption._current_key_version
         else:
@@ -172,10 +162,7 @@ class CredentialStorageManager:
         else:
             # Create new tenant
             tenant = TenantModel(
-                name=name,
-                tenant_id=tenant_id,
-                client_id=client_id,
-                client_secret=encrypted_secret
+                name=name, tenant_id=tenant_id, client_id=client_id, client_secret=encrypted_secret
             )
             self.db.add(tenant)
 
@@ -187,22 +174,18 @@ class CredentialStorageManager:
             client_secret=client_secret,  # Return original for immediate use
             backend=StorageBackend.DATABASE,
             encrypted=encrypt,
-            key_version=key_version
+            key_version=key_version,
         )
 
     async def _store_in_k8s(
-        self,
-        tenant_id: str,
-        client_id: str,
-        client_secret: str,
-        name: str
+        self, tenant_id: str, client_id: str, client_secret: str, name: str
     ) -> StoredCredential:
         """Store credentials in Kubernetes secrets."""
         credentials = CredentialData(
             client_id=client_id,
             client_secret=client_secret,
             tenant_id=tenant_id,
-            metadata={"name": name, "created_at": datetime.now(UTC).isoformat()}
+            metadata={"name": name, "created_at": datetime.now(UTC).isoformat()},
         )
 
         secret_name = self.k8s_storage.store_credentials(tenant_id, credentials)
@@ -213,15 +196,11 @@ class CredentialStorageManager:
             client_secret=client_secret,
             backend=StorageBackend.K8S_SECRETS,
             encrypted=False,  # K8s handles encryption at rest
-            k8s_secret_name=secret_name
+            k8s_secret_name=secret_name,
         )
 
     async def _store_hybrid(
-        self,
-        tenant_id: str,
-        client_id: str,
-        client_secret: str,
-        name: str
+        self, tenant_id: str, client_id: str, client_secret: str, name: str
     ) -> StoredCredential:
         """Store using hybrid approach: metadata in DB, secrets in K8s."""
         # Store credentials in K8s
@@ -229,7 +208,7 @@ class CredentialStorageManager:
             client_id=client_id,
             client_secret=client_secret,
             tenant_id=tenant_id,
-            metadata={"name": name}
+            metadata={"name": name},
         )
 
         secret_name = self.k8s_storage.store_credentials(tenant_id, credentials)
@@ -249,7 +228,7 @@ class CredentialStorageManager:
                 name=name,
                 tenant_id=tenant_id,
                 client_id=client_id,
-                client_secret=f"k8s:{secret_name}"
+                client_secret=f"k8s:{secret_name}",
             )
             self.db.add(tenant)
 
@@ -261,14 +240,10 @@ class CredentialStorageManager:
             client_secret=client_secret,
             backend=StorageBackend.HYBRID,
             encrypted=True,
-            k8s_secret_name=secret_name
+            k8s_secret_name=secret_name,
         )
 
-    async def get_credentials(
-        self,
-        tenant_id: str,
-        user_id: str = "system"
-    ) -> StoredCredential:
+    async def get_credentials(self, tenant_id: str, user_id: str = "system") -> StoredCredential:
         """Retrieve credentials from storage.
 
         Args:
@@ -308,16 +283,13 @@ class CredentialStorageManager:
             return await self._get_from_database(tenant_id, tenant, user_id)
 
     async def _get_from_database(
-        self,
-        tenant_id: str,
-        tenant: TenantModel,
-        user_id: str
+        self, tenant_id: str, tenant: TenantModel, user_id: str
     ) -> StoredCredential:
         """Retrieve credentials from database."""
         client_secret = tenant.client_secret
 
         # Check if encrypted (JSON format)
-        if client_secret.startswith('{'):
+        if client_secret.startswith("{"):
             # Encrypted with metadata
             try:
                 metadata = self.encryption.get_key_metadata(client_secret)
@@ -340,15 +312,11 @@ class CredentialStorageManager:
             client_secret=client_secret,
             backend=StorageBackend.DATABASE,
             encrypted=True,
-            key_version=key_version
+            key_version=key_version,
         )
 
     async def _get_from_k8s(
-        self,
-        tenant_id: str,
-        tenant: TenantModel,
-        secret_name: str,
-        user_id: str
+        self, tenant_id: str, tenant: TenantModel, secret_name: str, user_id: str
     ) -> StoredCredential:
         """Retrieve credentials from Kubernetes secrets."""
         try:
@@ -364,13 +332,11 @@ class CredentialStorageManager:
             client_secret=credentials.client_secret,
             backend=StorageBackend.K8S_SECRETS,
             encrypted=True,
-            k8s_secret_name=secret_name
+            k8s_secret_name=secret_name,
         )
 
     async def rotate_encryption_key(
-        self,
-        tenant_id: str,
-        user_id: str = "system"
+        self, tenant_id: str, user_id: str = "system"
     ) -> StoredCredential:
         """Rotate encryption key for stored credentials.
 
@@ -401,8 +367,7 @@ class CredentialStorageManager:
 
             # Encrypt with current key
             encrypted_secret = self.encryption.encrypt(
-                current.client_secret,
-                algorithm=EnhancedEncryptionService.ALGORITHM_AES256_GCM
+                current.client_secret, algorithm=EnhancedEncryptionService.ALGORITHM_AES256_GCM
             )
 
             tenant.client_secret = encrypted_secret
@@ -419,10 +384,7 @@ class CredentialStorageManager:
                 client_id=current.client_id,
                 client_secret=current.client_secret,
                 tenant_id=tenant_id,
-                metadata={
-                    "key_rotated_at": datetime.now(UTC).isoformat(),
-                    "rotated_by": user_id
-                }
+                metadata={"key_rotated_at": datetime.now(UTC).isoformat(), "rotated_by": user_id},
             )
             self.k8s_storage.update_credentials(tenant_id, credentials, user_id)
             return current
@@ -433,10 +395,7 @@ class CredentialStorageManager:
             )
 
     async def migrate_backend(
-        self,
-        tenant_id: str,
-        target_backend: StorageBackend,
-        user_id: str = "system"
+        self, tenant_id: str, target_backend: StorageBackend, user_id: str = "system"
     ) -> StoredCredential:
         """Migrate credentials to a different storage backend.
 
@@ -474,7 +433,7 @@ class CredentialStorageManager:
             client_id=current.client_id,
             client_secret=current.client_secret,
             name=tenant.name,
-            backend=target_backend
+            backend=target_backend,
         )
 
         # Clean up old backend if needed
@@ -484,11 +443,7 @@ class CredentialStorageManager:
 
         return new_credential
 
-    async def delete_credentials(
-        self,
-        tenant_id: str,
-        user_id: str = "system"
-    ) -> bool:
+    async def delete_credentials(self, tenant_id: str, user_id: str = "system") -> bool:
         """Delete credentials from all storage backends.
 
         Args:
@@ -551,5 +506,5 @@ class CredentialStorageManager:
         """
         return {
             "database": {"status": "healthy"},  # Assume healthy if we got here
-            "k8s_secrets": self.k8s_storage.health_check()
+            "k8s_secrets": self.k8s_storage.health_check(),
         }

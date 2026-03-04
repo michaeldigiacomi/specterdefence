@@ -18,8 +18,10 @@ router = APIRouter()
 
 # Pydantic models for API requests/responses
 
+
 class WebhookCreate(BaseModel):
     """Request model for creating a webhook."""
+
     name: str = Field(..., min_length=1, max_length=255, description="Display name for the webhook")
     webhook_url: str = Field(..., min_length=10, description="Discord webhook URL")
     webhook_type: str = Field(default="discord", description="Type of webhook (discord, slack)")
@@ -27,6 +29,7 @@ class WebhookCreate(BaseModel):
 
 class WebhookResponse(BaseModel):
     """Response model for a webhook."""
+
     id: UUID
     name: str
     webhook_type: str
@@ -39,20 +42,27 @@ class WebhookResponse(BaseModel):
 
 class WebhookTestResponse(BaseModel):
     """Response model for webhook test."""
+
     success: bool
     message: str
 
 
 class RuleCreate(BaseModel):
     """Request model for creating an alert rule."""
+
     name: str = Field(..., min_length=1, max_length=255, description="Display name for the rule")
     event_types: list[str] = Field(..., description="List of event types to match")
-    min_severity: str = Field(..., description="Minimum severity level (LOW, MEDIUM, HIGH, CRITICAL)")
-    cooldown_minutes: int = Field(default=30, ge=1, le=1440, description="Cooldown period in minutes")
+    min_severity: str = Field(
+        ..., description="Minimum severity level (LOW, MEDIUM, HIGH, CRITICAL)"
+    )
+    cooldown_minutes: int = Field(
+        default=30, ge=1, le=1440, description="Cooldown period in minutes"
+    )
 
 
 class RuleUpdate(BaseModel):
     """Request model for updating an alert rule."""
+
     name: str | None = Field(None, min_length=1, max_length=255)
     event_types: list[str] | None = None
     min_severity: str | None = None
@@ -62,6 +72,7 @@ class RuleUpdate(BaseModel):
 
 class RuleResponse(BaseModel):
     """Response model for an alert rule."""
+
     id: UUID
     name: str
     event_types: list[str]
@@ -77,6 +88,7 @@ class RuleResponse(BaseModel):
 
 class AlertHistoryResponse(BaseModel):
     """Response model for alert history."""
+
     id: UUID
     rule_id: UUID | None
     webhook_id: UUID
@@ -94,6 +106,7 @@ class AlertHistoryResponse(BaseModel):
 
 class AlertHistoryList(BaseModel):
     """Response model for alert history list."""
+
     total: int
     items: list[AlertHistoryResponse]
     limit: int
@@ -101,6 +114,7 @@ class AlertHistoryList(BaseModel):
 
 
 # Dependencies
+
 
 async def get_rule_service(db: AsyncSession = Depends(get_db)) -> AlertRuleService:
     """Dependency to get alert rule service."""
@@ -114,17 +128,18 @@ async def get_alert_engine(db: AsyncSession = Depends(get_db)) -> AlertEngine:
 
 # Webhook endpoints
 
+
 @router.post(
     "/webhooks",
     response_model=WebhookResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create webhook",
-    description="Create a new Discord webhook for alerts."
+    description="Create a new Discord webhook for alerts.",
 )
 async def create_webhook(
     webhook: WebhookCreate,
     tenant_id: str | None = None,
-    service: AlertRuleService = Depends(get_rule_service)
+    service: AlertRuleService = Depends(get_rule_service),
 ) -> WebhookResponse:
     """Create a new alert webhook.
 
@@ -153,7 +168,7 @@ async def create_webhook(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create webhook: {str(e)}"
+            detail=f"Failed to create webhook: {str(e)}",
         ) from e
 
 
@@ -161,12 +176,12 @@ async def create_webhook(
     "/webhooks",
     response_model=list[WebhookResponse],
     summary="List webhooks",
-    description="List all configured alert webhooks."
+    description="List all configured alert webhooks.",
 )
 async def list_webhooks(
     tenant_id: str | None = None,
     include_inactive: bool = False,
-    service: AlertRuleService = Depends(get_rule_service)
+    service: AlertRuleService = Depends(get_rule_service),
 ) -> list[WebhookResponse]:
     """List all alert webhooks.
 
@@ -199,11 +214,10 @@ async def list_webhooks(
     "/webhooks/{webhook_id}/test",
     response_model=WebhookTestResponse,
     summary="Test webhook",
-    description="Send a test message to a webhook."
+    description="Send a test message to a webhook.",
 )
 async def test_webhook(
-    webhook_id: UUID,
-    service: AlertRuleService = Depends(get_rule_service)
+    webhook_id: UUID, service: AlertRuleService = Depends(get_rule_service)
 ) -> WebhookTestResponse:
     """Test a webhook by sending a test message.
 
@@ -220,8 +234,7 @@ async def test_webhook(
     webhook = await service.get_webhook(webhook_id)
     if not webhook:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Webhook with ID {webhook_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Webhook with ID {webhook_id} not found"
         )
 
     try:
@@ -232,19 +245,15 @@ async def test_webhook(
         await client.close()
 
         if success:
-            return WebhookTestResponse(
-                success=True,
-                message="Test message sent successfully!"
-            )
+            return WebhookTestResponse(success=True, message="Test message sent successfully!")
         else:
             return WebhookTestResponse(
-                success=False,
-                message="Failed to send test message. Check webhook URL."
+                success=False, message="Failed to send test message. Check webhook URL."
             )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Webhook test failed: {str(e)}"
+            detail=f"Webhook test failed: {str(e)}",
         ) from e
 
 
@@ -252,11 +261,10 @@ async def test_webhook(
     "/webhooks/{webhook_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete webhook",
-    description="Delete an alert webhook."
+    description="Delete an alert webhook.",
 )
 async def delete_webhook(
-    webhook_id: UUID,
-    service: AlertRuleService = Depends(get_rule_service)
+    webhook_id: UUID, service: AlertRuleService = Depends(get_rule_service)
 ) -> None:
     """Delete an alert webhook.
 
@@ -270,24 +278,24 @@ async def delete_webhook(
     deleted = await service.delete_webhook(webhook_id)
     if not deleted:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Webhook with ID {webhook_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Webhook with ID {webhook_id} not found"
         )
 
 
 # Rule endpoints
+
 
 @router.post(
     "/rules",
     response_model=RuleResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create alert rule",
-    description="Create a new alert rule."
+    description="Create a new alert rule.",
 )
 async def create_rule(
     rule: RuleCreate,
     tenant_id: str | None = None,
-    service: AlertRuleService = Depends(get_rule_service)
+    service: AlertRuleService = Depends(get_rule_service),
 ) -> RuleResponse:
     """Create a new alert rule.
 
@@ -320,7 +328,7 @@ async def create_rule(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create rule: {str(e)}"
+            detail=f"Failed to create rule: {str(e)}",
         ) from e
 
 
@@ -328,12 +336,12 @@ async def create_rule(
     "/rules",
     response_model=list[RuleResponse],
     summary="List alert rules",
-    description="List all alert rules."
+    description="List all alert rules.",
 )
 async def list_rules(
     tenant_id: str | None = None,
     include_inactive: bool = False,
-    service: AlertRuleService = Depends(get_rule_service)
+    service: AlertRuleService = Depends(get_rule_service),
 ) -> list[RuleResponse]:
     """List all alert rules.
 
@@ -369,11 +377,10 @@ async def list_rules(
     "/rules/{rule_id}",
     response_model=RuleResponse,
     summary="Get alert rule",
-    description="Get a specific alert rule by ID."
+    description="Get a specific alert rule by ID.",
 )
 async def get_rule(
-    rule_id: UUID,
-    service: AlertRuleService = Depends(get_rule_service)
+    rule_id: UUID, service: AlertRuleService = Depends(get_rule_service)
 ) -> RuleResponse:
     """Get a specific alert rule.
 
@@ -390,8 +397,7 @@ async def get_rule(
     rule = await service.get_rule(rule_id)
     if not rule:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Rule with ID {rule_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Rule with ID {rule_id} not found"
         )
 
     return RuleResponse(
@@ -410,12 +416,10 @@ async def get_rule(
     "/rules/{rule_id}",
     response_model=RuleResponse,
     summary="Update alert rule",
-    description="Update an existing alert rule."
+    description="Update an existing alert rule.",
 )
 async def update_rule(
-    rule_id: UUID,
-    updates: RuleUpdate,
-    service: AlertRuleService = Depends(get_rule_service)
+    rule_id: UUID, updates: RuleUpdate, service: AlertRuleService = Depends(get_rule_service)
 ) -> RuleResponse:
     """Update an alert rule.
 
@@ -433,16 +437,12 @@ async def update_rule(
     update_dict = updates.model_dump(exclude_unset=True)
 
     if not update_dict:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields to update"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
 
     updated = await service.update_rule(rule_id, update_dict)
     if not updated:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Rule with ID {rule_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Rule with ID {rule_id} not found"
         )
 
     return RuleResponse(
@@ -461,12 +461,9 @@ async def update_rule(
     "/rules/{rule_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete alert rule",
-    description="Delete an alert rule."
+    description="Delete an alert rule.",
 )
-async def delete_rule(
-    rule_id: UUID,
-    service: AlertRuleService = Depends(get_rule_service)
-) -> None:
+async def delete_rule(rule_id: UUID, service: AlertRuleService = Depends(get_rule_service)) -> None:
     """Delete an alert rule.
 
     Args:
@@ -479,18 +476,18 @@ async def delete_rule(
     deleted = await service.delete_rule(rule_id)
     if not deleted:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Rule with ID {rule_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Rule with ID {rule_id} not found"
         )
 
 
 # Alert history endpoints
 
+
 @router.get(
     "/history",
     response_model=AlertHistoryList,
     summary="Get alert history",
-    description="Get history of sent alerts with optional filtering."
+    description="Get history of sent alerts with optional filtering.",
 )
 async def get_alert_history(
     tenant_id: str | None = None,
@@ -499,7 +496,7 @@ async def get_alert_history(
     user_email: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
-    engine: AlertEngine = Depends(get_alert_engine)
+    engine: AlertEngine = Depends(get_alert_engine),
 ) -> AlertHistoryList:
     """Get alert history.
 
@@ -522,7 +519,7 @@ async def get_alert_history(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid severity level: {severity}"
+                detail=f"Invalid severity level: {severity}",
             )
 
     history = await engine.get_alert_history(

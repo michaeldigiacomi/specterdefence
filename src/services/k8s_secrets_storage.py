@@ -13,34 +13,36 @@ from pathlib import Path
 from typing import Any
 
 # Audit logger for credential access
-audit_logger = logging.getLogger('specterdefence.audit')
+audit_logger = logging.getLogger("specterdefence.audit")
 if not audit_logger.handlers:
     audit_handler = logging.StreamHandler()
-    audit_handler.setFormatter(logging.Formatter(
-        '%(asctime)s - AUDIT - %(message)s'
-    ))
+    audit_handler.setFormatter(logging.Formatter("%(asctime)s - AUDIT - %(message)s"))
     audit_logger.addHandler(audit_handler)
     audit_logger.setLevel(logging.WARNING)
 
 
 class K8sSecretError(Exception):
     """Raised when Kubernetes secret operations fail."""
+
     pass
 
 
 class K8sSecretNotFoundError(K8sSecretError):
     """Raised when a Kubernetes secret is not found."""
+
     pass
 
 
 class K8sSecretAlreadyExistsError(K8sSecretError):
     """Raised when trying to create a secret that already exists."""
+
     pass
 
 
 @dataclass
 class CredentialData:
     """Container for credential data."""
+
     client_id: str
     client_secret: str
     tenant_id: str | None = None
@@ -70,7 +72,7 @@ class CredentialData:
             client_id=data.get("client_id", ""),
             client_secret=data.get("client_secret", ""),
             tenant_id=data.get("tenant_id"),
-            metadata=metadata
+            metadata=metadata,
         )
 
 
@@ -98,7 +100,7 @@ class K8sSecretsStorage:
         self,
         namespace: str | None = None,
         use_k8s_api: bool = False,
-        kubeconfig_path: str | None = None
+        kubeconfig_path: str | None = None,
     ) -> None:
         """Initialize K8s secrets storage.
 
@@ -107,9 +109,9 @@ class K8sSecretsStorage:
             use_k8s_api: Whether to use Kubernetes API instead of volume mounts
             kubeconfig_path: Path to kubeconfig file (for external access)
         """
-        self.namespace = namespace or os.getenv('K8S_NAMESPACE', self.DEFAULT_NAMESPACE)
-        self.use_k8s_api = use_k8s_api or os.getenv('K8S_USE_API', 'false').lower() == 'true'
-        self.kubeconfig_path = kubeconfig_path or os.getenv('KUBECONFIG')
+        self.namespace = namespace or os.getenv("K8S_NAMESPACE", self.DEFAULT_NAMESPACE)
+        self.use_k8s_api = use_k8s_api or os.getenv("K8S_USE_API", "false").lower() == "true"
+        self.kubeconfig_path = kubeconfig_path or os.getenv("KUBECONFIG")
         self._k8s_client = None
 
         # Check if running in Kubernetes (secrets volume available)
@@ -150,8 +152,7 @@ class K8sSecretsStorage:
 
         except ImportError:
             raise K8sSecretError(
-                "Kubernetes client library not installed. "
-                "Install with: pip install kubernetes"
+                "Kubernetes client library not installed. " "Install with: pip install kubernetes"
             ) from None
         except Exception as e:
             raise K8sSecretError(f"Failed to initialize Kubernetes client: {str(e)}") from e
@@ -171,9 +172,9 @@ class K8sSecretsStorage:
             Sanitized name
         """
         # Convert to lowercase and replace invalid chars
-        sanitized = re.sub(r'[^a-z0-9.-]', '-', name.lower())
+        sanitized = re.sub(r"[^a-z0-9.-]", "-", name.lower())
         # Remove leading/trailing non-alphanumeric
-        sanitized = sanitized.strip('-.')
+        sanitized = sanitized.strip("-.")
         # Limit length
         if len(sanitized) > 253:
             sanitized = sanitized[:253]
@@ -193,10 +194,7 @@ class K8sSecretsStorage:
         return f"{self.SECRET_PREFIX}-{tenant_hash}"
 
     def store_credentials(
-        self,
-        tenant_id: str,
-        credentials: CredentialData,
-        labels: dict[str, str] | None = None
+        self, tenant_id: str, credentials: CredentialData, labels: dict[str, str] | None = None
     ) -> str:
         """Store credentials in Kubernetes secret.
 
@@ -227,10 +225,7 @@ class K8sSecretsStorage:
             return self._store_via_volume(secret_name, credentials)
 
     def _store_via_api(
-        self,
-        secret_name: str,
-        credentials: CredentialData,
-        labels: dict[str, str] | None = None
+        self, secret_name: str, credentials: CredentialData, labels: dict[str, str] | None = None
     ) -> str:
         """Store credentials via Kubernetes API."""
         if not self._k8s_client:
@@ -261,7 +256,7 @@ class K8sSecretsStorage:
         default_labels = {
             "app": "specterdefence",
             "component": "tenant-credentials",
-            "managed-by": "specterdefence-api"
+            "managed-by": "specterdefence-api",
         }
         if labels:
             default_labels.update(labels)
@@ -276,11 +271,11 @@ class K8sSecretsStorage:
                 labels=default_labels,
                 annotations={
                     "specterdefence.io/created-at": datetime.now(UTC).isoformat(),
-                    "specterdefence.io/credential-type": "microsoft-graph"
-                }
+                    "specterdefence.io/credential-type": "microsoft-graph",
+                },
             ),
             type="Opaque",
-            data=secret_data
+            data=secret_data,
         )
 
         try:
@@ -299,9 +294,7 @@ class K8sSecretsStorage:
         secret_path = mount_path / secret_name
 
         if secret_path.exists():
-            raise K8sSecretAlreadyExistsError(
-                f"Secret file {secret_path} already exists"
-            )
+            raise K8sSecretAlreadyExistsError(f"Secret file {secret_path} already exists")
 
         # Write credentials as JSON (in real K8s, this would be mounted by K8s)
         # For development, we simulate the structure
@@ -357,10 +350,7 @@ class K8sSecretsStorage:
             raise K8sSecretError(f"Failed to read secret: {str(e)}") from e
 
         # Decode base64 data
-        secret_data = {
-            key: base64.b64decode(value).decode()
-            for key, value in secret.data.items()
-        }
+        secret_data = {key: base64.b64decode(value).decode() for key, value in secret.data.items()}
 
         return CredentialData.from_dict(secret_data)
 
@@ -382,10 +372,7 @@ class K8sSecretsStorage:
         return CredentialData.from_dict(secret_data)
 
     def update_credentials(
-        self,
-        tenant_id: str,
-        credentials: CredentialData,
-        user_id: str = "system"
+        self, tenant_id: str, credentials: CredentialData, user_id: str = "system"
     ) -> str:
         """Update existing credentials in Kubernetes secret.
 
@@ -430,7 +417,9 @@ class K8sSecretsStorage:
 
             # Update annotation
             existing.metadata.annotations = existing.metadata.annotations or {}
-            existing.metadata.annotations["specterdefence.io/updated-at"] = datetime.now(UTC).isoformat()
+            existing.metadata.annotations["specterdefence.io/updated-at"] = datetime.now(
+                UTC
+            ).isoformat()
             existing.data = secret_data
 
             self._k8s_client.replace_namespaced_secret(secret_name, self.namespace, existing)
@@ -489,6 +478,7 @@ class K8sSecretsStorage:
 
         # Remove directory and all files
         import shutil
+
         shutil.rmtree(secret_path)
         return True
 
@@ -510,21 +500,24 @@ class K8sSecretsStorage:
 
         try:
             secrets = self._k8s_client.list_namespaced_secret(
-                self.namespace,
-                label_selector="component=tenant-credentials"
+                self.namespace, label_selector="component=tenant-credentials"
             )
 
             result = []
             for secret in secrets.items:
-                result.append({
-                    "name": secret.metadata.name,
-                    "namespace": secret.metadata.namespace,
-                    "created_at": secret.metadata.annotations.get(
-                        "specterdefence.io/created-at"
-                    ) if secret.metadata.annotations else None,
-                    "labels": secret.metadata.labels,
-                    "keys": list(secret.data.keys()) if secret.data else []
-                })
+                result.append(
+                    {
+                        "name": secret.metadata.name,
+                        "namespace": secret.metadata.namespace,
+                        "created_at": secret.metadata.annotations.get(
+                            "specterdefence.io/created-at"
+                        )
+                        if secret.metadata.annotations
+                        else None,
+                        "labels": secret.metadata.labels,
+                        "keys": list(secret.data.keys()) if secret.data else [],
+                    }
+                )
             return result
         except Exception as e:
             raise K8sSecretError(f"Failed to list secrets: {str(e)}") from e
@@ -541,13 +534,15 @@ class K8sSecretsStorage:
             if secret_dir.is_dir() and secret_dir.name.startswith(self.SECRET_PREFIX):
                 # Get keys (files) in the secret directory
                 keys = [f.name for f in secret_dir.iterdir() if f.is_file()]
-                result.append({
-                    "name": secret_dir.name,
-                    "namespace": "local",
-                    "created_at": None,
-                    "labels": {},
-                    "keys": keys
-                })
+                result.append(
+                    {
+                        "name": secret_dir.name,
+                        "namespace": "local",
+                        "created_at": None,
+                        "labels": {},
+                        "keys": keys,
+                    }
+                )
         return result
 
     def health_check(self) -> dict[str, Any]:
@@ -562,7 +557,7 @@ class K8sSecretsStorage:
             "use_k8s_api": self.use_k8s_api,
             "namespace": self.namespace,
             "status": "unknown",
-            "error": None
+            "error": None,
         }
 
         try:
@@ -572,10 +567,7 @@ class K8sSecretsStorage:
                     result["error"] = "Kubernetes client not initialized"
                 else:
                     # Try to list secrets to verify connectivity
-                    self._k8s_client.list_namespaced_secret(
-                        self.namespace,
-                        limit=1
-                    )
+                    self._k8s_client.list_namespaced_secret(self.namespace, limit=1)
                     result["status"] = "healthy"
             else:
                 # Check if volume mount exists

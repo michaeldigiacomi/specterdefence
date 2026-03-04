@@ -1,7 +1,7 @@
 """Unit tests for the failed login tracking service with Redis sliding window."""
 
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 import redis.asyncio as redis
@@ -13,42 +13,47 @@ from src.analytics.failed_logins import (
 )
 
 
+@pytest.fixture
+def mock_redis():
+    """Create a mock Redis client."""
+    mock = AsyncMock(spec=redis.Redis)
+    mock.zadd = AsyncMock(return_value=1)
+    mock.zcard = AsyncMock(return_value=0)
+    mock.zremrangebyscore = AsyncMock(return_value=0)
+    mock.expire = AsyncMock(return_value=True)
+    mock.delete = AsyncMock(return_value=1)
+    mock.setex = AsyncMock(return_value=True)
+    mock.ttl = AsyncMock(return_value=-1)
+    mock.scan_iter = AsyncMock(return_value=[])
+    return mock
+
+
+@pytest.fixture
+def tracker(mock_redis):
+    """Create a FailedLoginTracker with mocked Redis."""
+    return FailedLoginTracker(
+        redis_client=mock_redis,
+        failure_threshold=5,
+        window_minutes=5,
+        suppress_after_alert_minutes=30,
+    )
+
+
+@pytest.fixture
+def tracker_no_redis():
+    """Create a FailedLoginTracker without Redis."""
+    return FailedLoginTracker(
+        redis_client=None,
+        failure_threshold=5,
+        window_minutes=5,
+        suppress_after_alert_minutes=30,
+    )
+
+
 class TestFailedLoginTracker:
     """Tests for FailedLoginTracker."""
 
-    @pytest.fixture
-    def mock_redis(self):
-        """Create a mock Redis client."""
-        mock = AsyncMock(spec=redis.Redis)
-        mock.zadd = AsyncMock(return_value=1)
-        mock.zcard = AsyncMock(return_value=0)
-        mock.zremrangebyscore = AsyncMock(return_value=0)
-        mock.expire = AsyncMock(return_value=True)
-        mock.delete = AsyncMock(return_value=1)
-        mock.setex = AsyncMock(return_value=True)
-        mock.ttl = AsyncMock(return_value=-1)
-        mock.scan_iter = AsyncMock(return_value=[])
-        return mock
-
-    @pytest.fixture
-    def tracker(self, mock_redis):
-        """Create a FailedLoginTracker with mocked Redis."""
-        return FailedLoginTracker(
-            redis_client=mock_redis,
-            failure_threshold=5,
-            window_minutes=5,
-            suppress_after_alert_minutes=30
-        )
-
-    @pytest.fixture
-    def tracker_no_redis(self):
-        """Create a FailedLoginTracker without Redis."""
-        return FailedLoginTracker(
-            redis_client=None,
-            failure_threshold=5,
-            window_minutes=5,
-            suppress_after_alert_minutes=30
-        )
+    pass  # Fixtures moved to module level
 
 
 class TestErrorCodeParsing:
@@ -113,7 +118,7 @@ class TestRecordFailure:
             tenant_id="tenant-123",
             ip_address="192.168.1.1",
             error_code=50126,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
 
         assert isinstance(result, FailureCount)
@@ -131,7 +136,7 @@ class TestRecordFailure:
             tenant_id="tenant-123",
             ip_address="192.168.1.1",
             error_code=50126,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
 
         assert isinstance(result, FailureCount)
@@ -146,7 +151,7 @@ class TestRecordFailure:
             user_email="user@example.com",
             tenant_id="tenant-123",
             ip_address="192.168.1.1",
-            error_code=50126  # badPassword
+            error_code=50126,  # badPassword
         )
 
         # Verify the failure was recorded with parsed reason
@@ -162,7 +167,7 @@ class TestRecordFailure:
             user_email="user@example.com",
             tenant_id="tenant-123",
             ip_address="192.168.1.1",
-            timestamp=now
+            timestamp=now,
         )
 
         # Verify old entries are removed
@@ -179,7 +184,7 @@ class TestRecordFailure:
                 user_email="user@example.com",
                 tenant_id="tenant-123",
                 ip_address=f"192.168.1.{i}",
-                timestamp=now
+                timestamp=now,
             )
 
         assert result.count == 3
@@ -194,8 +199,7 @@ class TestGetFailureCount:
         mock_redis.zcard.return_value = 5
 
         result = await tracker.get_failure_count(
-            user_email="user@example.com",
-            tenant_id="tenant-123"
+            user_email="user@example.com", tenant_id="tenant-123"
         )
 
         assert isinstance(result, FailureCount)
@@ -206,10 +210,7 @@ class TestGetFailureCount:
         """Test getting failure count for IP only."""
         mock_redis.zcard.return_value = 3
 
-        result = await tracker.get_failure_count(
-            ip_address="192.168.1.1",
-            tenant_id="tenant-123"
-        )
+        result = await tracker.get_failure_count(ip_address="192.168.1.1", tenant_id="tenant-123")
 
         assert result.count == 3
 
@@ -219,9 +220,7 @@ class TestGetFailureCount:
         mock_redis.zcard.side_effect = [4, 7]  # User, then IP
 
         result = await tracker.get_failure_count(
-            user_email="user@example.com",
-            ip_address="192.168.1.1",
-            tenant_id="tenant-123"
+            user_email="user@example.com", ip_address="192.168.1.1", tenant_id="tenant-123"
         )
 
         assert result.count == 7  # Max of both
@@ -237,12 +236,11 @@ class TestGetFailureCount:
             user_email="user@example.com",
             tenant_id="tenant-123",
             ip_address="192.168.1.1",
-            timestamp=now
+            timestamp=now,
         )
 
         result = await tracker.get_failure_count(
-            user_email="user@example.com",
-            tenant_id="tenant-123"
+            user_email="user@example.com", tenant_id="tenant-123"
         )
 
         assert result.count == 1
@@ -257,9 +255,7 @@ class TestCheckBruteForce:
         mock_redis.zcard.return_value = 3  # Below threshold of 5
 
         result = await tracker.check_brute_force(
-            user_email="user@example.com",
-            tenant_id="tenant-123",
-            ip_address="192.168.1.1"
+            user_email="user@example.com", tenant_id="tenant-123", ip_address="192.168.1.1"
         )
 
         assert isinstance(result, BruteForceAlert)
@@ -272,9 +268,7 @@ class TestCheckBruteForce:
         mock_redis.zcard.side_effect = [5, 2]  # User meets threshold, IP doesn't
 
         result = await tracker.check_brute_force(
-            user_email="user@example.com",
-            tenant_id="tenant-123",
-            ip_address="192.168.1.1"
+            user_email="user@example.com", tenant_id="tenant-123", ip_address="192.168.1.1"
         )
 
         assert result.triggered is True
@@ -287,9 +281,7 @@ class TestCheckBruteForce:
         mock_redis.zcard.side_effect = [2, 5]  # IP meets threshold, user doesn't
 
         result = await tracker.check_brute_force(
-            user_email="user@example.com",
-            tenant_id="tenant-123",
-            ip_address="192.168.1.1"
+            user_email="user@example.com", tenant_id="tenant-123", ip_address="192.168.1.1"
         )
 
         assert result.triggered is True
@@ -302,9 +294,7 @@ class TestCheckBruteForce:
         mock_redis.zcard.side_effect = [7, 6]  # Both exceed threshold
 
         result = await tracker.check_brute_force(
-            user_email="user@example.com",
-            tenant_id="tenant-123",
-            ip_address="192.168.1.1"
+            user_email="user@example.com", tenant_id="tenant-123", ip_address="192.168.1.1"
         )
 
         assert result.triggered is True
@@ -318,9 +308,7 @@ class TestCheckBruteForce:
         mock_redis.ttl.return_value = 1500  # Still in suppression period
 
         result = await tracker.check_brute_force(
-            user_email="user@example.com",
-            tenant_id="tenant-123",
-            ip_address="192.168.1.1"
+            user_email="user@example.com", tenant_id="tenant-123", ip_address="192.168.1.1"
         )
 
         assert result.triggered is True
@@ -333,9 +321,7 @@ class TestCheckBruteForce:
         mock_redis.ttl.return_value = -1  # TTL expired
 
         result = await tracker.check_brute_force(
-            user_email="user@example.com",
-            tenant_id="tenant-123",
-            ip_address="192.168.1.1"
+            user_email="user@example.com", tenant_id="tenant-123", ip_address="192.168.1.1"
         )
 
         assert result.triggered is True
@@ -348,10 +334,7 @@ class TestClearFailures:
     @pytest.mark.asyncio
     async def test_clear_user_failures(self, tracker, mock_redis):
         """Test clearing user failure counts."""
-        result = await tracker.clear_failures(
-            user_email="user@example.com",
-            tenant_id="tenant-123"
-        )
+        result = await tracker.clear_failures(user_email="user@example.com", tenant_id="tenant-123")
 
         assert result is True
         mock_redis.delete.assert_called()
@@ -359,10 +342,7 @@ class TestClearFailures:
     @pytest.mark.asyncio
     async def test_clear_ip_failures(self, tracker, mock_redis):
         """Test clearing IP failure counts."""
-        result = await tracker.clear_failures(
-            ip_address="192.168.1.1",
-            tenant_id="tenant-123"
-        )
+        result = await tracker.clear_failures(ip_address="192.168.1.1", tenant_id="tenant-123")
 
         assert result is True
         mock_redis.delete.assert_called()
@@ -371,9 +351,7 @@ class TestClearFailures:
     async def test_clear_both_failures(self, tracker, mock_redis):
         """Test clearing both user and IP failure counts."""
         result = await tracker.clear_failures(
-            user_email="user@example.com",
-            ip_address="192.168.1.1",
-            tenant_id="tenant-123"
+            user_email="user@example.com", ip_address="192.168.1.1", tenant_id="tenant-123"
         )
 
         assert result is True
@@ -390,20 +368,16 @@ class TestClearFailures:
             user_email="user@example.com",
             tenant_id="tenant-123",
             ip_address="192.168.1.1",
-            timestamp=now
+            timestamp=now,
         )
 
-        result = await tracker.clear_failures(
-            user_email="user@example.com",
-            tenant_id="tenant-123"
-        )
+        result = await tracker.clear_failures(user_email="user@example.com", tenant_id="tenant-123")
 
         assert result is True
 
         # Verify count is now 0
         count_result = await tracker.get_failure_count(
-            user_email="user@example.com",
-            tenant_id="tenant-123"
+            user_email="user@example.com", tenant_id="tenant-123"
         )
         assert count_result.count == 0
 
@@ -426,6 +400,7 @@ class TestGetFailureStats:
     @pytest.mark.asyncio
     async def test_get_failure_stats_with_data(self, tracker, mock_redis):
         """Test getting stats with failure data."""
+
         # Mock scan_iter to return some keys
         async def mock_scan():
             yield f"{tracker.KEY_PREFIX_USER}:tenant-123:user1@example.com"
@@ -466,20 +441,19 @@ class TestSlidingWindow:
             user_email="user@example.com",
             tenant_id="tenant-123",
             ip_address="192.168.1.1",
-            timestamp=now - timedelta(minutes=10)  # Old, outside window
+            timestamp=now - timedelta(minutes=10),  # Old, outside window
         )
 
         await tracker.record_failure(
             user_email="user@example.com",
             tenant_id="tenant-123",
             ip_address="192.168.1.1",
-            timestamp=now  # Recent, inside window
+            timestamp=now,  # Recent, inside window
         )
 
         # Only the recent entry should count
         result = await tracker.get_failure_count(
-            user_email="user@example.com",
-            tenant_id="tenant-123"
+            user_email="user@example.com", tenant_id="tenant-123"
         )
 
         assert result.count == 1
@@ -496,12 +470,11 @@ class TestSlidingWindow:
                 user_email="user@example.com",
                 tenant_id="tenant-123",
                 ip_address=f"192.168.1.{i}",
-                timestamp=now - timedelta(minutes=i)  # All within 5 min window
+                timestamp=now - timedelta(minutes=i),  # All within 5 min window
             )
 
         result = await tracker.get_failure_count(
-            user_email="user@example.com",
-            tenant_id="tenant-123"
+            user_email="user@example.com", tenant_id="tenant-123"
         )
 
         assert result.count == 5
@@ -518,9 +491,7 @@ class TestFalsePositiveSuppression:
         # First check - should trigger and set suppression
         mock_redis.ttl.return_value = -1  # Not suppressed yet
         result1 = await tracker.check_brute_force(
-            user_email="user@example.com",
-            tenant_id="tenant-123",
-            ip_address="192.168.1.1"
+            user_email="user@example.com", tenant_id="tenant-123", ip_address="192.168.1.1"
         )
 
         assert result1.triggered is True
@@ -530,9 +501,7 @@ class TestFalsePositiveSuppression:
         # Second check - should be suppressed
         mock_redis.ttl.return_value = 1500  # Still in suppression period
         result2 = await tracker.check_brute_force(
-            user_email="user@example.com",
-            tenant_id="tenant-123",
-            ip_address="192.168.1.1"
+            user_email="user@example.com", tenant_id="tenant-123", ip_address="192.168.1.1"
         )
 
         assert result2.triggered is True
@@ -546,16 +515,12 @@ class TestFalsePositiveSuppression:
 
         # Check for tenant-1
         await tracker.check_brute_force(
-            user_email="user@example.com",
-            tenant_id="tenant-1",
-            ip_address="192.168.1.1"
+            user_email="user@example.com", tenant_id="tenant-1", ip_address="192.168.1.1"
         )
 
         # Check for tenant-2 with same user/IP
         result = await tracker.check_brute_force(
-            user_email="user@example.com",
-            tenant_id="tenant-2",
-            ip_address="192.168.1.1"
+            user_email="user@example.com", tenant_id="tenant-2", ip_address="192.168.1.1"
         )
 
         # Should not be suppressed for different tenant
@@ -570,9 +535,7 @@ class TestFalsePositiveSuppression:
         mock_redis.ttl.return_value = -2  # Key doesn't exist
 
         result = await tracker.check_brute_force(
-            user_email="user@example.com",
-            tenant_id="tenant-123",
-            ip_address="192.168.1.1"
+            user_email="user@example.com", tenant_id="tenant-123", ip_address="192.168.1.1"
         )
 
         assert result.triggered is True

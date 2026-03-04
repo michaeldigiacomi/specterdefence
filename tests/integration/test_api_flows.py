@@ -26,7 +26,9 @@ pytestmark = pytest.mark.integration
 class TestTenantRegistrationFlow:
     """Test complete tenant registration and validation flow."""
 
-    async def test_register_tenant_via_api(self, test_client, mock_ms_graph_token, mock_o365_organization_response):
+    async def test_register_tenant_via_api(
+        self, test_client, mock_ms_graph_token, mock_o365_organization_response
+    ):
         """Test registering a new tenant via API with credential validation."""
         tenant_data = {
             "name": "New Test Tenant",
@@ -36,7 +38,9 @@ class TestTenantRegistrationFlow:
         }
 
         # Mock MS Graph validation
-        with patch("src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock) as mock_validate:
+        with patch(
+            "src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock
+        ) as mock_validate:
             mock_validate.return_value = {
                 "valid": True,
                 "tenant_id": tenant_data["tenant_id"],
@@ -63,7 +67,9 @@ class TestTenantRegistrationFlow:
             "client_secret": "wrong-secret",
         }
 
-        with patch("src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock) as mock_validate:
+        with patch(
+            "src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock
+        ) as mock_validate:
             mock_validate.return_value = {
                 "valid": False,
                 "error": "Invalid credentials",
@@ -143,7 +149,9 @@ class TestTenantRegistrationFlow:
 
     async def test_validate_tenant_credentials_endpoint(self, test_client, test_tenant):
         """Test the tenant credentials validation endpoint."""
-        with patch("src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock) as mock_validate:
+        with patch(
+            "src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock
+        ) as mock_validate:
             mock_validate.return_value = {
                 "valid": True,
                 "tenant_id": test_tenant.tenant_id,
@@ -201,6 +209,7 @@ class TestAlertWebhookFlow:
         """Test deleting a webhook."""
         # Create a webhook to delete
         from src.services.encryption import encryption_service
+
         webhook = AlertWebhookModel(
             id=uuid.uuid4(),
             name="To Delete",
@@ -324,7 +333,9 @@ class TestAnalyticsFlow:
             response = await test_client.get("/api/v1/analytics/logins")
         except Exception as e:
             if "ValidationError" in str(type(e)) or "UUID" in str(e):
-                pytest.skip("Analytics endpoint has validation issues - UUID vs string type mismatch")
+                pytest.skip(
+                    "Analytics endpoint has validation issues - UUID vs string type mismatch"
+                )
             raise
 
         # Skip if endpoint has validation issues
@@ -348,7 +359,9 @@ class TestAnalyticsFlow:
             )
         except Exception as e:
             if "ValidationError" in str(type(e)) or "UUID" in str(e):
-                pytest.skip("Analytics endpoint has validation issues - UUID vs string type mismatch")
+                pytest.skip(
+                    "Analytics endpoint has validation issues - UUID vs string type mismatch"
+                )
             raise
 
         # Skip if endpoint has validation issues
@@ -405,7 +418,7 @@ class TestTenantServiceIntegration:
         tenant_data.client_id = "44444444-4444-4444-4444-444444444444"
         tenant_data.client_secret = "service-secret"
 
-        with patch.object(service, 'validate_tenant', new_callable=AsyncMock) as mock_validate:
+        with patch.object(service, "validate_tenant", new_callable=AsyncMock) as mock_validate:
             mock_validate.return_value = MagicMock(valid=True, display_name="Test Org")
 
             result = await service.create_tenant(tenant_data, validate=False)
@@ -414,7 +427,9 @@ class TestTenantServiceIntegration:
 
         # Verify in database
         result_db = await db_session.execute(
-            select(TenantModel).where(TenantModel.tenant_id == "55555555-5555-5555-5555-555555555555")
+            select(TenantModel).where(
+                TenantModel.tenant_id == "55555555-5555-5555-5555-555555555555"
+            )
         )
         tenant = result_db.scalar_one()
         assert tenant.name == "Service Test Tenant"

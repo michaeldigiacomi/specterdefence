@@ -16,7 +16,7 @@ class EncryptionService:
     def __init__(self) -> None:
         """Initialize encryption service with key derived from SECRET_KEY or ENCRYPTION_KEY."""
         # Use dedicated encryption key if available, fall back to SECRET_KEY
-        secret_key = getattr(settings, 'ENCRYPTION_KEY', settings.SECRET_KEY)
+        secret_key = getattr(settings, "ENCRYPTION_KEY", settings.SECRET_KEY)
         if not secret_key:
             raise ValueError("ENCRYPTION_KEY or SECRET_KEY must be set")
 
@@ -24,7 +24,7 @@ class EncryptionService:
 
         # Use configurable salt from environment, or derive from secret key
         # In production, ENCRYPTION_SALT should be set to a unique value
-        salt_input = getattr(settings, 'ENCRYPTION_SALT', None)
+        salt_input = getattr(settings, "ENCRYPTION_SALT", None)
         if salt_input:
             # Use provided salt, hash it to ensure consistent length
             salt = hashlib.sha256(salt_input.encode()).digest()[:16]

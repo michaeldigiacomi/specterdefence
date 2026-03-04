@@ -30,7 +30,7 @@ class TestMSGraphClient:
         return MSGraphClient(
             tenant_id="test-tenant-id",
             client_id="test-client-id",
-            client_secret="test-client-secret"
+            client_secret="test-client-secret",
         )
 
     @pytest.mark.asyncio
@@ -40,7 +40,7 @@ class TestMSGraphClient:
         mock_app.acquire_token_silent.return_value = None  # No cached token
         mock_app.acquire_token_for_client.return_value = {
             "access_token": "test-access-token",
-            "expires_in": 3600
+            "expires_in": 3600,
         }
 
         token = await client.get_access_token()
@@ -55,7 +55,7 @@ class TestMSGraphClient:
         mock_app = mock_msal_app.return_value
         mock_app.acquire_token_silent.return_value = {
             "access_token": "cached-token",
-            "expires_in": 3600
+            "expires_in": 3600,
         }
 
         token = await client.get_access_token()
@@ -70,7 +70,7 @@ class TestMSGraphClient:
         mock_app.acquire_token_silent.return_value = None
         mock_app.acquire_token_for_client.return_value = {
             "error": "invalid_client",
-            "error_description": "Client authentication failed"
+            "error_description": "Client authentication failed",
         }
 
         with pytest.raises(MSGraphAuthError) as exc_info:
@@ -88,13 +88,13 @@ class TestMSGraphClient:
                 mock_response = MagicMock()
                 mock_response.status_code = 200
                 mock_response.json.return_value = {
-                    "value": [{
-                        "displayName": "Test Organization",
-                        "id": "test-tenant-id",
-                        "verifiedDomains": [
-                            {"name": "test.com", "isDefault": True}
-                        ]
-                    }]
+                    "value": [
+                        {
+                            "displayName": "Test Organization",
+                            "id": "test-tenant-id",
+                            "verifiedDomains": [{"name": "test.com", "isDefault": True}],
+                        }
+                    ]
                 }
                 mock_get.return_value = mock_response
 
@@ -167,11 +167,7 @@ class TestMSGraphClient:
                 mock_response = MagicMock()
                 mock_response.status_code = 200
                 mock_response.json.return_value = {
-                    "value": [{
-                        "displayName": "Test Org",
-                        "id": "tenant-id",
-                        "verifiedDomains": []
-                    }]
+                    "value": [{"displayName": "Test Org", "id": "tenant-id", "verifiedDomains": []}]
                 }
                 mock_get.return_value = mock_response
 
@@ -189,16 +185,13 @@ class TestValidateTenantCredentials:
         """Test the convenience function for validating credentials."""
         with patch("src.clients.ms_graph.MSGraphClient") as mock_client_class:
             mock_client = MagicMock()
-            mock_client.validate_credentials = AsyncMock(return_value={
-                "valid": True,
-                "display_name": "Test Org"
-            })
+            mock_client.validate_credentials = AsyncMock(
+                return_value={"valid": True, "display_name": "Test Org"}
+            )
             mock_client_class.return_value = mock_client
 
             result = await validate_tenant_credentials(
-                tenant_id="test-tenant",
-                client_id="test-client",
-                client_secret="test-secret"
+                tenant_id="test-tenant", client_id="test-client", client_secret="test-secret"
             )
 
             assert result["valid"] is True

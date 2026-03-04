@@ -26,7 +26,9 @@ def test_root_endpoint():
     content_type = response.headers.get("content-type", "")
     if "text/html" in content_type:
         # SPA mode - check for HTML content
-        assert b"SpecterDefence" in response.content or b"<!doctype html>" in response.content.lower()
+        assert (
+            b"SpecterDefence" in response.content or b"<!doctype html>" in response.content.lower()
+        )
     else:
         # API-only mode - check for JSON
         data = response.json()

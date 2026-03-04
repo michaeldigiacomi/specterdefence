@@ -49,9 +49,7 @@ class TestMailboxRuleService:
             "displayName": "Forward to External",
             "isEnabled": True,
             "createdDateTime": "2024-01-15T10:30:00Z",
-            "actions": {
-                "forwardTo": [{"emailAddress": {"address": "external@gmail.com"}}]
-            },
+            "actions": {"forwardTo": [{"emailAddress": {"address": "external@gmail.com"}}]},
             "_user_email": "user@example.com",
         }
 
@@ -103,8 +101,13 @@ class TestMailboxRuleService:
         # Mock tenant retrieval
         with patch.object(service, "_get_tenant", return_value=sample_tenant):
             with patch("src.services.mailbox_rules.MSGraphClient"):
-                with patch("src.services.mailbox_rules.MailboxRuleClient") as mock_rule_client_class:
-                    with patch("src.services.mailbox_rules.encryption_service.decrypt", return_value="secret"):
+                with patch(
+                    "src.services.mailbox_rules.MailboxRuleClient"
+                ) as mock_rule_client_class:
+                    with patch(
+                        "src.services.mailbox_rules.encryption_service.decrypt",
+                        return_value="secret",
+                    ):
                         mock_rule_client = MagicMock()
                         mock_rule_client.get_mailbox_rules_for_tenant = AsyncMock(return_value=[])
                         mock_rule_client_class.return_value = mock_rule_client
@@ -140,7 +143,7 @@ class TestMailboxRuleService:
                         tenant_id=tenant_id,
                         rule_data=sample_rule_data,
                         rule_client=mock_rule_client,
-                        trigger_alerts=True
+                        trigger_alerts=True,
                     )
 
         assert result["is_new"] is True
@@ -163,7 +166,7 @@ class TestMailboxRuleService:
                     tenant_id=tenant_id,
                     rule_data=sample_rule_data,
                     rule_client=mock_rule_client,
-                    trigger_alerts=False
+                    trigger_alerts=False,
                 )
 
         assert result["is_new"] is False
@@ -176,7 +179,9 @@ class TestMailboxRuleService:
         tenant_id = str(uuid4())
         user_email = "user@example.com"
 
-        result = await service._create_rule(tenant_id, user_email, sample_rule_data, sample_analysis)
+        result = await service._create_rule(
+            tenant_id, user_email, sample_rule_data, sample_analysis
+        )
 
         assert result.tenant_id == tenant_id
         assert result.user_email == user_email
@@ -188,7 +193,9 @@ class TestMailboxRuleService:
         service.db.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_update_rule(self, service, sample_mailbox_rule, sample_rule_data, sample_analysis):
+    async def test_update_rule(
+        self, service, sample_mailbox_rule, sample_rule_data, sample_analysis
+    ):
         """Test updating a mailbox rule record."""
         await service._update_rule(sample_mailbox_rule, sample_rule_data, sample_analysis)
 
@@ -345,7 +352,7 @@ class TestMailboxRuleService:
             severity=RuleSeverity.HIGH,
             rule_type=RuleType.FORWARDING,
             limit=50,
-            offset=10
+            offset=10,
         )
 
         assert result["items"] == []

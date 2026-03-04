@@ -105,7 +105,10 @@ class TestOAuthAppsService:
             "publisher_type": "unverified",
             "is_microsoft_publisher": False,
             "is_verified_publisher": False,
-            "detection_reasons": ["High-risk permission: Mail.Read", "Unverified publisher: Test Publisher"],
+            "detection_reasons": [
+                "High-risk permission: Mail.Read",
+                "Unverified publisher: Test Publisher",
+            ],
         }
 
     @pytest.fixture
@@ -142,7 +145,9 @@ class TestOAuthAppsService:
         with patch.object(service, "_get_tenant", return_value=sample_tenant):
             with patch("src.services.oauth_apps.MSGraphClient"):
                 with patch("src.services.oauth_apps.OAuthAppsClient") as mock_oauth_client_class:
-                    with patch("src.services.oauth_apps.encryption_service.decrypt", return_value="secret"):
+                    with patch(
+                        "src.services.oauth_apps.encryption_service.decrypt", return_value="secret"
+                    ):
                         mock_oauth_client = MagicMock()
                         mock_oauth_client.get_service_principals = AsyncMock(return_value=[])
                         mock_oauth_client_class.return_value = mock_oauth_client
@@ -161,8 +166,15 @@ class TestOAuthAppsService:
                 await service.scan_tenant_oauth_apps("non-existent-id")
 
     @pytest.mark.asyncio
-    async def test_process_app_new_app(self, service, sample_app_data, sample_permissions,
-                                        sample_consents, sample_perm_analysis, sample_app_analysis):
+    async def test_process_app_new_app(
+        self,
+        service,
+        sample_app_data,
+        sample_permissions,
+        sample_consents,
+        sample_perm_analysis,
+        sample_app_analysis,
+    ):
         """Test processing a new app."""
         tenant_id = str(uuid4())
 
@@ -186,7 +198,7 @@ class TestOAuthAppsService:
                                 consents=sample_consents,
                                 perm_analysis=sample_perm_analysis,
                                 oauth_client=mock_oauth_client,
-                                trigger_alerts=True
+                                trigger_alerts=True,
                             )
 
         assert result["is_new"] is True
@@ -194,8 +206,15 @@ class TestOAuthAppsService:
         assert result["alert_triggered"] is True
 
     @pytest.mark.asyncio
-    async def test_process_app_existing_app(self, service, sample_app_data, sample_permissions,
-                                            sample_consents, sample_perm_analysis, sample_app_analysis):
+    async def test_process_app_existing_app(
+        self,
+        service,
+        sample_app_data,
+        sample_permissions,
+        sample_consents,
+        sample_perm_analysis,
+        sample_app_analysis,
+    ):
         """Test processing an existing app."""
         tenant_id = str(uuid4())
         existing_app = MagicMock(spec=OAuthAppModel)
@@ -215,7 +234,7 @@ class TestOAuthAppsService:
                             consents=sample_consents,
                             perm_analysis=sample_perm_analysis,
                             oauth_client=mock_oauth_client,
-                            trigger_alerts=False
+                            trigger_alerts=False,
                         )
 
         assert result["is_new"] is False
@@ -223,14 +242,25 @@ class TestOAuthAppsService:
         mock_update.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_create_app(self, service, sample_app_data, sample_permissions,
-                              sample_consents, sample_perm_analysis, sample_app_analysis):
+    async def test_create_app(
+        self,
+        service,
+        sample_app_data,
+        sample_permissions,
+        sample_consents,
+        sample_perm_analysis,
+        sample_app_analysis,
+    ):
         """Test creating an OAuth app record."""
         tenant_id = str(uuid4())
 
         result = await service._create_app(
-            tenant_id, sample_app_data, sample_permissions, sample_consents,
-            sample_perm_analysis, sample_app_analysis
+            tenant_id,
+            sample_app_data,
+            sample_permissions,
+            sample_consents,
+            sample_perm_analysis,
+            sample_app_analysis,
         )
 
         assert result.tenant_id == tenant_id
@@ -245,12 +275,24 @@ class TestOAuthAppsService:
         service.db.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_update_app(self, service, sample_oauth_app, sample_app_data, sample_permissions,
-                              sample_consents, sample_perm_analysis, sample_app_analysis):
+    async def test_update_app(
+        self,
+        service,
+        sample_oauth_app,
+        sample_app_data,
+        sample_permissions,
+        sample_consents,
+        sample_perm_analysis,
+        sample_app_analysis,
+    ):
         """Test updating an OAuth app record."""
         await service._update_app(
-            sample_oauth_app, sample_app_data, sample_permissions, sample_consents,
-            sample_perm_analysis, sample_app_analysis
+            sample_oauth_app,
+            sample_app_data,
+            sample_permissions,
+            sample_consents,
+            sample_perm_analysis,
+            sample_app_analysis,
         )
 
         service.db.commit.assert_called_once()
@@ -381,17 +423,25 @@ class TestOAuthAppsService:
 
         with patch.object(service, "get_app_by_id", return_value=sample_oauth_app):
             with patch.object(service, "_get_tenant", return_value=tenant):
-                with patch("src.services.oauth_apps.encryption_service.decrypt", return_value="secret"):
+                with patch(
+                    "src.services.oauth_apps.encryption_service.decrypt", return_value="secret"
+                ):
                     with patch("src.services.oauth_apps.MSGraphClient"):
-                        with patch("src.services.oauth_apps.OAuthAppsClient") as mock_oauth_client_class:
+                        with patch(
+                            "src.services.oauth_apps.OAuthAppsClient"
+                        ) as mock_oauth_client_class:
                             mock_oauth_client = AsyncMock()
                             mock_oauth_client_class.return_value = mock_oauth_client
-                            mock_oauth_client.get_app_with_consents = AsyncMock(return_value={
-                                "app": {"id": "sp-123"},
-                                "permissions": [],
-                                "consents": []
-                            })
-                            mock_oauth_client.disable_service_principal = AsyncMock(return_value=True)
+                            mock_oauth_client.get_app_with_consents = AsyncMock(
+                                return_value={
+                                    "app": {"id": "sp-123"},
+                                    "permissions": [],
+                                    "consents": [],
+                                }
+                            )
+                            mock_oauth_client.disable_service_principal = AsyncMock(
+                                return_value=True
+                            )
 
                             result = await service.revoke_app(str(sample_oauth_app.id), "disable")
 
@@ -464,7 +514,7 @@ class TestOAuthAppsService:
             status=AppStatus.SUSPICIOUS,
             risk_level=RiskLevel.HIGH,
             limit=50,
-            offset=10
+            offset=10,
         )
 
         assert result["items"] == []

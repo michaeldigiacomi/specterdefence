@@ -31,7 +31,7 @@ class TestAlertRuleService:
     @pytest.mark.asyncio
     async def test_create_webhook(self, service, mock_db):
         """Test creating a webhook."""
-        with patch('src.alerts.rules.encryption_service.encrypt', return_value='encrypted_url'):
+        with patch("src.alerts.rules.encryption_service.encrypt", return_value="encrypted_url"):
             webhook = await service.create_webhook(
                 name="Test Webhook",
                 webhook_url="https://discord.com/webhook",
@@ -50,7 +50,7 @@ class TestAlertRuleService:
         """Test creating a tenant-specific webhook."""
         tenant_id = str(uuid4())
 
-        with patch('src.alerts.rules.encryption_service.encrypt', return_value='encrypted_url'):
+        with patch("src.alerts.rules.encryption_service.encrypt", return_value="encrypted_url"):
             webhook = await service.create_webhook(
                 name="Tenant Webhook",
                 webhook_url="https://discord.com/webhook",
@@ -127,10 +127,9 @@ class TestAlertRuleService:
         mock_result.scalar_one_or_none.return_value = mock_webhook
         mock_db.execute.return_value = mock_result
 
-        with patch('src.alerts.rules.encryption_service.encrypt', return_value='new_encrypted_url'):
+        with patch("src.alerts.rules.encryption_service.encrypt", return_value="new_encrypted_url"):
             result = await service.update_webhook(
-                webhook_id,
-                {"name": "New Name", "webhook_url": "https://new.url"}
+                webhook_id, {"name": "New Name", "webhook_url": "https://new.url"}
             )
 
         assert result == mock_webhook
@@ -143,7 +142,10 @@ class TestAlertRuleService:
         mock_webhook = MagicMock(spec=AlertWebhookModel)
         mock_webhook.webhook_url = "encrypted_url"
 
-        with patch('src.alerts.rules.encryption_service.decrypt', return_value='https://discord.com/webhook'):
+        with patch(
+            "src.alerts.rules.encryption_service.decrypt",
+            return_value="https://discord.com/webhook",
+        ):
             result = await service.get_decrypted_webhook_url(mock_webhook)
 
         assert result == "https://discord.com/webhook"
@@ -203,8 +205,7 @@ class TestAlertRuleService:
         mock_db.execute.return_value = mock_result
 
         result = await service.update_rule(
-            rule_id,
-            {"name": "New Name", "min_severity": "critical", "is_active": False}
+            rule_id, {"name": "New Name", "min_severity": "critical", "is_active": False}
         )
 
         assert result == mock_rule
@@ -324,10 +325,7 @@ class TestAlertRuleService:
         mock_result.scalar_one_or_none.return_value = None
         mock_db.execute.return_value = mock_result
 
-        result = await service.update_webhook(
-            webhook_id,
-            {"name": "New Name"}
-        )
+        result = await service.update_webhook(webhook_id, {"name": "New Name"})
 
         assert result is None
 
@@ -518,10 +516,7 @@ class TestAlertRuleService:
         mock_result.scalar_one_or_none.return_value = mock_rule
         mock_db.execute.return_value = mock_result
 
-        result = await service.update_rule(
-            rule_id,
-            {"name": "New Name", "cooldown_minutes": 60}
-        )
+        result = await service.update_rule(rule_id, {"name": "New Name", "cooldown_minutes": 60})
 
         assert result == mock_rule
         assert mock_rule.name == "New Name"

@@ -151,18 +151,18 @@ async def test_update_detection_thresholds(mock_settings_service):
 async def test_create_api_key(mock_settings_service):
     """Test creating an API key."""
     # Arrange
-    mock_settings_service.create_api_key = AsyncMock(return_value={
-        "id": "123e4567-e89b-12d3-a456-426614174000",
-        "key": "sd_test_key_12345",
-        "name": "Test Key",
-        "prefix": "sd_test_"
-    })
+    mock_settings_service.create_api_key = AsyncMock(
+        return_value={
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "key": "sd_test_key_12345",
+            "name": "Test Key",
+            "prefix": "sd_test_",
+        }
+    )
 
     # Act
     result = await mock_settings_service.create_api_key(
-        name="Test Key",
-        scopes=["read:analytics"],
-        created_by="admin@test.com"
+        name="Test Key", scopes=["read:analytics"], created_by="admin@test.com"
     )
 
     # Assert
@@ -215,22 +215,19 @@ async def test_revoke_api_key(mock_settings_service):
 async def test_export_configuration(mock_settings_service):
     """Test exporting configuration."""
     # Arrange
-    mock_settings_service.export_configuration = AsyncMock(return_value={
-        "id": "backup-123",
-        "name": "Test Backup",
-        "categories": ["system", "detection"],
-        "created_at": datetime.now(UTC).isoformat(),
-        "config": {
-            "system": {"log_level": "INFO"},
-            "detection": {"brute_force_threshold": 5}
+    mock_settings_service.export_configuration = AsyncMock(
+        return_value={
+            "id": "backup-123",
+            "name": "Test Backup",
+            "categories": ["system", "detection"],
+            "created_at": datetime.now(UTC).isoformat(),
+            "config": {"system": {"log_level": "INFO"}, "detection": {"brute_force_threshold": 5}},
         }
-    })
+    )
 
     # Act
     result = await mock_settings_service.export_configuration(
-        categories=["system", "detection"],
-        name="Test Backup",
-        created_by="admin@test.com"
+        categories=["system", "detection"], name="Test Backup", created_by="admin@test.com"
     )
 
     # Assert
@@ -243,20 +240,15 @@ async def test_export_configuration(mock_settings_service):
 async def test_import_configuration(mock_settings_service):
     """Test importing configuration."""
     # Arrange
-    mock_settings_service.import_configuration = AsyncMock(return_value={
-        "imported": ["system", "detection"],
-        "errors": []
-    })
+    mock_settings_service.import_configuration = AsyncMock(
+        return_value={"imported": ["system", "detection"], "errors": []}
+    )
 
-    config_data = {
-        "system": {"log_level": "DEBUG"},
-        "detection": {"brute_force_threshold": 10}
-    }
+    config_data = {"system": {"log_level": "DEBUG"}, "detection": {"brute_force_threshold": 10}}
 
     # Act
     result = await mock_settings_service.import_configuration(
-        config_data=config_data,
-        overwrite=True
+        config_data=config_data, overwrite=True
     )
 
     # Assert

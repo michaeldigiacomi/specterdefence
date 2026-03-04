@@ -77,7 +77,7 @@ class TestAlertEngine:
         mock_history_result.scalar_one_or_none.return_value = None
         mock_db.execute.return_value = mock_history_result
 
-        with patch.object(engine, '_send_alert', return_value={"status": "sent"}):
+        with patch.object(engine, "_send_alert", return_value={"status": "sent"}):
             results = await engine.process_event(
                 event_type=EventType.IMPOSSIBLE_TRAVEL,
                 severity=SeverityLevel.HIGH,
@@ -177,7 +177,7 @@ class TestAlertEngine:
         mock_client = AsyncMock()
         mock_client.send_alert = AsyncMock()
 
-        with patch.object(engine, '_get_discord_client', return_value=mock_client):
+        with patch.object(engine, "_get_discord_client", return_value=mock_client):
             result = await engine._send_alert(
                 webhook=webhook,
                 rule=rule,
@@ -209,7 +209,7 @@ class TestAlertEngine:
         mock_client = AsyncMock()
         mock_client.send_alert = AsyncMock(side_effect=DiscordWebhookError("Failed"))
 
-        with patch.object(engine, '_get_discord_client', return_value=mock_client):
+        with patch.object(engine, "_get_discord_client", return_value=mock_client):
             result = await engine._send_alert(
                 webhook=webhook,
                 rule=rule,
@@ -233,7 +233,10 @@ class TestAlertEngine:
         webhook.id = uuid4()
         webhook.webhook_url = "encrypted_url"
 
-        with patch('src.alerts.engine.encryption_service.decrypt', return_value='https://discord.com/webhook'):
+        with patch(
+            "src.alerts.engine.encryption_service.decrypt",
+            return_value="https://discord.com/webhook",
+        ):
             client1 = await engine._get_discord_client(webhook)
             client2 = await engine._get_discord_client(webhook)
 

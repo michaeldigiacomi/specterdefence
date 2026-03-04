@@ -35,7 +35,7 @@ class TestOAuthAppsClient:
             "publisherName": "Test Publisher",
             "verifiedPublisher": {
                 "verifiedPublisherId": "pub-123",
-                "displayName": "Verified Publisher"
+                "displayName": "Verified Publisher",
             },
         }
 
@@ -74,7 +74,7 @@ class TestOAuthAppsClient:
         mock_response1.status_code = 200
         mock_response1.json.return_value = {
             "value": [{"id": "sp-1", "appId": "app-1", "displayName": "App 1"}],
-            "@odata.nextLink": "https://next.page"
+            "@odata.nextLink": "https://next.page",
         }
 
         mock_response2 = MagicMock()
@@ -266,7 +266,9 @@ class TestOAuthAppsClient:
         assert result["risk_level"] == "LOW"
         assert result["status"] == "approved"
 
-    def test_analyze_app_unverified_publisher_high_risk(self, oauth_client, sample_service_principal):
+    def test_analyze_app_unverified_publisher_high_risk(
+        self, oauth_client, sample_service_principal
+    ):
         """Test app analysis with unverified publisher and high-risk permissions."""
         app = sample_service_principal.copy()
         app["publisherName"] = "Unknown Publisher"
@@ -287,7 +289,9 @@ class TestOAuthAppsClient:
         assert result["publisher_type"] == "unverified"
         assert result["risk_level"] in ["HIGH", "CRITICAL"]
         assert result["status"] in ["suspicious", "malicious"]
-        assert any("unverified publisher" in reason.lower() for reason in result["detection_reasons"])
+        assert any(
+            "unverified publisher" in reason.lower() for reason in result["detection_reasons"]
+        )
 
     def test_analyze_app_verified_publisher(self, oauth_client, sample_service_principal):
         """Test app analysis with verified publisher."""
@@ -342,8 +346,14 @@ class TestOAuthAppsClient:
         }
 
         with patch("httpx.AsyncClient.get", return_value=mock_response):
-            with patch.object(oauth_client, "get_app_permissions", return_value=[{"value": "Mail.Read"}]):
-                with patch.object(oauth_client, "get_oauth_permission_grants", return_value=[{"scope": "Mail.Read"}]):
+            with patch.object(
+                oauth_client, "get_app_permissions", return_value=[{"value": "Mail.Read"}]
+            ):
+                with patch.object(
+                    oauth_client,
+                    "get_oauth_permission_grants",
+                    return_value=[{"scope": "Mail.Read"}],
+                ):
                     result = await oauth_client.get_app_with_consents("app-123")
 
         assert "app" in result
@@ -383,4 +393,7 @@ class TestOAuthAppsClient:
         assert oauth_client.HIGH_RISK_PERMISSIONS["User.Read.All"]["category"] == "user"
         assert oauth_client.HIGH_RISK_PERMISSIONS["Files.Read.All"]["category"] == "files"
         assert oauth_client.HIGH_RISK_PERMISSIONS["Group.Read.All"]["category"] == "group"
-        assert oauth_client.HIGH_RISK_PERMISSIONS["RoleManagement.Read.Directory"]["category"] == "admin"
+        assert (
+            oauth_client.HIGH_RISK_PERMISSIONS["RoleManagement.Read.Directory"]["category"]
+            == "admin"
+        )

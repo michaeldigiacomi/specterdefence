@@ -53,14 +53,14 @@ class TestTenantService:
                 "valid": True,
                 "display_name": "Test Org",
                 "tenant_id": "12345678-1234-1234-1234-123456789012",
-                "verified_domains": [{"name": "test.com"}]
+                "verified_domains": [{"name": "test.com"}],
             }
 
             tenant_data = TenantCreate(
                 name="Test Tenant",
                 tenant_id="12345678-1234-1234-1234-123456789012",
                 client_id="87654321-4321-4321-4321-210987654321",
-                client_secret="test-secret-123"
+                client_secret="test-secret-123",
             )
 
             result = await tenant_service.create_tenant(tenant_data)
@@ -80,7 +80,7 @@ class TestTenantService:
             name="Test Tenant No Validate",
             tenant_id="11111111-1111-1111-1111-111111111111",
             client_id="22222222-2222-2222-2222-222222222222",
-            client_secret="test-secret-456"
+            client_secret="test-secret-456",
         )
 
         result = await tenant_service.create_tenant(tenant_data, validate=False)
@@ -96,7 +96,7 @@ class TestTenantService:
             name="Duplicate Tenant",
             tenant_id="33333333-3333-3333-3333-333333333333",
             client_id="44444444-4444-4444-4444-444444444444",
-            client_secret="test-secret-789"
+            client_secret="test-secret-789",
         )
 
         # Create first tenant
@@ -113,16 +113,13 @@ class TestTenantService:
             "src.services.tenant.validate_tenant_credentials", new_callable=AsyncMock
         ) as mock_validate:
             # Setup mock to return invalid credentials
-            mock_validate.return_value = {
-                "valid": False,
-                "error": "Invalid credentials"
-            }
+            mock_validate.return_value = {"valid": False, "error": "Invalid credentials"}
 
             tenant_data = TenantCreate(
                 name="Invalid Tenant",
                 tenant_id="55555555-5555-5555-5555-555555555555",
                 client_id="66666666-6666-6666-6666-666666666666",
-                client_secret="invalid-secret"
+                client_secret="invalid-secret",
             )
 
             with pytest.raises(TenantValidationError):
@@ -136,13 +133,13 @@ class TestTenantService:
             name="Tenant 1",
             tenant_id="77777777-7777-7777-7777-777777777777",
             client_id="88888888-8888-8888-8888-888888888888",
-            client_secret="secret1"
+            client_secret="secret1",
         )
         tenant2 = TenantCreate(
             name="Tenant 2",
             tenant_id="99999999-9999-9999-9999-999999999999",
             client_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-            client_secret="secret2"
+            client_secret="secret2",
         )
 
         await tenant_service.create_tenant(tenant1, validate=False)
@@ -161,7 +158,7 @@ class TestTenantService:
             name="Inactive Tenant",
             tenant_id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
             client_id="cccccccc-cccc-cccc-cccc-cccccccccccc",
-            client_secret="secret"
+            client_secret="secret",
         )
 
         result = await tenant_service.create_tenant(tenant_data, validate=False)
@@ -183,7 +180,7 @@ class TestTenantService:
             name="Get Test Tenant",
             tenant_id="dddddddd-dddd-dddd-dddd-dddddddddddd",
             client_id="eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
-            client_secret="secret"
+            client_secret="secret",
         )
 
         created = await tenant_service.create_tenant(tenant_data, validate=False)
@@ -214,7 +211,7 @@ class TestTenantService:
             name="Update Test Tenant",
             tenant_id="ffffffff-ffff-ffff-ffff-ffffffffffff",
             client_id="11111111-2222-3333-4444-555555555555",
-            client_secret="secret"
+            client_secret="secret",
         )
 
         created = await tenant_service.create_tenant(tenant_data, validate=False)
@@ -247,7 +244,7 @@ class TestTenantService:
             name="Delete Test Tenant",
             tenant_id="22222222-3333-4444-5555-666666666666",
             client_id="77777777-8888-9999-aaaa-bbbbbbbbbbbb",
-            client_secret="secret"
+            client_secret="secret",
         )
 
         created = await tenant_service.create_tenant(tenant_data, validate=False)
@@ -268,7 +265,7 @@ class TestTenantService:
             name="Hard Delete Test Tenant",
             tenant_id="33333333-4444-5555-6666-777777777777",
             client_id="88888888-9999-aaaa-bbbb-cccccccccccc",
-            client_secret="secret"
+            client_secret="secret",
         )
 
         created = await tenant_service.create_tenant(tenant_data, validate=False)
@@ -298,7 +295,7 @@ class TestTenantService:
             name="Encryption Test Tenant",
             tenant_id="44444444-5555-6666-7777-888888888888",
             client_id="99999999-aaaa-bbbb-cccc-dddddddddddd",
-            client_secret=secret
+            client_secret=secret,
         )
 
         created = await tenant_service.create_tenant(tenant_data, validate=False)
@@ -310,6 +307,7 @@ class TestTenantService:
         assert tenant.client_secret != secret
         # Base64 encoded Fernet token - should be valid base64
         import base64
+
         try:
             base64.urlsafe_b64decode(tenant.client_secret)
         except Exception:
@@ -329,13 +327,13 @@ class TestTenantService:
                 "valid": True,
                 "display_name": "Validated Org",
                 "tenant_id": "55555555-6666-7777-8888-999999999999",
-                "verified_domains": []
+                "verified_domains": [],
             }
 
             result = await tenant_service.validate_tenant(
                 tenant_id="55555555-6666-7777-8888-999999999999",
                 client_id="test-client-id",
-                client_secret="test-secret"
+                client_secret="test-secret",
             )
 
             assert result.valid is True
@@ -351,13 +349,11 @@ class TestTenantService:
             mock_validate.return_value = {
                 "valid": False,
                 "error": "Invalid credentials",
-                "error_type": "auth_error"
+                "error_type": "auth_error",
             }
 
             result = await tenant_service.validate_tenant(
-                tenant_id="test-tenant-id",
-                client_id="test-client-id",
-                client_secret="test-secret"
+                tenant_id="test-tenant-id", client_id="test-client-id", client_secret="test-secret"
             )
 
             assert result.valid is False

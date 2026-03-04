@@ -97,10 +97,9 @@ class TestLoginEndpoint:
     def test_login_success(self, sync_test_client):
         """Test successful login with valid credentials."""
         # The default password hash is for "admin123"
-        response = sync_test_client.post("/api/v1/auth/local/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        response = sync_test_client.post(
+            "/api/v1/auth/local/login", json={"username": "admin", "password": "admin123"}
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -110,20 +109,18 @@ class TestLoginEndpoint:
 
     def test_login_invalid_username(self, sync_test_client):
         """Test login with invalid username."""
-        response = sync_test_client.post("/api/v1/auth/local/login", json={
-            "username": "wronguser",
-            "password": "admin123"
-        })
+        response = sync_test_client.post(
+            "/api/v1/auth/local/login", json={"username": "wronguser", "password": "admin123"}
+        )
 
         assert response.status_code == 401
         assert "Invalid username or password" in response.json()["detail"]
 
     def test_login_invalid_password(self, sync_test_client):
         """Test login with invalid password."""
-        response = sync_test_client.post("/api/v1/auth/local/login", json={
-            "username": "admin",
-            "password": "wrongpassword"
-        })
+        response = sync_test_client.post(
+            "/api/v1/auth/local/login", json={"username": "admin", "password": "wrongpassword"}
+        )
 
         assert response.status_code == 401
         assert "Invalid username or password" in response.json()["detail"]
@@ -135,16 +132,15 @@ class TestAuthCheckEndpoint:
     def test_auth_check_with_valid_token(self, sync_test_client):
         """Test auth check with a valid token."""
         # First login to get a token
-        login_response = sync_test_client.post("/api/v1/auth/local/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        login_response = sync_test_client.post(
+            "/api/v1/auth/local/login", json={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
 
         # Then check auth
-        response = sync_test_client.get("/api/v1/auth/local/check", headers={
-            "Authorization": f"Bearer {token}"
-        })
+        response = sync_test_client.get(
+            "/api/v1/auth/local/check", headers={"Authorization": f"Bearer {token}"}
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -159,9 +155,9 @@ class TestAuthCheckEndpoint:
 
     def test_auth_check_with_invalid_token(self, sync_test_client):
         """Test auth check with an invalid token."""
-        response = sync_test_client.get("/api/v1/auth/local/check", headers={
-            "Authorization": "Bearer invalid.token.here"
-        })
+        response = sync_test_client.get(
+            "/api/v1/auth/local/check", headers={"Authorization": "Bearer invalid.token.here"}
+        )
 
         assert response.status_code == 401
 
@@ -172,16 +168,15 @@ class TestMeEndpoint:
     def test_get_current_user_with_valid_token(self, sync_test_client):
         """Test getting current user with a valid token."""
         # First login to get a token
-        login_response = sync_test_client.post("/api/v1/auth/local/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        login_response = sync_test_client.post(
+            "/api/v1/auth/local/login", json={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
 
         # Then get current user
-        response = sync_test_client.get("/api/v1/auth/local/me", headers={
-            "Authorization": f"Bearer {token}"
-        })
+        response = sync_test_client.get(
+            "/api/v1/auth/local/me", headers={"Authorization": f"Bearer {token}"}
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -213,51 +208,49 @@ class TestChangePasswordEndpoint:
     def test_change_password_success(self, sync_test_client):
         """Test successful password change."""
         # First login to get a token
-        login_response = sync_test_client.post("/api/v1/auth/local/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        login_response = sync_test_client.post(
+            "/api/v1/auth/local/login", json={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
 
         # Change password
-        response = sync_test_client.post("/api/v1/auth/local/change-password", json={
-            "current_password": "admin123",
-            "new_password": "newpassword123"
-        }, headers={"Authorization": f"Bearer {token}"})
+        response = sync_test_client.post(
+            "/api/v1/auth/local/change-password",
+            json={"current_password": "admin123", "new_password": "newpassword123"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
 
         assert response.status_code == 200
         data = response.json()
         assert "successfully" in data["message"].lower()
 
         # Verify we can login with new password
-        login_response2 = sync_test_client.post("/api/v1/auth/local/login", json={
-            "username": "admin",
-            "password": "newpassword123"
-        })
+        login_response2 = sync_test_client.post(
+            "/api/v1/auth/local/login", json={"username": "admin", "password": "newpassword123"}
+        )
         assert login_response2.status_code == 200
         assert "access_token" in login_response2.json()
 
         # Verify old password no longer works
-        login_response3 = sync_test_client.post("/api/v1/auth/local/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        login_response3 = sync_test_client.post(
+            "/api/v1/auth/local/login", json={"username": "admin", "password": "admin123"}
+        )
         assert login_response3.status_code == 401
 
     def test_change_password_wrong_current(self, sync_test_client):
         """Test password change with wrong current password."""
         # First login to get a token
-        login_response = sync_test_client.post("/api/v1/auth/local/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        login_response = sync_test_client.post(
+            "/api/v1/auth/local/login", json={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
 
         # Try to change password with wrong current password
-        response = sync_test_client.post("/api/v1/auth/local/change-password", json={
-            "current_password": "wrongpassword",
-            "new_password": "newpassword123"
-        }, headers={"Authorization": f"Bearer {token}"})
+        response = sync_test_client.post(
+            "/api/v1/auth/local/change-password",
+            json={"current_password": "wrongpassword", "new_password": "newpassword123"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
 
         assert response.status_code == 401
         assert "incorrect" in response.json()["detail"].lower()
@@ -265,26 +258,26 @@ class TestChangePasswordEndpoint:
     def test_change_password_too_short(self, sync_test_client):
         """Test password change with too short new password."""
         # First login to get a token
-        login_response = sync_test_client.post("/api/v1/auth/local/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        login_response = sync_test_client.post(
+            "/api/v1/auth/local/login", json={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
 
         # Try to change password with too short new password
-        response = sync_test_client.post("/api/v1/auth/local/change-password", json={
-            "current_password": "admin123",
-            "new_password": "short"
-        }, headers={"Authorization": f"Bearer {token}"})
+        response = sync_test_client.post(
+            "/api/v1/auth/local/change-password",
+            json={"current_password": "admin123", "new_password": "short"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
 
         assert response.status_code == 400
         assert "at least 8 characters" in response.json()["detail"].lower()
 
     def test_change_password_no_auth(self, sync_test_client):
         """Test password change without authentication."""
-        response = sync_test_client.post("/api/v1/auth/local/change-password", json={
-            "current_password": "admin123",
-            "new_password": "newpassword123"
-        })
+        response = sync_test_client.post(
+            "/api/v1/auth/local/change-password",
+            json={"current_password": "admin123", "new_password": "newpassword123"},
+        )
 
         assert response.status_code == 401

@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class DiscordWebhookError(Exception):
     """Exception raised when Discord webhook fails."""
+
     pass
 
 
@@ -93,9 +94,7 @@ class DiscordWebhookClient:
         try:
             client = await self._get_client()
             response = await client.post(
-                self.webhook_url,
-                json=payload,
-                headers={"Content-Type": "application/json"}
+                self.webhook_url, json=payload, headers={"Content-Type": "application/json"}
             )
             response.raise_for_status()
 
@@ -103,7 +102,9 @@ class DiscordWebhookClient:
             return True
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"Discord webhook HTTP error: {e.response.status_code} - {e.response.text}")
+            logger.error(
+                f"Discord webhook HTTP error: {e.response.status_code} - {e.response.text}"
+            )
             raise DiscordWebhookError(f"HTTP {e.response.status_code}: {e.response.text}") from e
         except httpx.RequestError as e:
             logger.error(f"Discord webhook request error: {e}")
@@ -147,9 +148,7 @@ class DiscordWebhookClient:
             "description": description,
             "color": color,
             "timestamp": timestamp.isoformat() + "Z",
-            "footer": {
-                "text": f"SpecterDefence • {event_name}"
-            },
+            "footer": {"text": f"SpecterDefence • {event_name}"},
         }
 
         # Build fields list
@@ -157,18 +156,10 @@ class DiscordWebhookClient:
 
         # Add user field if present
         if user_email:
-            embed_fields.append({
-                "name": "👤 User",
-                "value": user_email,
-                "inline": True
-            })
+            embed_fields.append({"name": "👤 User", "value": user_email, "inline": True})
 
         # Add severity field
-        embed_fields.append({
-            "name": "⚡ Severity",
-            "value": severity.value,
-            "inline": True
-        })
+        embed_fields.append({"name": "⚡ Severity", "value": severity.value, "inline": True})
 
         # Add metadata fields based on event type
         if metadata:
@@ -185,9 +176,7 @@ class DiscordWebhookClient:
         return embed
 
     def _build_metadata_fields(
-        self,
-        event_type: EventType,
-        metadata: dict[str, Any]
+        self, event_type: EventType, metadata: dict[str, Any]
     ) -> list[dict[str, Any]]:
         """Build embed fields based on event metadata.
 
@@ -207,18 +196,16 @@ class DiscordWebhookClient:
             min_travel = metadata.get("min_travel_time_minutes")
 
             if distance:
-                fields.append({
-                    "name": "📏 Distance",
-                    "value": f"{distance:.0f} km",
-                    "inline": True
-                })
+                fields.append({"name": "📏 Distance", "value": f"{distance:.0f} km", "inline": True})
 
             if time_diff and min_travel:
-                fields.append({
-                    "name": "⏱️ Time",
-                    "value": f"{time_diff:.0f} min (need {min_travel:.0f})",
-                    "inline": True
-                })
+                fields.append(
+                    {
+                        "name": "⏱️ Time",
+                        "value": f"{time_diff:.0f} min (need {min_travel:.0f})",
+                        "inline": True,
+                    }
+                )
 
             # Add location info
             prev_loc = metadata.get("previous_location", {})
@@ -227,110 +214,80 @@ class DiscordWebhookClient:
             prev_str = self._format_location(prev_loc)
             curr_str = self._format_location(curr_loc)
 
-            fields.append({
-                "name": "🌍 Locations",
-                "value": f"{prev_str} → {curr_str}",
-                "inline": False
-            })
+            fields.append(
+                {"name": "🌍 Locations", "value": f"{prev_str} → {curr_str}", "inline": False}
+            )
 
             # Add risk score if present
             risk_score = metadata.get("risk_score")
             if risk_score is not None:
-                fields.append({
-                    "name": "🎯 Risk Score",
-                    "value": f"{risk_score}/100",
-                    "inline": True
-                })
+                fields.append(
+                    {"name": "🎯 Risk Score", "value": f"{risk_score}/100", "inline": True}
+                )
 
         elif event_type == EventType.NEW_COUNTRY:
             country = metadata.get("country_code")
             known = metadata.get("known_countries", [])
 
             if country:
-                fields.append({
-                    "name": "🏳️ New Country",
-                    "value": country,
-                    "inline": True
-                })
+                fields.append({"name": "🏳️ New Country", "value": country, "inline": True})
 
             if known:
                 known_str = ", ".join(known[:5])  # Limit to first 5
                 if len(known) > 5:
                     known_str += f" (+{len(known) - 5} more)"
-                fields.append({
-                    "name": "📋 Known Countries",
-                    "value": known_str or "None",
-                    "inline": True
-                })
+                fields.append(
+                    {"name": "📋 Known Countries", "value": known_str or "None", "inline": True}
+                )
 
             is_first = metadata.get("is_first_login", False)
             if is_first:
-                fields.append({
-                    "name": "🆕 First Login",
-                    "value": "This is the user's first login",
-                    "inline": False
-                })
+                fields.append(
+                    {
+                        "name": "🆕 First Login",
+                        "value": "This is the user's first login",
+                        "inline": False,
+                    }
+                )
 
         elif event_type == EventType.BRUTE_FORCE or event_type == EventType.MULTIPLE_FAILURES:
             recent_failures = metadata.get("recent_failures", 0)
             if recent_failures:
-                fields.append({
-                    "name": "❌ Failed Attempts (24h)",
-                    "value": str(recent_failures),
-                    "inline": True
-                })
+                fields.append(
+                    {
+                        "name": "❌ Failed Attempts (24h)",
+                        "value": str(recent_failures),
+                        "inline": True,
+                    }
+                )
 
             failure_reason = metadata.get("failure_reason")
             if failure_reason:
-                fields.append({
-                    "name": "📝 Failure Reason",
-                    "value": failure_reason,
-                    "inline": True
-                })
+                fields.append({"name": "📝 Failure Reason", "value": failure_reason, "inline": True})
 
         elif event_type == EventType.ADMIN_ACTION:
             action = metadata.get("action")
             target = metadata.get("target")
 
             if action:
-                fields.append({
-                    "name": "⚙️ Action",
-                    "value": action,
-                    "inline": True
-                })
+                fields.append({"name": "⚙️ Action", "value": action, "inline": True})
 
             if target:
-                fields.append({
-                    "name": "🎯 Target",
-                    "value": target,
-                    "inline": True
-                })
+                fields.append({"name": "🎯 Target", "value": target, "inline": True})
 
         elif event_type == EventType.NEW_IP:
             ip = metadata.get("ip_address")
             known_count = metadata.get("known_ips_count", 0)
 
             if ip:
-                fields.append({
-                    "name": "🌐 IP Address",
-                    "value": f"`{ip}`",
-                    "inline": True
-                })
+                fields.append({"name": "🌐 IP Address", "value": f"`{ip}`", "inline": True})
 
-            fields.append({
-                "name": "📊 Known IPs",
-                "value": str(known_count),
-                "inline": True
-            })
+            fields.append({"name": "📊 Known IPs", "value": str(known_count), "inline": True})
 
         # Add IP address if present and not already added
         ip = metadata.get("ip_address")
         if ip and not any(f.get("name") == "🌐 IP Address" for f in fields):
-            fields.append({
-                "name": "🌐 IP Address",
-                "value": f"`{ip}`",
-                "inline": True
-            })
+            fields.append({"name": "🌐 IP Address", "value": f"`{ip}`", "inline": True})
 
         return fields
 
@@ -368,7 +325,7 @@ class DiscordWebhookClient:
                 description="This is a test alert from SpecterDefence. Your webhook is configured correctly! 🎉",
                 severity=SeverityLevel.LOW,
                 event_type=EventType.ADMIN_ACTION,
-                metadata={"action": "webhook_test"}
+                metadata={"action": "webhook_test"},
             )
             return True
         except DiscordWebhookError:

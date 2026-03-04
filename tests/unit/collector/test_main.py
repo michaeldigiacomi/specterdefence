@@ -110,17 +110,16 @@ class TestTenantCollector:
             mock_session.add.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_update_collection_state_success(self, mock_tenant, mock_session, mock_collection_state):
+    async def test_update_collection_state_success(
+        self, mock_tenant, mock_session, mock_collection_state
+    ):
         """Test updating collection state on success."""
         with patch("src.collector.main.encryption_service") as mock_encryption:
             mock_encryption.decrypt.return_value = "secret"
             collector = TenantCollector(mock_tenant, mock_session)
 
             await collector.update_collection_state(
-                mock_collection_state,
-                success=True,
-                error_message=None,
-                events_count=100
+                mock_collection_state, success=True, error_message=None, events_count=100
             )
 
             assert mock_collection_state.last_collection_time is not None
@@ -130,17 +129,16 @@ class TestTenantCollector:
             mock_session.flush.assert_called()
 
     @pytest.mark.asyncio
-    async def test_update_collection_state_failure(self, mock_tenant, mock_session, mock_collection_state):
+    async def test_update_collection_state_failure(
+        self, mock_tenant, mock_session, mock_collection_state
+    ):
         """Test updating collection state on failure."""
         with patch("src.collector.main.encryption_service") as mock_encryption:
             mock_encryption.decrypt.return_value = "secret"
             collector = TenantCollector(mock_tenant, mock_session)
 
             await collector.update_collection_state(
-                mock_collection_state,
-                success=False,
-                error_message="API Error",
-                events_count=0
+                mock_collection_state, success=False, error_message="API Error", events_count=0
             )
 
             assert mock_collection_state.last_error == "API Error"
@@ -214,11 +212,7 @@ class TestTenantCollector:
             start_time = datetime.now(UTC) - timedelta(hours=1)
             end_time = datetime.now(UTC)
 
-            count = await collector.collect_content_type(
-                "Audit.General",
-                start_time,
-                end_time
-            )
+            count = await collector.collect_content_type("Audit.General", start_time, end_time)
 
             assert count == 3
 
@@ -240,9 +234,7 @@ class TestTenantCollector:
 
             with pytest.raises(RateLimitError):
                 await collector.collect_content_type(
-                    "Audit.General",
-                    datetime.now(UTC),
-                    datetime.now(UTC)
+                    "Audit.General", datetime.now(UTC), datetime.now(UTC)
                 )
 
     @pytest.mark.asyncio
@@ -307,7 +299,9 @@ class TestTenantCollector:
             assert result["start_time"] is not None
 
     @pytest.mark.asyncio
-    async def test_collect_all_handles_subscription_error(self, mock_tenant, mock_session, mock_collection_state):
+    async def test_collect_all_handles_subscription_error(
+        self, mock_tenant, mock_session, mock_collection_state
+    ):
         """Test that collection continues even if subscription fails."""
         mock_result = Mock()
         mock_result.scalar_one_or_none.return_value = mock_collection_state
@@ -420,7 +414,9 @@ class TestCollectLogs:
     @pytest.mark.asyncio
     async def test_collect_logs_success(self):
         """Test successful collection for multiple tenants."""
-        mock_tenant1 = Mock(spec=["id", "name", "is_active", "tenant_id", "client_id", "client_secret"])
+        mock_tenant1 = Mock(
+            spec=["id", "name", "is_active", "tenant_id", "client_id", "client_secret"]
+        )
         mock_tenant1.id = "1"
         mock_tenant1.name = "Tenant 1"
         mock_tenant1.is_active = True
@@ -428,7 +424,9 @@ class TestCollectLogs:
         mock_tenant1.client_id = "c1"
         mock_tenant1.client_secret = "s1"
 
-        mock_tenant2 = Mock(spec=["id", "name", "is_active", "tenant_id", "client_id", "client_secret"])
+        mock_tenant2 = Mock(
+            spec=["id", "name", "is_active", "tenant_id", "client_id", "client_secret"]
+        )
         mock_tenant2.id = "2"
         mock_tenant2.name = "Tenant 2"
         mock_tenant2.is_active = True
@@ -450,7 +448,9 @@ class TestCollectLogs:
 
             with patch("src.collector.main.TenantCollector") as mock_collector_class:
                 mock_collector = AsyncMock()
-                mock_collector_class.return_value.__aenter__ = AsyncMock(return_value=mock_collector)
+                mock_collector_class.return_value.__aenter__ = AsyncMock(
+                    return_value=mock_collector
+                )
                 mock_collector_class.return_value.__aexit__ = AsyncMock(return_value=False)
                 mock_collector.collect_all.return_value = {
                     "success": True,
@@ -470,7 +470,9 @@ class TestCollectLogs:
     @pytest.mark.asyncio
     async def test_collect_logs_with_failures(self):
         """Test collection with some tenant failures."""
-        mock_tenant1 = Mock(spec=["id", "name", "is_active", "tenant_id", "client_id", "client_secret"])
+        mock_tenant1 = Mock(
+            spec=["id", "name", "is_active", "tenant_id", "client_id", "client_secret"]
+        )
         mock_tenant1.id = "1"
         mock_tenant1.name = "Tenant 1"
         mock_tenant1.is_active = True
@@ -478,7 +480,9 @@ class TestCollectLogs:
         mock_tenant1.client_id = "c1"
         mock_tenant1.client_secret = "s1"
 
-        mock_tenant2 = Mock(spec=["id", "name", "is_active", "tenant_id", "client_id", "client_secret"])
+        mock_tenant2 = Mock(
+            spec=["id", "name", "is_active", "tenant_id", "client_id", "client_secret"]
+        )
         mock_tenant2.id = "2"
         mock_tenant2.name = "Tenant 2"
         mock_tenant2.is_active = True
@@ -499,6 +503,7 @@ class TestCollectLogs:
             mock_session_maker.return_value.__aexit__ = AsyncMock(return_value=False)
 
             call_count = 0
+
             def create_collector(tenant, session):
                 nonlocal call_count
                 call_count += 1
@@ -515,7 +520,9 @@ class TestCollectLogs:
 
             with patch("src.collector.main.TenantCollector") as mock_collector_class:
                 mock_collector_class.side_effect = create_collector
-                mock_collector_class.return_value.__aenter__ = AsyncMock(side_effect=lambda: create_collector(mock_collector_class.call_args[0][0], None))
+                mock_collector_class.return_value.__aenter__ = AsyncMock(
+                    side_effect=lambda: create_collector(mock_collector_class.call_args[0][0], None)
+                )
                 mock_collector_class.return_value.__aexit__ = AsyncMock(return_value=False)
 
                 with patch("src.collector.main.encryption_service") as mock_encryption:

@@ -49,6 +49,7 @@ def teardown_module():
 # Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def mock_msal_app():
     """Create a mock MSAL ConfidentialClientApplication."""
@@ -107,6 +108,7 @@ def mock_content_blobs_response():
 # Authentication Tests
 # =============================================================================
 
+
 class TestO365Authentication:
     """Test cases for MSAL integration and token acquisition."""
 
@@ -140,8 +142,7 @@ class TestO365Authentication:
 
         assert token == "mock-management-token-12345"
         mock_msal_app.acquire_token_silent.assert_called_once_with(
-            ["https://manage.office.com/.default"],
-            account=None
+            ["https://manage.office.com/.default"], account=None
         )
         mock_msal_app.acquire_token_for_client.assert_called_once_with(
             scopes=["https://manage.office.com/.default"]
@@ -175,7 +176,9 @@ class TestO365Authentication:
         mock_msal_app.acquire_token_silent.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_get_access_token_expired_refresh(self, o365_client, mock_msal_app, mock_token_response):
+    async def test_get_access_token_expired_refresh(
+        self, o365_client, mock_msal_app, mock_token_response
+    ):
         """Test automatic token refresh when token is near expiration."""
         # Set token that expires soon (less than 5 minutes buffer)
         o365_client._access_token = "expiring-token"
@@ -224,6 +227,7 @@ class TestO365Authentication:
 # API Request Tests
 # =============================================================================
 
+
 class TestO365APIRequests:
     """Test cases for API request handling."""
 
@@ -269,7 +273,7 @@ class TestO365APIRequests:
             await o365_client._make_request(
                 "GET",
                 "activity/feed/subscriptions/content",
-                params={"contentType": "Audit.General", "startTime": "2026-03-01T00:00:00"}
+                params={"contentType": "Audit.General", "startTime": "2026-03-01T00:00:00"},
             )
 
             call_args = mock_client.request.call_args
@@ -279,6 +283,7 @@ class TestO365APIRequests:
 # =============================================================================
 # Error Handling Tests
 # =============================================================================
+
 
 class TestO365ErrorHandling:
     """Test cases for HTTP error handling."""
@@ -301,6 +306,7 @@ class TestO365ErrorHandling:
         }
 
         call_count = 0
+
         def track_request(*args, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -367,7 +373,9 @@ class TestO365ErrorHandling:
                 mock_sleep.assert_called_once_with(2)  # Should use Retry-After value
 
     @pytest.mark.asyncio
-    async def test_http_429_rate_limited_without_retry_after(self, o365_client, mock_token_response):
+    async def test_http_429_rate_limited_without_retry_after(
+        self, o365_client, mock_token_response
+    ):
         """Test handling of HTTP 429 without Retry-After header (exponential backoff)."""
         o365_client._access_token = "test-token"
         o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
@@ -429,9 +437,7 @@ class TestO365ErrorHandling:
             mock_response.text = "Internal Server Error"
             mock_response.raise_for_status = Mock()
             mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-                "Server Error",
-                request=MagicMock(),
-                response=mock_response
+                "Server Error", request=MagicMock(), response=mock_response
             )
 
             mock_client = AsyncMock()
@@ -457,10 +463,9 @@ class TestO365ErrorHandling:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
-            mock_client.request = AsyncMock(side_effect=[
-                httpx.TimeoutException("Connection timed out"),
-                success_response
-            ])
+            mock_client.request = AsyncMock(
+                side_effect=[httpx.TimeoutException("Connection timed out"), success_response]
+            )
 
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 result = await o365_client._make_request("GET", "test/endpoint")
@@ -482,10 +487,9 @@ class TestO365ErrorHandling:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
-            mock_client.request = AsyncMock(side_effect=[
-                httpx.ConnectError("Connection refused"),
-                success_response
-            ])
+            mock_client.request = AsyncMock(
+                side_effect=[httpx.ConnectError("Connection refused"), success_response]
+            )
 
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 result = await o365_client._make_request("GET", "test/endpoint")
@@ -515,6 +519,7 @@ class TestO365ErrorHandling:
 # Subscription Tests
 # =============================================================================
 
+
 class TestO365Subscriptions:
     """Test cases for subscription management."""
 
@@ -527,9 +532,7 @@ class TestO365Subscriptions:
             result = await o365_client.start_subscription("Audit.General")
 
             mock_request.assert_called_once_with(
-                "POST",
-                "activity/feed/subscriptions/start",
-                {"contentType": "Audit.General"}
+                "POST", "activity/feed/subscriptions/start", {"contentType": "Audit.General"}
             )
             assert result == {"status": "enabled"}
 
@@ -576,15 +579,14 @@ class TestO365Subscriptions:
             await o365_client.stop_subscription("Audit.General")
 
             mock_request.assert_called_once_with(
-                "POST",
-                "activity/feed/subscriptions/stop",
-                {"contentType": "Audit.General"}
+                "POST", "activity/feed/subscriptions/stop", {"contentType": "Audit.General"}
             )
 
 
 # =============================================================================
 # Content Blob Tests
 # =============================================================================
+
 
 class TestO365ContentBlobs:
     """Test cases for content blob operations."""
@@ -602,9 +604,7 @@ class TestO365ContentBlobs:
             }
 
             await o365_client.get_content_blobs(
-                "Audit.General",
-                start_time=start_time,
-                end_time=end_time
+                "Audit.General", start_time=start_time, end_time=end_time
             )
 
             mock_request.assert_called_once()
@@ -631,7 +631,10 @@ class TestO365ContentBlobs:
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.return_value = {"contentUri": ["https://blob3.json"], "nextPageUri": None}
+            mock_response.json.return_value = {
+                "contentUri": ["https://blob3.json"],
+                "nextPageUri": None,
+            }
             mock_response.raise_for_status = Mock()
 
             mock_client = AsyncMock()
@@ -639,10 +642,7 @@ class TestO365ContentBlobs:
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_response)
 
-            await o365_client.get_content_blobs(
-                "Audit.General",
-                next_page_uri=next_page_uri
-            )
+            await o365_client.get_content_blobs("Audit.General", next_page_uri=next_page_uri)
 
             mock_client.get.assert_called_once()
             call_args = mock_client.get.call_args
@@ -715,6 +715,7 @@ class TestO365ContentBlobs:
 # Pagination Tests
 # =============================================================================
 
+
 class TestO365Pagination:
     """Test cases for pagination handling."""
 
@@ -737,21 +738,17 @@ class TestO365Pagination:
         """Test handling of multi-page response."""
         with patch.object(o365_client, "get_content_blobs", new_callable=AsyncMock) as mock_blobs:
             mock_blobs.side_effect = [
-                {
-                    "contentUri": ["https://blob1.json"],
-                    "nextPageUri": "https://next-page.json"
-                },
-                {
-                    "contentUri": ["https://blob2.json"],
-                    "nextPageUri": None
-                },
+                {"contentUri": ["https://blob1.json"], "nextPageUri": "https://next-page.json"},
+                {"contentUri": ["https://blob2.json"], "nextPageUri": None},
             ]
 
             # Simulate pagination
             page1 = await o365_client.get_content_blobs("Audit.General")
             assert page1["nextPageUri"] is not None
 
-            page2 = await o365_client.get_content_blobs("Audit.General", next_page_uri=page1["nextPageUri"])
+            page2 = await o365_client.get_content_blobs(
+                "Audit.General", next_page_uri=page1["nextPageUri"]
+            )
             assert page2["nextPageUri"] is None
 
     @pytest.mark.asyncio
@@ -776,15 +773,14 @@ class TestO365Pagination:
             await o365_client.get_content_blobs("Audit.General", next_page_uri=next_page_uri)
 
             mock_client.get.assert_called_once_with(
-                next_page_uri,
-                headers={"Authorization": "Bearer test-token"},
-                timeout=60.0
+                next_page_uri, headers={"Authorization": "Bearer test-token"}, timeout=60.0
             )
 
 
 # =============================================================================
 # Collect Logs Tests
 # =============================================================================
+
 
 class TestO365CollectLogs:
     """Test cases for log collection."""
@@ -793,7 +789,9 @@ class TestO365CollectLogs:
     async def test_collect_logs_single_page(self, o365_client):
         """Test collecting logs from single page."""
         with patch.object(o365_client, "get_content_blobs", new_callable=AsyncMock) as mock_blobs:
-            with patch.object(o365_client, "download_content", new_callable=AsyncMock) as mock_download:
+            with patch.object(
+                o365_client, "download_content", new_callable=AsyncMock
+            ) as mock_download:
                 with patch("asyncio.sleep", new_callable=AsyncMock):
                     mock_blobs.return_value = {
                         "contentUri": ["https://blob1.json"],
@@ -812,17 +810,16 @@ class TestO365CollectLogs:
     async def test_collect_logs_multi_page(self, o365_client):
         """Test collecting logs across multiple pages."""
         with patch.object(o365_client, "get_content_blobs", new_callable=AsyncMock) as mock_blobs:
-            with patch.object(o365_client, "download_content", new_callable=AsyncMock) as mock_download:
+            with patch.object(
+                o365_client, "download_content", new_callable=AsyncMock
+            ) as mock_download:
                 with patch("asyncio.sleep", new_callable=AsyncMock):
                     mock_blobs.side_effect = [
                         {
                             "contentUri": ["https://blob1.json"],
-                            "nextPageUri": "https://next-page.json"
+                            "nextPageUri": "https://next-page.json",
                         },
-                        {
-                            "contentUri": ["https://blob2.json"],
-                            "nextPageUri": None
-                        },
+                        {"contentUri": ["https://blob2.json"], "nextPageUri": None},
                     ]
                     mock_download.side_effect = [
                         [{"id": "event1"}],
@@ -854,7 +851,9 @@ class TestO365CollectLogs:
     async def test_collect_logs_download_error(self, o365_client):
         """Test collecting logs with download error handling."""
         with patch.object(o365_client, "get_content_blobs", new_callable=AsyncMock) as mock_blobs:
-            with patch.object(o365_client, "download_content", new_callable=AsyncMock) as mock_download:
+            with patch.object(
+                o365_client, "download_content", new_callable=AsyncMock
+            ) as mock_download:
                 with patch("asyncio.sleep", new_callable=AsyncMock):
                     mock_blobs.return_value = {
                         "contentUri": ["https://blob1.json", "https://blob2.json"],
@@ -886,6 +885,7 @@ class TestO365CollectLogs:
 # =============================================================================
 # Ensure Subscriptions Tests
 # =============================================================================
+
 
 class TestO365EnsureSubscriptions:
     """Test cases for subscription management."""
@@ -935,6 +935,7 @@ class TestO365EnsureSubscriptions:
 # Content Type Mapping Tests
 # =============================================================================
 
+
 class TestContentTypeMapping:
     """Test cases for content type to log type mapping."""
 
@@ -969,6 +970,7 @@ class TestContentTypeMapping:
 # Rate Limiting and Backoff Tests
 # =============================================================================
 
+
 class TestO365RateLimiting:
     """Test cases for rate limiting and backoff."""
 
@@ -991,11 +993,13 @@ class TestO365RateLimiting:
             mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
-            mock_client.request = AsyncMock(side_effect=[
-                rate_limit_response,  # retry 0: delay = 0.1 * 2^0 = 0.1
-                rate_limit_response,  # retry 1: delay = 0.1 * 2^1 = 0.2
-                success_response,
-            ])
+            mock_client.request = AsyncMock(
+                side_effect=[
+                    rate_limit_response,  # retry 0: delay = 0.1 * 2^0 = 0.1
+                    rate_limit_response,  # retry 1: delay = 0.1 * 2^1 = 0.2
+                    success_response,
+                ]
+            )
 
             with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
                 result = await o365_client._make_request("GET", "test/endpoint")
@@ -1086,6 +1090,7 @@ class TestO365RateLimiting:
 # Edge Cases and Integration Tests
 # =============================================================================
 
+
 class TestO365EdgeCases:
     """Test edge cases and integration scenarios."""
 
@@ -1095,7 +1100,7 @@ class TestO365EdgeCases:
         client = O365ManagementClient(
             tenant_id="test-tenant",
             client_id="test-client",
-            client_secret="secret-with-!@#$%^&*()_+-=[]{}|;':\",./<>?"
+            client_secret="secret-with-!@#$%^&*()_+-=[]{}|;':\",./<>?",
         )
         assert client.client_secret == "secret-with-!@#$%^&*()_+-=[]{}|;':\",./<>?"
 
@@ -1103,7 +1108,9 @@ class TestO365EdgeCases:
     async def test_very_long_content_uri_list(self, o365_client):
         """Test handling of very long content URI list."""
         with patch.object(o365_client, "get_content_blobs", new_callable=AsyncMock) as mock_blobs:
-            with patch.object(o365_client, "download_content", new_callable=AsyncMock) as mock_download:
+            with patch.object(
+                o365_client, "download_content", new_callable=AsyncMock
+            ) as mock_download:
                 with patch("asyncio.sleep", new_callable=AsyncMock):
                     # Create many URIs
                     mock_blobs.return_value = {

@@ -108,7 +108,7 @@ class GeoIPClient:
                 is_private=True,
                 lookup_success=True,
                 country="Private Network",
-                city="Local"
+                city="Local",
             )
             self._cache[cache_key] = geo
             self._cache_timestamps[cache_key] = datetime.now()
@@ -139,15 +139,13 @@ class GeoIPClient:
                     timezone=data.get("timezone"),
                     isp=data.get("isp"),
                     is_private=False,
-                    lookup_success=True
+                    lookup_success=True,
                 )
             else:
                 error_msg = data.get("message", "Unknown error")
                 logger.warning(f"Geo-IP lookup failed for {ip_address}: {error_msg}")
                 geo = GeoLocation(
-                    ip_address=ip_address,
-                    lookup_success=False,
-                    error_message=error_msg
+                    ip_address=ip_address, lookup_success=False, error_message=error_msg
                 )
 
             # Cache the result
@@ -159,16 +157,12 @@ class GeoIPClient:
         except httpx.HTTPError as e:
             logger.error(f"HTTP error looking up IP {ip_address}: {e}")
             return GeoLocation(
-                ip_address=ip_address,
-                lookup_success=False,
-                error_message=f"HTTP error: {str(e)}"
+                ip_address=ip_address, lookup_success=False, error_message=f"HTTP error: {str(e)}"
             )
         except Exception as e:
             logger.error(f"Unexpected error looking up IP {ip_address}: {e}")
             return GeoLocation(
-                ip_address=ip_address,
-                lookup_success=False,
-                error_message=f"Error: {str(e)}"
+                ip_address=ip_address, lookup_success=False, error_message=f"Error: {str(e)}"
             )
 
     async def lookup_batch(self, ip_addresses: list[str]) -> dict[str, GeoLocation]:

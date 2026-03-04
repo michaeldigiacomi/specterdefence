@@ -6,7 +6,11 @@ import pytest
 from cryptography.fernet import InvalidToken
 
 # Remove any mock encryption module before importing
-encryption_modules = [key for key in sys.modules if "encryption" in key.lower() and key != "tests.unit.test_encryption"]
+encryption_modules = [
+    key
+    for key in sys.modules
+    if "encryption" in key.lower() and key != "tests.unit.test_encryption"
+]
 for key in encryption_modules:
     del sys.modules[key]
 

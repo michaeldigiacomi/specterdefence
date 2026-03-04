@@ -44,9 +44,7 @@ class MailboxRuleService:
         self.db = db_session
 
     async def scan_tenant_mailbox_rules(
-        self,
-        tenant_id: str,
-        trigger_alerts: bool = True
+        self, tenant_id: str, trigger_alerts: bool = True
     ) -> dict[str, Any]:
         """Scan all mailbox rules for a tenant.
 
@@ -67,9 +65,7 @@ class MailboxRuleService:
 
         # Create Graph client
         graph_client = MSGraphClient(
-            tenant_id=tenant.tenant_id,
-            client_id=tenant.client_id,
-            client_secret=client_secret
+            tenant_id=tenant.tenant_id, client_id=tenant.client_id, client_secret=client_secret
         )
 
         # Create mailbox rule client
@@ -95,7 +91,7 @@ class MailboxRuleService:
                     tenant_id=tenant_id,
                     rule_data=rule_data,
                     rule_client=rule_client,
-                    trigger_alerts=trigger_alerts
+                    trigger_alerts=trigger_alerts,
                 )
 
                 if rule_result.get("is_new"):
@@ -122,7 +118,7 @@ class MailboxRuleService:
         tenant_id: str,
         rule_data: dict[str, Any],
         rule_client: MailboxRuleClient,
-        trigger_alerts: bool
+        trigger_alerts: bool,
     ) -> dict[str, Any]:
         """Process a single mailbox rule.
 
@@ -171,10 +167,7 @@ class MailboxRuleService:
         }
 
     async def _get_existing_rule(
-        self,
-        tenant_id: str,
-        user_email: str,
-        rule_id: str
+        self, tenant_id: str, user_email: str, rule_id: str
     ) -> MailboxRuleModel | None:
         """Get existing rule from database.
 
@@ -191,18 +184,14 @@ class MailboxRuleService:
                 and_(
                     MailboxRuleModel.tenant_id == tenant_id,
                     MailboxRuleModel.user_email == user_email,
-                    MailboxRuleModel.rule_id == rule_id
+                    MailboxRuleModel.rule_id == rule_id,
                 )
             )
         )
         return result.scalar_one_or_none()
 
     async def _create_rule(
-        self,
-        tenant_id: str,
-        user_email: str,
-        rule_data: dict[str, Any],
-        analysis: dict[str, Any]
+        self, tenant_id: str, user_email: str, rule_data: dict[str, Any], analysis: dict[str, Any]
     ) -> MailboxRuleModel:
         """Create a new mailbox rule record.
 
@@ -262,10 +251,7 @@ class MailboxRuleService:
         return rule
 
     async def _update_rule(
-        self,
-        rule: MailboxRuleModel,
-        rule_data: dict[str, Any],
-        analysis: dict[str, Any]
+        self, rule: MailboxRuleModel, rule_data: dict[str, Any], analysis: dict[str, Any]
     ) -> None:
         """Update an existing mailbox rule record.
 
@@ -283,9 +269,15 @@ class MailboxRuleService:
         rule.external_domain = analysis.get("external_domain") or rule.external_domain
         rule.redirect_to = analysis.get("redirect_to") or rule.redirect_to
         rule.auto_reply_content = analysis.get("auto_reply_content") or rule.auto_reply_content
-        rule.is_hidden_folder_redirect = analysis.get("is_hidden_folder_redirect", rule.is_hidden_folder_redirect)
-        rule.has_suspicious_patterns = analysis.get("has_suspicious_patterns", rule.has_suspicious_patterns)
-        rule.created_outside_business_hours = analysis.get("created_outside_business_hours", rule.created_outside_business_hours)
+        rule.is_hidden_folder_redirect = analysis.get(
+            "is_hidden_folder_redirect", rule.is_hidden_folder_redirect
+        )
+        rule.has_suspicious_patterns = analysis.get(
+            "has_suspicious_patterns", rule.has_suspicious_patterns
+        )
+        rule.created_outside_business_hours = analysis.get(
+            "created_outside_business_hours", rule.created_outside_business_hours
+        )
         rule.detection_reasons = analysis.get("detection_reasons", rule.detection_reasons)
         rule.rule_data = rule_data
         rule.last_scan_at = datetime.utcnow()
@@ -315,7 +307,7 @@ class MailboxRuleService:
                     "external_domain": rule.external_domain,
                     "created_by": rule.created_by,
                     "detection_reasons": rule.detection_reasons,
-                }
+                },
             )
 
             self.db.add(alert)
@@ -402,9 +394,7 @@ class MailboxRuleService:
         Returns:
             Tenant model or None
         """
-        result = await self.db.execute(
-            select(TenantModel).where(TenantModel.id == tenant_id)
-        )
+        result = await self.db.execute(select(TenantModel).where(TenantModel.id == tenant_id))
         return result.scalar_one_or_none()
 
     async def get_rules(
@@ -415,7 +405,7 @@ class MailboxRuleService:
         severity: RuleSeverity | None = None,
         rule_type: RuleType | None = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> dict[str, Any]:
         """Get mailbox rules with filtering.
 
@@ -479,9 +469,7 @@ class MailboxRuleService:
         return result.scalar_one_or_none()
 
     async def get_suspicious_rules(
-        self,
-        tenant_id: str | None = None,
-        limit: int = 100
+        self, tenant_id: str | None = None, limit: int = 100
     ) -> list[MailboxRuleModel]:
         """Get suspicious and malicious rules.
 
@@ -511,7 +499,7 @@ class MailboxRuleService:
         acknowledged: bool | None = None,
         severity: RuleSeverity | None = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> dict[str, Any]:
         """Get mailbox rule alerts.
 
@@ -554,9 +542,7 @@ class MailboxRuleService:
         }
 
     async def acknowledge_alert(
-        self,
-        alert_id: str,
-        acknowledged_by: str
+        self, alert_id: str, acknowledged_by: str
     ) -> MailboxRuleAlertModel | None:
         """Acknowledge a mailbox rule alert.
 

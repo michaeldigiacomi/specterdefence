@@ -35,8 +35,10 @@ router = APIRouter()
 # Pydantic Models for API Requests/Responses
 # =============================================================================
 
+
 class UsersWithoutMFAResponse(BaseModel):
     """Response model for users without MFA."""
+
     items: list[MFAUserResponse]
     total: int
     limit: int
@@ -46,6 +48,7 @@ class UsersWithoutMFAResponse(BaseModel):
 
 class AdminsWithoutMFAResponse(BaseModel):
     """Response model for admins without MFA."""
+
     items: list[MFAUserResponse]
     total: int
     message: str
@@ -55,6 +58,7 @@ class AdminsWithoutMFAResponse(BaseModel):
 # Dependencies
 # =============================================================================
 
+
 async def get_mfa_report_service(db: AsyncSession = Depends(get_db)) -> MFAReportService:
     """Dependency to get MFA report service."""
     return MFAReportService(db)
@@ -63,6 +67,7 @@ async def get_mfa_report_service(db: AsyncSession = Depends(get_db)) -> MFARepor
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
 
 def _format_user_response(user: MFAUserModel) -> MFAUserResponse:
     """Format a user model for response."""
@@ -95,15 +100,16 @@ def _format_user_response(user: MFAUserModel) -> MFAUserResponse:
 # MFA Report Endpoints
 # =============================================================================
 
+
 @router.get(
     "/",
     response_model=MFAEnrollmentSummary,
     summary="Get MFA enrollment summary",
-    description="Get a summary of MFA enrollment for a tenant."
+    description="Get a summary of MFA enrollment for a tenant.",
 )
 async def get_mfa_summary(
     tenant_id: str = Query(..., description="Tenant UUID"),
-    service: MFAReportService = Depends(get_mfa_report_service)
+    service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAEnrollmentSummary:
     """Get MFA enrollment summary for a tenant.
 
@@ -145,17 +151,18 @@ async def get_mfa_summary(
     "/users",
     response_model=MFAUserListResponse,
     summary="List MFA users",
-    description="List users with their MFA enrollment status."
+    description="List users with their MFA enrollment status.",
 )
 async def list_mfa_users(
     tenant_id: str = Query(..., description="Tenant UUID"),
     is_mfa_registered: bool | None = Query(None, description="Filter by MFA registration"),
     is_admin: bool | None = Query(None, description="Filter by admin status"),
-    mfa_strength: str | None = Query(None, description="Filter by MFA strength (strong, moderate, weak, none)"),
+    mfa_strength: str
+    | None = Query(None, description="Filter by MFA strength (strong, moderate, weak, none)"),
     needs_attention: bool | None = Query(None, description="Filter by attention required"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
-    service: MFAReportService = Depends(get_mfa_report_service)
+    service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAUserListResponse:
     """List MFA users with filtering.
 
@@ -180,7 +187,7 @@ async def list_mfa_users(
         except ValueError:
             raise HTTPException(
                 status_code=http_status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid MFA strength: {mfa_strength}. Must be one of: strong, moderate, weak, none"
+                detail=f"Invalid MFA strength: {mfa_strength}. Must be one of: strong, moderate, weak, none",
             )
 
     result = await service.get_users(
@@ -205,14 +212,14 @@ async def list_mfa_users(
     "/users-without-mfa",
     response_model=UsersWithoutMFAResponse,
     summary="Get users without MFA",
-    description="Get all users without MFA registration (non-compliant)."
+    description="Get all users without MFA registration (non-compliant).",
 )
 async def get_users_without_mfa(
     tenant_id: str = Query(..., description="Tenant UUID"),
     include_exempt: bool = Query(default=False, description="Include exempt users"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
-    service: MFAReportService = Depends(get_mfa_report_service)
+    service: MFAReportService = Depends(get_mfa_report_service),
 ) -> UsersWithoutMFAResponse:
     """Get users without MFA registration.
 
@@ -249,12 +256,12 @@ async def get_users_without_mfa(
     "/admins-without-mfa",
     response_model=AdminsWithoutMFAResponse,
     summary="Get admins without MFA (CRITICAL)",
-    description="Get admin users without MFA registration. This is a critical security finding!"
+    description="Get admin users without MFA registration. This is a critical security finding!",
 )
 async def get_admins_without_mfa(
     tenant_id: str = Query(..., description="Tenant UUID"),
     limit: int = Query(default=100, ge=1, le=500),
-    service: MFAReportService = Depends(get_mfa_report_service)
+    service: MFAReportService = Depends(get_mfa_report_service),
 ) -> AdminsWithoutMFAResponse:
     """Get admin users without MFA (critical findings).
 
@@ -272,10 +279,9 @@ async def get_admins_without_mfa(
     )
 
     message = (
-        f"CRITICAL: {len(admins)} admin(s) without MFA detected! "
-        "Immediate action required."
-        if admins else
-        "All admins have MFA registered."
+        f"CRITICAL: {len(admins)} admin(s) without MFA detected! " "Immediate action required."
+        if admins
+        else "All admins have MFA registered."
     )
 
     return AdminsWithoutMFAResponse(
@@ -289,12 +295,12 @@ async def get_admins_without_mfa(
     "/trends",
     response_model=MFAEnrollmentTrendsResponse,
     summary="Get MFA enrollment trends",
-    description="Get MFA enrollment trends over time."
+    description="Get MFA enrollment trends over time.",
 )
 async def get_mfa_trends(
     tenant_id: str = Query(..., description="Tenant UUID"),
     days: int = Query(default=30, ge=1, le=365, description="Number of days to look back"),
-    service: MFAReportService = Depends(get_mfa_report_service)
+    service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAEnrollmentTrendsResponse:
     """Get MFA enrollment trends over time.
 
@@ -322,11 +328,11 @@ async def get_mfa_trends(
     "/method-distribution",
     response_model=MFAMethodsDistributionResponse,
     summary="Get MFA method distribution",
-    description="Get the distribution of MFA methods used by users."
+    description="Get the distribution of MFA methods used by users.",
 )
 async def get_method_distribution(
     tenant_id: str = Query(..., description="Tenant UUID"),
-    service: MFAReportService = Depends(get_mfa_report_service)
+    service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAMethodsDistributionResponse:
     """Get distribution of MFA methods.
 
@@ -350,11 +356,11 @@ async def get_method_distribution(
     "/strength-distribution",
     response_model=MFAStrengthDistributionResponse,
     summary="Get MFA strength distribution",
-    description="Get the distribution of MFA strength levels."
+    description="Get the distribution of MFA strength levels.",
 )
 async def get_strength_distribution(
     tenant_id: str = Query(..., description="Tenant UUID"),
-    service: MFAReportService = Depends(get_mfa_report_service)
+    service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAStrengthDistributionResponse:
     """Get distribution of MFA strength levels.
 
@@ -381,11 +387,11 @@ async def get_strength_distribution(
     "/compliance-report",
     response_model=MFAComplianceReport,
     summary="Get full compliance report",
-    description="Get a comprehensive MFA compliance report including recommendations."
+    description="Get a comprehensive MFA compliance report including recommendations.",
 )
 async def get_compliance_report(
     tenant_id: str = Query(..., description="Tenant UUID"),
-    service: MFAReportService = Depends(get_mfa_report_service)
+    service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAComplianceReport:
     """Get comprehensive MFA compliance report.
 
@@ -447,9 +453,7 @@ async def get_compliance_report(
         )
 
     if not recommendations:
-        recommendations.append(
-            "Excellent MFA posture! Maintain current compliance levels."
-        )
+        recommendations.append("Excellent MFA posture! Maintain current compliance levels.")
 
     return MFAComplianceReport(
         tenant_id=tenant_id,
@@ -488,16 +492,16 @@ async def get_compliance_report(
 # Scan Endpoints
 # =============================================================================
 
+
 @router.post(
     "/scan",
     response_model=MFAScanResponse,
     status_code=http_status.HTTP_202_ACCEPTED,
     summary="Trigger MFA scan",
-    description="Trigger a manual scan of MFA enrollment for a tenant."
+    description="Trigger a manual scan of MFA enrollment for a tenant.",
 )
 async def scan_mfa(
-    request: MFAScanRequest,
-    service: MFAReportService = Depends(get_mfa_report_service)
+    request: MFAScanRequest, service: MFAReportService = Depends(get_mfa_report_service)
 ) -> MFAScanResponse:
     """Trigger a manual MFA scan.
 
@@ -525,14 +529,10 @@ async def scan_mfa(
             message=results["message"],
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(
-            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Scan failed: {str(e)}"
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Scan failed: {str(e)}"
         )
 
 
@@ -540,16 +540,17 @@ async def scan_mfa(
 # User Management Endpoints
 # =============================================================================
 
+
 @router.post(
     "/users/{user_id}/exemption",
     response_model=MFAExemptionResponse,
     summary="Set MFA exemption",
-    description="Grant or revoke MFA exemption for a user."
+    description="Grant or revoke MFA exemption for a user.",
 )
 async def set_user_exemption(
     user_id: str,
     request: MFAExemptionRequest,
-    service: MFAReportService = Depends(get_mfa_report_service)
+    service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAExemptionResponse:
     """Set MFA exemption for a user.
 
@@ -573,8 +574,7 @@ async def set_user_exemption(
 
     if not user:
         raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"User with ID {user_id} not found"
+            status_code=http_status.HTTP_404_NOT_FOUND, detail=f"User with ID {user_id} not found"
         )
 
     return MFAExemptionResponse(
@@ -591,19 +591,21 @@ async def set_user_exemption(
 # Alert Endpoints
 # =============================================================================
 
+
 @router.get(
     "/alerts",
     response_model=dict[str, Any],
     summary="List MFA compliance alerts",
-    description="List MFA compliance alerts with optional filtering."
+    description="List MFA compliance alerts with optional filtering.",
 )
 async def list_mfa_alerts(
     tenant_id: str | None = Query(None, description="Tenant UUID"),
     resolved: bool | None = Query(None, description="Filter by resolution status"),
-    severity: str | None = Query(None, description="Filter by severity (critical, high, medium, low)"),
+    severity: str
+    | None = Query(None, description="Filter by severity (critical, high, medium, low)"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
-    service: MFAReportService = Depends(get_mfa_report_service)
+    service: MFAReportService = Depends(get_mfa_report_service),
 ) -> dict[str, Any]:
     """List MFA compliance alerts.
 
@@ -653,12 +655,12 @@ async def list_mfa_alerts(
     "/alerts/{alert_id}/resolve",
     response_model=MFAResolveAlertResponse,
     summary="Resolve MFA alert",
-    description="Resolve an MFA compliance alert."
+    description="Resolve an MFA compliance alert.",
 )
 async def resolve_alert(
     alert_id: str,
     request: MFAResolveAlertRequest,
-    service: MFAReportService = Depends(get_mfa_report_service)
+    service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAResolveAlertResponse:
     """Resolve an MFA compliance alert.
 
@@ -677,8 +679,7 @@ async def resolve_alert(
 
     if not alert:
         raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"Alert with ID {alert_id} not found"
+            status_code=http_status.HTTP_404_NOT_FOUND, detail=f"Alert with ID {alert_id} not found"
         )
 
     return MFAResolveAlertResponse(

@@ -118,10 +118,7 @@ class TestDashboardServiceLoginTimeline:
         mock_result.scalars.return_value.all.return_value = []
         mock_db.execute.return_value = mock_result
 
-        result = await service.get_login_activity_timeline(
-            TimeRange.DAY_30,
-            tenant_id=tenant_id
-        )
+        result = await service.get_login_activity_timeline(TimeRange.DAY_30, tenant_id=tenant_id)
 
         assert result.total_successful == 0
         assert result.total_failed == 0
@@ -188,7 +185,7 @@ class TestDashboardServiceGeoHeatmap:
                 longitude=-95.0,
                 login_count=500,
                 user_count=100,
-                avg_risk=25.0
+                avg_risk=25.0,
             ),
             MagicMock(
                 country_code="GB",
@@ -197,7 +194,7 @@ class TestDashboardServiceGeoHeatmap:
                 longitude=-3.0,
                 login_count=200,
                 user_count=50,
-                avg_risk=30.0
+                avg_risk=30.0,
             ),
             MagicMock(
                 country_code="DE",
@@ -206,8 +203,8 @@ class TestDashboardServiceGeoHeatmap:
                 longitude=10.0,
                 login_count=300,
                 user_count=75,
-                avg_risk=28.0
-            )
+                avg_risk=28.0,
+            ),
         ]
 
         mock_result = MagicMock()
@@ -238,7 +235,7 @@ class TestDashboardServiceAnomalyTrend:
     @pytest.mark.asyncio
     async def test_get_anomaly_trend_success(self, service, mock_db, frozen_time):
         """Test successful anomaly trend aggregation."""
-        with patch('src.services.dashboard.datetime') as mock_datetime:
+        with patch("src.services.dashboard.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value = frozen_time
             mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
 
@@ -261,7 +258,7 @@ class TestDashboardServiceAnomalyTrend:
     @pytest.mark.asyncio
     async def test_get_anomaly_trend_top_type(self, service, mock_db, frozen_time):
         """Test anomaly trend correctly identifies top type."""
-        with patch('src.services.dashboard.datetime') as mock_datetime:
+        with patch("src.services.dashboard.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value = frozen_time
             mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
 
@@ -271,7 +268,7 @@ class TestDashboardServiceAnomalyTrend:
                     login_time=frozen_time - timedelta(hours=i),
                     anomaly_flags=["impossible_travel"],
                     user_email=f"user{i}@example.com",
-                    tenant_id="tenant-1"
+                    tenant_id="tenant-1",
                 )
                 for i in range(5)
             ] + [
@@ -279,7 +276,7 @@ class TestDashboardServiceAnomalyTrend:
                     login_time=frozen_time - timedelta(hours=i),
                     anomaly_flags=["new_country"],
                     user_email=f"user{i+5}@example.com",
-                    tenant_id="tenant-1"
+                    tenant_id="tenant-1",
                 )
                 for i in range(2)
             ]
@@ -355,22 +352,22 @@ class TestDashboardServiceTopRiskUsers:
                 tenant_id="tenant-1",
                 max_risk=95,
                 anomaly_count=20,
-                last_anomaly=datetime.utcnow()
+                last_anomaly=datetime.utcnow(),
             ),
             MagicMock(
                 user_email="medium@example.com",
                 tenant_id="tenant-1",
                 max_risk=70,
                 anomaly_count=10,
-                last_anomaly=datetime.utcnow()
+                last_anomaly=datetime.utcnow(),
             ),
             MagicMock(
                 user_email="low@example.com",
                 tenant_id="tenant-1",
                 max_risk=50,
                 anomaly_count=5,
-                last_anomaly=datetime.utcnow()
-            )
+                last_anomaly=datetime.utcnow(),
+            ),
         ]
 
         mock_result = MagicMock()
@@ -415,7 +412,7 @@ class TestDashboardServiceAlertVolume:
     @pytest.mark.asyncio
     async def test_get_alert_volume_success(self, service, mock_db, frozen_time):
         """Test successful alert volume aggregation."""
-        with patch('src.services.dashboard.datetime') as mock_datetime:
+        with patch("src.services.dashboard.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value = frozen_time
             mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
 
@@ -436,7 +433,7 @@ class TestDashboardServiceAlertVolume:
     @pytest.mark.asyncio
     async def test_get_alert_volume_peak_detection(self, service, mock_db, frozen_time):
         """Test that peak volume is correctly identified."""
-        with patch('src.services.dashboard.datetime') as mock_datetime:
+        with patch("src.services.dashboard.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value = frozen_time
             mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
 
@@ -536,7 +533,7 @@ class TestDashboardServiceSummary:
     @pytest.mark.asyncio
     async def test_get_summary_stats_success(self, service, mock_db, frozen_time):
         """Test successful summary stats retrieval."""
-        with patch('src.services.dashboard.datetime') as mock_datetime:
+        with patch("src.services.dashboard.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value = frozen_time
             mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
             mock_datetime.timedelta = timedelta
@@ -544,16 +541,13 @@ class TestDashboardServiceSummary:
             # Mock logins
             mock_logins = [
                 MagicMock(
-                    user_email="user1@example.com",
-                    is_success=True,
-                    risk_score=25,
-                    anomaly_flags=[]
+                    user_email="user1@example.com", is_success=True, risk_score=25, anomaly_flags=[]
                 ),
                 MagicMock(
                     user_email="user2@example.com",
                     is_success=False,
                     risk_score=50,
-                    anomaly_flags=["failed_login"]
+                    anomaly_flags=["failed_login"],
                 ),
             ]
 
@@ -669,11 +663,6 @@ class TestDashboardServiceFillGaps:
 
     def test_fill_timeline_gaps_empty(self, service):
         """Test filling gaps with empty data."""
-        result = service._fill_timeline_gaps(
-            [],
-            datetime(2024, 1, 1),
-            datetime(2024, 1, 2),
-            "day"
-        )
+        result = service._fill_timeline_gaps([], datetime(2024, 1, 1), datetime(2024, 1, 2), "day")
 
         assert result == []

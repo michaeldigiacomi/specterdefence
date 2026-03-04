@@ -218,11 +218,7 @@ class TestMailboxRulesEndpoints:
 
         assert result.total == 1
         mock_service.get_rules.assert_called_once_with(
-            tenant_id="tenant-123",
-            status=None,
-            severity=None,
-            limit=100,
-            offset=0
+            tenant_id="tenant-123", status=None, severity=None, limit=100, offset=0
         )
 
     @pytest.mark.asyncio
@@ -279,7 +275,9 @@ class TestMailboxRulesEndpoints:
     @pytest.mark.asyncio
     async def test_scan_mailbox_rules_tenant_not_found(self, mock_service):
         """Test scan with non-existent tenant."""
-        mock_service.scan_tenant_mailbox_rules.side_effect = ValueError("Tenant not-found-id not found")
+        mock_service.scan_tenant_mailbox_rules.side_effect = ValueError(
+            "Tenant not-found-id not found"
+        )
 
         request = ScanRequest(tenant_id="not-found-id", trigger_alerts=True)
 

@@ -174,8 +174,11 @@ class TestWebhookEndpoints:
 
         mock_service.get_webhook.return_value = mock_webhook
 
-        with patch('src.services.encryption.encryption_service.decrypt', return_value='https://discord.com/webhook'):
-            with patch('src.alerts.discord.DiscordWebhookClient') as mock_client_class:
+        with patch(
+            "src.services.encryption.encryption_service.decrypt",
+            return_value="https://discord.com/webhook",
+        ):
+            with patch("src.alerts.discord.DiscordWebhookClient") as mock_client_class:
                 mock_client = AsyncMock()
                 mock_client.test_webhook.return_value = True
                 mock_client.close = AsyncMock()
@@ -201,8 +204,11 @@ class TestWebhookEndpoints:
 
         mock_service.get_webhook.return_value = mock_webhook
 
-        with patch('src.services.encryption.encryption_service.decrypt', return_value='https://discord.com/webhook'):
-            with patch('src.alerts.discord.DiscordWebhookClient') as mock_client_class:
+        with patch(
+            "src.services.encryption.encryption_service.decrypt",
+            return_value="https://discord.com/webhook",
+        ):
+            with patch("src.alerts.discord.DiscordWebhookClient") as mock_client_class:
                 mock_client = AsyncMock()
                 mock_client.test_webhook.return_value = False
                 mock_client.close = AsyncMock()

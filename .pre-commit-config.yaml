@@ -1,4 +1,14 @@
+# =============================================================================
+# PRE-COMMIT CONFIGURATION - STRICT LINTING
+# =============================================================================
+# This configuration enforces zero-tolerance linting rules.
+# Any violation will block the commit.
+#
+# To bypass in emergencies: git commit --no-verify
+# =============================================================================
+
 repos:
+  # Basic file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -6,20 +16,37 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
+        args: ['--maxkb=1000']
       - id: check-json
       - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
 
+  # Black code formatter - STRICT
   - repo: https://github.com/psf/black
     rev: 23.12.0
     hooks:
       - id: black
+        language_version: python3.11
+        args: ['--check']  # Fail if not formatted
 
+  # Ruff linter - STRICT with all rules
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.8
+    rev: v0.1.9
     hooks:
+      # Main linting hook - all rules enabled
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
+        files: ^(src|tests)/.*\.py$
+      # Import sorting check
+      - id: ruff
+        name: ruff-imports
+        args: [--select, I, --fix, --exit-non-zero-on-fix]
+        files: ^(src|tests)/.*\.py$
 
+  # MyPy type checker - STRICT
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.7.1
     hooks:
@@ -29,7 +56,20 @@ repos:
           - pydantic-settings>=2.1.0
           - types-python-jose
           - types-passlib
+          - pytest>=8.0.0
+        args: [--strict]
+        files: ^(src|tests)/.*\.py$
+        pass_filenames: false  # Check entire project for better import resolution
 
+  # Bandit security scanner
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: ['-c', 'pyproject.toml', '-r', 'src/']
+        additional_dependencies: ["bandit[toml]"]
+
+  # ESLint for frontend (if present)
   - repo: local
     hooks:
       - id: eslint
@@ -40,6 +80,7 @@ repos:
         types: [file]
         pass_filenames: false
 
+  # Dockerfile linting
   - repo: local
     hooks:
       - id: hadolint

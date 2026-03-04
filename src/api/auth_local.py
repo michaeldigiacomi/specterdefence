@@ -11,10 +11,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
-from src.database import async_session_maker, get_db
+from src.database import async_session_maker
 from src.models.user import UserModel
 
 router = APIRouter()
@@ -44,8 +43,7 @@ def _check_rate_limit(ip_address: str) -> bool:
 
     # Clean old attempts outside window
     _login_attempts[ip_address] = [
-        ts for ts in _login_attempts[ip_address]
-        if now - ts < _WINDOW_SECONDS
+        ts for ts in _login_attempts[ip_address] if now - ts < _WINDOW_SECONDS
     ]
 
     # Check if too many attempts
@@ -80,7 +78,7 @@ async def get_or_create_admin_user() -> UserModel:
                 username=settings.ADMIN_USERNAME,
                 password_hash=settings.ADMIN_PASSWORD_HASH,
                 is_active=True,
-                is_admin=True
+                is_admin=True,
             )
             session.add(user)
             await session.commit()
@@ -114,14 +112,14 @@ async def update_admin_password(new_password_hash: str) -> None:
 
         if user:
             user.password_hash = new_password_hash
-            user.updated_at = datetime.utcnow()
+            user.updated_at = datetime.now(UTC)
         else:
             # Create new admin user with the password
             user = UserModel(
                 username=settings.ADMIN_USERNAME,
                 password_hash=new_password_hash,
                 is_active=True,
-                is_admin=True
+                is_admin=True,
             )
             session.add(user)
 
@@ -131,13 +129,11 @@ async def update_admin_password(new_password_hash: str) -> None:
 async def update_last_login(username: str) -> None:
     """Update the last login timestamp for a user."""
     async with async_session_maker() as session:
-        result = await session.execute(
-            select(UserModel).where(UserModel.username == username)
-        )
+        result = await session.execute(select(UserModel).where(UserModel.username == username))
         user = result.scalar_one_or_none()
 
         if user:
-            user.last_login = datetime.utcnow()
+            user.last_login = datetime.now(UTC)
             await session.commit()
 
 
@@ -165,8 +161,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password."""
     try:
         # Truncate password to 72 bytes (bcrypt limit)
-        password_bytes = plain_password.encode('utf-8')[:72]
-        hashed_bytes = hashed_password.encode('utf-8')
+        password_bytes = plain_password.encode("utf-8")[:72]
+        hashed_bytes = hashed_password.encode("utf-8")
         return bcrypt_lib.checkpw(password_bytes, hashed_bytes)
     except Exception:
         return False
@@ -175,19 +171,19 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     """Generate a hash from a plain password."""
     # Truncate password to 72 bytes (bcrypt limit)
-    password_bytes = password.encode('utf-8')[:72]
+    password_bytes = password.encode("utf-8")[:72]
     salt = bcrypt_lib.gensalt()
     hashed = bcrypt_lib.hashpw(password_bytes, salt)
-    return hashed.decode('utf-8')
+    return hashed.decode("utf-8")
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(hours=24)
+        expire = datetime.now(UTC) + timedelta(hours=24)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm="HS256")
     return encoded_jwt
@@ -205,7 +201,9 @@ def verify_token(token: str) -> dict | None:
         return None
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict | None:
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict | None:
     """Dependency to get the current authenticated user."""
     if not credentials:
         raise HTTPException(
@@ -287,9 +285,7 @@ async def login(request: LoginRequest, req: Request):
     )
 
     return LoginResponse(
-        access_token=access_token,
-        token_type="bearer",
-        expires_in=2 * 3600  # 2 hours in seconds
+        access_token=access_token, token_type="bearer", expires_in=2 * 3600  # 2 hours in seconds
     )
 
 
@@ -302,10 +298,7 @@ async def logout():
 @router.get("/me", response_model=UserResponse)
 async def get_me(user: dict = Depends(get_current_user)):
     """Get current authenticated user info."""
-    return UserResponse(
-        username=user["username"],
-        is_authenticated=True
-    )
+    return UserResponse(username=user["username"], is_authenticated=True)
 
 
 @router.get("/check")
@@ -324,10 +317,7 @@ class ChangePasswordResponse(BaseModel):
 
 
 @router.post("/change-password", response_model=ChangePasswordResponse)
-async def change_password(
-    request: ChangePasswordRequest,
-    user: dict = Depends(get_current_user)
-):
+async def change_password(request: ChangePasswordRequest, user: dict = Depends(get_current_user)):
     """Change the current user's password."""
     # Get current password hash from database
     admin_hash = await get_admin_password_hash()

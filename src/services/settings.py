@@ -3,7 +3,7 @@
 import hashlib
 import secrets
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import desc, select
@@ -21,16 +21,19 @@ from src.models.settings import (
 
 class SettingsNotFoundError(Exception):
     """Exception raised when settings are not found."""
+
     pass
 
 
 class ApiKeyNotFoundError(Exception):
     """Exception raised when API key is not found."""
+
     pass
 
 
 class InvalidConfigurationError(Exception):
     """Exception raised when configuration is invalid."""
+
     pass
 
 
@@ -110,9 +113,7 @@ class SettingsService:
         return prefs
 
     async def update_user_preferences(
-        self,
-        user_email: str,
-        updates: dict[str, Any]
+        self, user_email: str, updates: dict[str, Any]
     ) -> UserPreferencesModel:
         """Update user preferences.
 
@@ -138,8 +139,7 @@ class SettingsService:
     # ========== Detection Thresholds ==========
 
     async def get_detection_thresholds(
-        self,
-        tenant_id: str | None = None
+        self, tenant_id: str | None = None
     ) -> DetectionThresholdsModel:
         """Get detection thresholds for a tenant (or global defaults).
 
@@ -161,9 +161,7 @@ class SettingsService:
 
         # Get global defaults
         result = await self.db.execute(
-            select(DetectionThresholdsModel).where(
-                DetectionThresholdsModel.tenant_id.is_(None)
-            )
+            select(DetectionThresholdsModel).where(DetectionThresholdsModel.tenant_id.is_(None))
         )
         thresholds = result.scalar_one_or_none()
 
@@ -176,9 +174,7 @@ class SettingsService:
         return thresholds
 
     async def update_detection_thresholds(
-        self,
-        updates: dict[str, Any],
-        tenant_id: str | None = None
+        self, updates: dict[str, Any], tenant_id: str | None = None
     ) -> DetectionThresholdsModel:
         """Update detection thresholds.
 
@@ -209,7 +205,7 @@ class SettingsService:
         scopes: list[str],
         created_by: str | None = None,
         tenant_id: str | None = None,
-        expires_days: int | None = None
+        expires_days: int | None = None,
     ) -> dict[str, str]:
         """Create a new API key.
 
@@ -231,6 +227,7 @@ class SettingsService:
         expires_at = None
         if expires_days:
             from datetime import timedelta
+
             expires_at = datetime.utcnow() + timedelta(days=expires_days)
 
         api_key_model = ApiKeyModel(
@@ -241,7 +238,7 @@ class SettingsService:
             tenant_id=tenant_id,
             created_by=created_by,
             expires_at=expires_at,
-            is_active=True
+            is_active=True,
         )
 
         self.db.add(api_key_model)
@@ -252,13 +249,11 @@ class SettingsService:
             "id": str(api_key_model.id),
             "key": api_key,  # Only shown once!
             "name": name,
-            "prefix": key_prefix
+            "prefix": key_prefix,
         }
 
     async def list_api_keys(
-        self,
-        tenant_id: str | None = None,
-        include_inactive: bool = False
+        self, tenant_id: str | None = None, include_inactive: bool = False
     ) -> list[ApiKeyModel]:
         """List API keys.
 
@@ -316,11 +311,7 @@ class SettingsService:
 
         return True
 
-    async def update_api_key(
-        self,
-        key_id: str,
-        updates: dict[str, Any]
-    ) -> ApiKeyModel | None:
+    async def update_api_key(self, key_id: str, updates: dict[str, Any]) -> ApiKeyModel | None:
         """Update an API key.
 
         Args:
@@ -335,7 +326,7 @@ class SettingsService:
             return None
 
         for field, value in updates.items():
-            if hasattr(api_key, field) and field not in ['key_hash', 'key_prefix']:
+            if hasattr(api_key, field) and field not in ["key_hash", "key_prefix"]:
                 setattr(api_key, field, value)
 
         await self.db.commit()
@@ -356,8 +347,7 @@ class SettingsService:
 
         result = await self.db.execute(
             select(ApiKeyModel).where(
-                (ApiKeyModel.key_hash == key_hash) &
-                (ApiKeyModel.is_active.is_(True))
+                (ApiKeyModel.key_hash == key_hash) & (ApiKeyModel.is_active.is_(True))
             )
         )
         key_model = result.scalar_one_or_none()
@@ -382,7 +372,7 @@ class SettingsService:
         categories: list[str],
         name: str,
         description: str | None = None,
-        created_by: str | None = None
+        created_by: str | None = None,
     ) -> dict[str, Any]:
         """Export configuration to JSON.
 
@@ -465,7 +455,7 @@ class SettingsService:
             description=description,
             config_data=config_data,
             categories=categories,
-            created_by=created_by
+            created_by=created_by,
         )
         self.db.add(backup)
         await self.db.commit()
@@ -477,13 +467,11 @@ class SettingsService:
             "description": description,
             "categories": categories,
             "created_at": backup.created_at.isoformat(),
-            "config": config_data
+            "config": config_data,
         }
 
     async def import_configuration(
-        self,
-        config_data: dict[str, Any],
-        overwrite: bool = False
+        self, config_data: dict[str, Any], overwrite: bool = False
     ) -> dict[str, Any]:
         """Import configuration from JSON.
 

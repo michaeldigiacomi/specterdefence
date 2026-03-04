@@ -7,12 +7,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class TenantBase(BaseModel):
     """Base tenant model."""
+
     name: str = Field(..., min_length=1, max_length=255, description="Tenant display name")
     tenant_id: str = Field(
-        ...,
-        min_length=1,
-        max_length=255,
-        description="Azure AD tenant ID (GUID)"
+        ..., min_length=1, max_length=255, description="Azure AD tenant ID (GUID)"
     )
 
     @field_validator("tenant_id")
@@ -30,17 +28,12 @@ class TenantBase(BaseModel):
 
 class TenantCreate(TenantBase):
     """Model for creating a new tenant."""
+
     client_id: str = Field(
-        ...,
-        min_length=1,
-        max_length=255,
-        description="Azure AD application (client) ID"
+        ..., min_length=1, max_length=255, description="Azure AD application (client) ID"
     )
     client_secret: str = Field(
-        ...,
-        min_length=1,
-        max_length=500,
-        description="Azure AD application client secret"
+        ..., min_length=1, max_length=500, description="Azure AD application client secret"
     )
 
     @field_validator("client_id")
@@ -57,12 +50,14 @@ class TenantCreate(TenantBase):
 
 class TenantUpdate(BaseModel):
     """Model for updating a tenant."""
+
     name: str | None = Field(None, min_length=1, max_length=255)
     is_active: bool | None = None
 
 
 class TenantResponse(BaseModel):
     """Model for tenant responses (excludes sensitive data)."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: str = Field(..., description="Internal tenant UUID")
@@ -70,7 +65,9 @@ class TenantResponse(BaseModel):
     tenant_id: str = Field(..., description="Azure AD tenant ID")
     client_id: str = Field(..., description="Azure AD application ID (masked)")
     is_active: bool = Field(..., description="Whether tenant is active")
-    connection_status: str = Field(..., description="Connection status: connected, error, timeout, unknown")
+    connection_status: str = Field(
+        ..., description="Connection status: connected, error, timeout, unknown"
+    )
     connection_error: str | None = Field(None, description="Last connection error message")
     last_health_check: datetime | None = Field(None, description="Timestamp of last health check")
     created_at: datetime = Field(..., description="Creation timestamp")
@@ -88,14 +85,13 @@ class TenantResponse(BaseModel):
 
 class TenantDetailResponse(TenantResponse):
     """Model for detailed tenant response."""
-    ms_verified_domains: list[dict] | None = Field(
-        None,
-        description="Microsoft verified domains"
-    )
+
+    ms_verified_domains: list[dict] | None = Field(None, description="Microsoft verified domains")
 
 
 class TenantValidationResponse(BaseModel):
     """Model for tenant validation response."""
+
     valid: bool = Field(..., description="Whether credentials are valid")
     display_name: str | None = Field(None, description="Microsoft tenant display name")
     tenant_id: str | None = Field(None, description="Confirmed tenant ID")
@@ -106,6 +102,7 @@ class TenantValidationResponse(BaseModel):
 
 class TenantHealthCheckConnectivity(BaseModel):
     """Model for health check connectivity results."""
+
     success: bool = Field(..., description="Whether connectivity test succeeded")
     latency_ms: float = Field(0.0, description="Response latency in milliseconds")
     error: str | None = Field(None, description="Error message if failed")
@@ -113,6 +110,7 @@ class TenantHealthCheckConnectivity(BaseModel):
 
 class TenantHealthCheckAuth(BaseModel):
     """Model for health check authentication results."""
+
     success: bool = Field(..., description="Whether authentication succeeded")
     error: str | None = Field(None, description="Error message if failed")
     error_code: str | None = Field(None, description="Error code for programmatic handling")
@@ -120,6 +118,7 @@ class TenantHealthCheckAuth(BaseModel):
 
 class TenantHealthCheckPermissions(BaseModel):
     """Model for health check permission results."""
+
     success: bool = Field(..., description="Whether all required permissions are granted")
     granted: list[str] = Field(default_factory=list, description="List of granted permissions")
     missing: list[str] = Field(default_factory=list, description="List of missing permissions")
@@ -129,31 +128,43 @@ class TenantHealthCheckPermissions(BaseModel):
 
 class TenantHealthCheckInfo(BaseModel):
     """Model for health check tenant info."""
+
     display_name: str | None = Field(None, description="Microsoft tenant display name")
     tenant_id: str | None = Field(None, description="Microsoft tenant ID")
-    verified_domains: list[str] = Field(default_factory=list, description="List of verified domains")
+    verified_domains: list[str] = Field(
+        default_factory=list, description="List of verified domains"
+    )
 
 
 class TenantHealthCheckResponse(BaseModel):
     """Model for tenant health check response."""
+
     tenant_id: str = Field(..., description="Internal tenant UUID")
-    status: str = Field(..., description="Overall status: healthy, unhealthy, error, timeout, unknown")
-    connectivity: TenantHealthCheckConnectivity = Field(..., description="Connectivity test results")
+    status: str = Field(
+        ..., description="Overall status: healthy, unhealthy, error, timeout, unknown"
+    )
+    connectivity: TenantHealthCheckConnectivity = Field(
+        ..., description="Connectivity test results"
+    )
     authentication: TenantHealthCheckAuth = Field(..., description="Authentication test results")
     permissions: TenantHealthCheckPermissions = Field(..., description="Permission check results")
-    tenant_info: TenantHealthCheckInfo = Field(default_factory=dict, description="Tenant information from Microsoft")
+    tenant_info: TenantHealthCheckInfo = Field(
+        default_factory=dict, description="Tenant information from Microsoft"
+    )
     timestamp: datetime = Field(..., description="Health check timestamp")
     message: str | None = Field(None, description="Human-readable status message")
 
 
 class TenantListResponse(BaseModel):
     """Model for listing tenants."""
+
     items: list[TenantResponse]
     total: int
 
 
 class TenantCreateResponse(BaseModel):
     """Model for tenant creation response."""
+
     success: bool
     tenant: TenantResponse | None = None
     validation: TenantValidationResponse | None = None

@@ -20,20 +20,22 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         # Prevent MIME type sniffing
-        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers["X-Content-Type-Options"] = "nosniff"
 
         # Prevent clickjacking
-        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers["X-Frame-Options"] = "DENY"
 
         # XSS Protection (legacy but still useful)
-        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers["X-XSS-Protection"] = "1; mode=block"
 
         # HSTS (only in production)
         if not settings.DEBUG:
-            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+            response.headers[
+                "Strict-Transport-Security"
+            ] = "max-age=31536000; includeSubDomains; preload"
 
         # Content Security Policy
-        response.headers['Content-Security-Policy'] = (
+        response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self'; "
             "style-src 'self' 'unsafe-inline'; "
@@ -46,18 +48,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         )
 
         # Referrer Policy
-        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
         # Permissions Policy
-        response.headers['Permissions-Policy'] = (
-            'geolocation=(), '
-            'microphone=(), '
-            'camera=(), '
-            'payment=(), '
-            'usb=(), '
-            'magnetometer=(), '
-            'gyroscope=(), '
-            'speaker=()'
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), "
+            "microphone=(), "
+            "camera=(), "
+            "payment=(), "
+            "usb=(), "
+            "magnetometer=(), "
+            "gyroscope=(), "
+            "speaker=()"
         )
 
         return response
@@ -70,6 +72,7 @@ async def lifespan(app: FastAPI):
     await init_db()
     yield
     # Shutdown
+
 
 app = FastAPI(
     title="SpecterDefence API",
@@ -92,7 +95,7 @@ if settings.CORS_ORIGINS:
     )
 
 # Trusted host middleware in production (skip in testing)
-if not settings.DEBUG and os.getenv('TESTING') != 'true':
+if not settings.DEBUG and os.getenv("TESTING") != "true":
     app.add_middleware(
         TrustedHostMiddleware,
         allowed_hosts=[
@@ -100,8 +103,8 @@ if not settings.DEBUG and os.getenv('TESTING') != 'true':
             "*.digitaladrenalin.net",
             "localhost",
             "127.0.0.1",
-            "*"  # Allow internal cluster traffic for health probes
-        ]
+            "*",  # Allow internal cluster traffic for health probes
+        ],
     )
 
 # Include API routers BEFORE static file mounting

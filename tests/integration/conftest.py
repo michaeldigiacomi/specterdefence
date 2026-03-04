@@ -89,6 +89,7 @@ async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture
 async def test_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Create an async test client with database override."""
+
     async def override_get_db():
         yield db_session
 
@@ -106,6 +107,7 @@ async def test_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, N
 # =============================================================================
 # Tenant Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_tenant_create_data():
@@ -166,6 +168,7 @@ async def test_tenants(db_session: AsyncSession) -> list[TenantModel]:
 # MS Graph API Mock Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def mock_ms_graph_token():
     """Return a mock MS Graph access token."""
@@ -176,16 +179,18 @@ def mock_ms_graph_token():
 def mock_o365_organization_response():
     """Return a mock Microsoft Graph organization response."""
     return {
-        "value": [{
-            "id": "12345678-1234-1234-1234-123456789012",
-            "displayName": "Test Organization",
-            "verifiedDomains": [
-                {"name": "test.com", "isDefault": True, "isInitial": False},
-                {"name": "test.onmicrosoft.com", "isDefault": False, "isInitial": True},
-            ],
-            "createdDateTime": "2020-01-01T00:00:00Z",
-            "tenantType": "AAD",
-        }]
+        "value": [
+            {
+                "id": "12345678-1234-1234-1234-123456789012",
+                "displayName": "Test Organization",
+                "verifiedDomains": [
+                    {"name": "test.com", "isDefault": True, "isInitial": False},
+                    {"name": "test.onmicrosoft.com", "isDefault": False, "isInitial": True},
+                ],
+                "createdDateTime": "2020-01-01T00:00:00Z",
+                "tenantType": "AAD",
+            }
+        ]
     }
 
 
@@ -282,8 +287,11 @@ def mock_o365_management_api():
 # Audit Log Fixtures
 # =============================================================================
 
+
 @pytest_asyncio.fixture
-async def test_audit_logs(db_session: AsyncSession, test_tenant: TenantModel) -> list[AuditLogModel]:
+async def test_audit_logs(
+    db_session: AsyncSession, test_tenant: TenantModel
+) -> list[AuditLogModel]:
     """Create test audit logs for a tenant."""
     logs = []
     for i in range(5):
@@ -311,7 +319,9 @@ async def test_audit_logs(db_session: AsyncSession, test_tenant: TenantModel) ->
 
 
 @pytest_asyncio.fixture
-async def test_collection_state(db_session: AsyncSession, test_tenant: TenantModel) -> CollectionStateModel:
+async def test_collection_state(
+    db_session: AsyncSession, test_tenant: TenantModel
+) -> CollectionStateModel:
     """Create a test collection state for a tenant."""
     state = CollectionStateModel(
         tenant_id=test_tenant.id,
@@ -328,8 +338,11 @@ async def test_collection_state(db_session: AsyncSession, test_tenant: TenantMod
 # Analytics Fixtures
 # =============================================================================
 
+
 @pytest_asyncio.fixture
-async def test_login_analytics(db_session: AsyncSession, test_tenant: TenantModel) -> list[LoginAnalyticsModel]:
+async def test_login_analytics(
+    db_session: AsyncSession, test_tenant: TenantModel
+) -> list[LoginAnalyticsModel]:
     """Create test login analytics records."""
     records = []
 
@@ -380,7 +393,9 @@ async def test_login_analytics(db_session: AsyncSession, test_tenant: TenantMode
 
 
 @pytest_asyncio.fixture
-async def test_user_login_history(db_session: AsyncSession, test_tenant: TenantModel) -> UserLoginHistoryModel:
+async def test_user_login_history(
+    db_session: AsyncSession, test_tenant: TenantModel
+) -> UserLoginHistoryModel:
     """Create test user login history."""
     history = UserLoginHistoryModel(
         user_email="john.doe@test.com",
@@ -402,7 +417,9 @@ async def test_user_login_history(db_session: AsyncSession, test_tenant: TenantM
 
 
 @pytest_asyncio.fixture
-async def test_anomaly_config(db_session: AsyncSession, test_tenant: TenantModel) -> AnomalyDetectionConfig:
+async def test_anomaly_config(
+    db_session: AsyncSession, test_tenant: TenantModel
+) -> AnomalyDetectionConfig:
     """Create test anomaly detection configuration."""
     config = AnomalyDetectionConfig(
         tenant_id=test_tenant.id,
@@ -423,13 +440,16 @@ async def test_anomaly_config(db_session: AsyncSession, test_tenant: TenantModel
 # Alert Fixtures
 # =============================================================================
 
+
 @pytest_asyncio.fixture
 async def test_alert_webhook(db_session: AsyncSession) -> AlertWebhookModel:
     """Create a test alert webhook."""
     webhook = AlertWebhookModel(
         id=uuid.uuid4(),
         name="Test Discord Webhook",
-        webhook_url=encryption_service.encrypt("https://discord.com/api/webhooks/123456/test-token"),
+        webhook_url=encryption_service.encrypt(
+            "https://discord.com/api/webhooks/123456/test-token"
+        ),
         webhook_type=WebhookType.DISCORD,
         is_active=True,
     )
@@ -477,6 +497,7 @@ async def test_alert_rule_brute_force(db_session: AsyncSession) -> AlertRuleMode
 # Discord Webhook Mock Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def mock_discord_webhook_url():
     """Return a mock Discord webhook URL."""
@@ -492,6 +513,7 @@ def mock_discord_webhook_response():
 # =============================================================================
 # Security Event Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def impossible_travel_event_data():
@@ -564,6 +586,7 @@ def new_country_event_data():
 # =============================================================================
 # Pytest Configuration
 # =============================================================================
+
 
 def pytest_configure(config):
     """Configure pytest with custom markers."""

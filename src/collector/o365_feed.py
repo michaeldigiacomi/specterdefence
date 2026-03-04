@@ -27,16 +27,19 @@ CONTENT_TYPES = [
 
 class RateLimitError(Exception):
     """Raised when rate limit is exceeded."""
+
     pass
 
 
 class O365ManagementAuthError(Exception):
     """Raised when authentication fails."""
+
     pass
 
 
 class O365ManagementAPIError(Exception):
     """Raised when API call fails."""
+
     pass
 
 
@@ -49,7 +52,7 @@ class O365ManagementClient:
         client_id: str,
         client_secret: str,
         max_retries: int = 3,
-        base_delay: float = 1.0
+        base_delay: float = 1.0,
     ):
         """Initialize O365 Management API client.
 
@@ -87,15 +90,15 @@ class O365ManagementClient:
             O365ManagementAuthError: If authentication fails.
         """
         # Check if we have a valid cached token
-        if (self._access_token and self._token_expires_at and
-            datetime.now(UTC) < self._token_expires_at - timedelta(minutes=5)):
+        if (
+            self._access_token
+            and self._token_expires_at
+            and datetime.now(UTC) < self._token_expires_at - timedelta(minutes=5)
+        ):
             return self._access_token
 
         # Try to get token silently from cache
-        result = self.app.acquire_token_silent(
-            ["https://manage.office.com/.default"],
-            account=None
-        )
+        result = self.app.acquire_token_silent(["https://manage.office.com/.default"], account=None)
 
         if not result:
             # Fetch new token
@@ -115,11 +118,7 @@ class O365ManagementClient:
         return self._access_token
 
     async def _make_request(
-        self,
-        method: str,
-        endpoint: str,
-        params: dict[str, Any] | None = None,
-        retry_count: int = 0
+        self, method: str, endpoint: str, params: dict[str, Any] | None = None, retry_count: int = 0
     ) -> dict[str, Any]:
         """Make authenticated request to Management API with retry logic.
 
@@ -147,11 +146,7 @@ class O365ManagementClient:
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    params=params,
-                    timeout=60.0
+                    method=method, url=url, headers=headers, params=params, timeout=60.0
                 )
 
                 # Handle rate limiting (429 Too Many Requests)
@@ -163,24 +158,20 @@ class O365ManagementClient:
 
                     # Get retry-after header or use exponential backoff
                     retry_after = response.headers.get("Retry-After")
-                    delay = int(retry_after) if retry_after else self.base_delay * 2 ** retry_count
+                    delay = int(retry_after) if retry_after else self.base_delay * 2**retry_count
 
                     logger.warning(
                         f"Rate limited. Waiting {delay}s before retry {retry_count + 1}/{self.max_retries}"
                     )
                     await asyncio.sleep(delay)
-                    return await self._make_request(
-                        method, endpoint, params, retry_count + 1
-                    )
+                    return await self._make_request(method, endpoint, params, retry_count + 1)
 
                 # Handle other errors
                 if response.status_code == 401:
                     # Token might be expired, clear and retry once
                     if retry_count == 0:
                         self._access_token = None
-                        return await self._make_request(
-                            method, endpoint, params, retry_count + 1
-                        )
+                        return await self._make_request(method, endpoint, params, retry_count + 1)
                     raise O365ManagementAuthError(f"Authentication failed: {response.text}")
 
                 if response.status_code == 403:
@@ -192,16 +183,18 @@ class O365ManagementClient:
                 return response.json()
 
             except httpx.HTTPStatusError as e:
-                raise O365ManagementAPIError(f"HTTP error {e.response.status_code}: {e.response.text}") from e
+                raise O365ManagementAPIError(
+                    f"HTTP error {e.response.status_code}: {e.response.text}"
+                ) from e
             except httpx.RequestError as e:
                 if retry_count < self.max_retries:
-                    delay = self.base_delay * (2 ** retry_count)
+                    delay = self.base_delay * (2**retry_count)
                     logger.warning(f"Request error: {e}. Retrying in {delay}s...")
                     await asyncio.sleep(delay)
-                    return await self._make_request(
-                        method, endpoint, params, retry_count + 1
-                    )
-                raise O365ManagementAPIError(f"Request failed after {self.max_retries} retries: {e}") from e
+                    return await self._make_request(method, endpoint, params, retry_count + 1)
+                raise O365ManagementAPIError(
+                    f"Request failed after {self.max_retries} retries: {e}"
+                ) from e
 
     async def start_subscription(self, content_type: str) -> dict[str, Any]:
         """Start a subscription for a content type.
@@ -246,7 +239,7 @@ class O365ManagementClient:
         content_type: str,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-        next_page_uri: str | None = None
+        next_page_uri: str | None = None,
     ) -> dict[str, Any]:
         """Get content blob URLs for a content type.
 
@@ -264,9 +257,7 @@ class O365ManagementClient:
             token = await self._get_access_token()
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    next_page_uri,
-                    headers={"Authorization": f"Bearer {token}"},
-                    timeout=60.0
+                    next_page_uri, headers={"Authorization": f"Bearer {token}"}, timeout=60.0
                 )
                 response.raise_for_status()
                 return response.json()
@@ -306,6 +297,7 @@ class O365ManagementClient:
                 line = line.strip()
                 if line:
                     import json
+
                     events.append(json.loads(line))
 
             return events
@@ -314,7 +306,7 @@ class O365ManagementClient:
         self,
         content_type: str,
         start_time: datetime | None = None,
-        end_time: datetime | None = None
+        end_time: datetime | None = None,
     ) -> AsyncGenerator[list[dict[str, Any]], None]:
         """Collect all logs for a content type with pagination.
 
@@ -336,7 +328,7 @@ class O365ManagementClient:
                     content_type=content_type,
                     start_time=start_time,
                     end_time=end_time,
-                    next_page_uri=next_page_uri
+                    next_page_uri=next_page_uri,
                 )
 
                 blobs = result.get("contentUri", [])
@@ -347,7 +339,9 @@ class O365ManagementClient:
                     break
 
                 total_blobs += len(blobs)
-                logger.info(f"Processing {len(blobs)} blobs for {content_type} (total: {total_blobs})")
+                logger.info(
+                    f"Processing {len(blobs)} blobs for {content_type} (total: {total_blobs})"
+                )
 
                 # Download content from each blob
                 for blob_url in blobs:

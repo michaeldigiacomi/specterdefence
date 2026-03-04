@@ -30,7 +30,7 @@ class TestMSGraphClientHealthCheck:
         mock_app.acquire_token_silent.return_value = None
         mock_app.acquire_token_for_client.return_value = {
             "access_token": "test-token",
-            "expires_in": 3600
+            "expires_in": 3600,
         }
         mock_msal_app.return_value = mock_app
 
@@ -38,7 +38,7 @@ class TestMSGraphClientHealthCheck:
             tenant_id="test-tenant-id",
             client_id="test-client-id",
             client_secret="test-client-secret",
-            timeout=30.0
+            timeout=30.0,
         )
 
     @pytest.mark.asyncio
@@ -49,7 +49,7 @@ class TestMSGraphClientHealthCheck:
         mock_app.acquire_token_silent.return_value = None
         mock_app.acquire_token_for_client.return_value = {
             "access_token": "test-token",
-            "expires_in": 3600
+            "expires_in": 3600,
         }
 
         with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
@@ -57,13 +57,15 @@ class TestMSGraphClientHealthCheck:
             org_response = MagicMock()
             org_response.status_code = 200
             org_response.json.return_value = {
-                "value": [{
-                    "displayName": "Test Organization",
-                    "id": "test-tenant-id",
-                    "verifiedDomains": [
-                        {"name": "test.com", "isVerified": True, "isDefault": True}
-                    ]
-                }]
+                "value": [
+                    {
+                        "displayName": "Test Organization",
+                        "id": "test-tenant-id",
+                        "verifiedDomains": [
+                            {"name": "test.com", "isVerified": True, "isDefault": True}
+                        ],
+                    }
+                ]
             }
 
             # Mock /me endpoint (called by check_permissions)
@@ -98,7 +100,7 @@ class TestMSGraphClientHealthCheck:
         mock_app.acquire_token_silent.return_value = None
         mock_app.acquire_token_for_client.return_value = {
             "error": "invalid_client",
-            "error_description": "Client authentication failed. Check credentials."
+            "error_description": "Client authentication failed. Check credentials.",
         }
 
         result = await client.health_check(required_permissions=["AuditLog.Read.All"])
@@ -116,7 +118,7 @@ class TestMSGraphClientHealthCheck:
         mock_app.acquire_token_silent.return_value = None
         mock_app.acquire_token_for_client.return_value = {
             "access_token": "test-token",
-            "expires_in": 3600
+            "expires_in": 3600,
         }
 
         with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
@@ -124,11 +126,13 @@ class TestMSGraphClientHealthCheck:
             org_response = MagicMock()
             org_response.status_code = 200
             org_response.json.return_value = {
-                "value": [{
-                    "displayName": "Test Organization",
-                    "id": "test-tenant-id",
-                    "verifiedDomains": []
-                }]
+                "value": [
+                    {
+                        "displayName": "Test Organization",
+                        "id": "test-tenant-id",
+                        "verifiedDomains": [],
+                    }
+                ]
             }
 
             # Mock /me endpoint
@@ -182,18 +186,20 @@ class TestMSGraphClientHealthCheck:
         mock_app.acquire_token_silent.return_value = None
         mock_app.acquire_token_for_client.return_value = {
             "access_token": "test-token",
-            "expires_in": 3600
+            "expires_in": 3600,
         }
 
         with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
             org_response = MagicMock()
             org_response.status_code = 200
             org_response.json.return_value = {
-                "value": [{
-                    "displayName": "Test Organization",
-                    "id": "test-tenant-id",
-                    "verifiedDomains": []
-                }]
+                "value": [
+                    {
+                        "displayName": "Test Organization",
+                        "id": "test-tenant-id",
+                        "verifiedDomains": [],
+                    }
+                ]
             }
             mock_get.return_value = org_response
 
@@ -227,7 +233,7 @@ class TestMSGraphClientHealthCheck:
         mock_app.acquire_token_silent.return_value = None
         mock_app.acquire_token_for_client.return_value = {
             "access_token": "test-token",
-            "expires_in": 3600
+            "expires_in": 3600,
         }
 
         with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
@@ -250,7 +256,7 @@ class TestMSGraphClientHealthCheck:
         mock_app.acquire_token_silent.return_value = None
         mock_app.acquire_token_for_client.return_value = {
             "access_token": "test-token",
-            "expires_in": 3600
+            "expires_in": 3600,
         }
 
         with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
@@ -274,7 +280,7 @@ class TestMSGraphClientHealthCheck:
         mock_app.acquire_token_silent.return_value = None
         mock_app.acquire_token_for_client.return_value = {
             "access_token": "test-token",
-            "expires_in": 3600
+            "expires_in": 3600,
         }
 
         with patch("httpx.AsyncClient.get", new_callable=AsyncMock):
@@ -293,6 +299,7 @@ class TestTenantServiceHealthCheck:
     async def service(self, mock_db):
         """Create a tenant service with mocked database."""
         from src.services.tenant import TenantService
+
         return TenantService(mock_db)
 
     @pytest.fixture
@@ -324,26 +331,28 @@ class TestTenantServiceHealthCheck:
 
         with (
             patch.object(service, "get_decrypted_secret", return_value="decrypted-secret"),
-            patch("src.services.tenant.MSGraphClient") as mock_client_class
+            patch("src.services.tenant.MSGraphClient") as mock_client_class,
         ):
             mock_client = MagicMock()
-            mock_client.health_check = AsyncMock(return_value={
-                "status": "healthy",
-                "connectivity": {"success": True, "latency_ms": 150.5, "error": None},
-                "authentication": {"success": True, "error": None},
-                "permissions": {
-                    "success": True,
-                    "granted": ["AuditLog.Read.All"],
-                    "missing": [],
-                    "details": {"AuditLog.Read.All": {"granted": True}}
-                },
-                "tenant_info": {
-                    "display_name": "Test Organization",
-                    "tenant_id": "test-tenant-id",
-                    "verified_domains": ["test.com"]
-                },
-                "timestamp": datetime.now(UTC).isoformat()
-            })
+            mock_client.health_check = AsyncMock(
+                return_value={
+                    "status": "healthy",
+                    "connectivity": {"success": True, "latency_ms": 150.5, "error": None},
+                    "authentication": {"success": True, "error": None},
+                    "permissions": {
+                        "success": True,
+                        "granted": ["AuditLog.Read.All"],
+                        "missing": [],
+                        "details": {"AuditLog.Read.All": {"granted": True}},
+                    },
+                    "tenant_info": {
+                        "display_name": "Test Organization",
+                        "tenant_id": "test-tenant-id",
+                        "verified_domains": ["test.com"],
+                    },
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            )
             mock_client_class.return_value = mock_client
 
             result = await service.health_check_tenant("test-tenant-uuid")
@@ -389,21 +398,23 @@ class TestTenantServiceHealthCheck:
 
         with (
             patch.object(service, "get_decrypted_secret", return_value="decrypted-secret"),
-            patch("src.services.tenant.MSGraphClient") as mock_client_class
+            patch("src.services.tenant.MSGraphClient") as mock_client_class,
         ):
             mock_client = MagicMock()
-            mock_client.health_check = AsyncMock(return_value={
-                "status": "error",
-                "connectivity": {"success": False, "latency_ms": 0, "error": None},
-                "authentication": {
-                    "success": False,
-                    "error": "Client authentication failed",
-                    "error_code": "invalid_client"
-                },
-                "permissions": {"success": False, "granted": [], "missing": []},
-                "tenant_info": {},
-                "timestamp": datetime.now(UTC).isoformat()
-            })
+            mock_client.health_check = AsyncMock(
+                return_value={
+                    "status": "error",
+                    "connectivity": {"success": False, "latency_ms": 0, "error": None},
+                    "authentication": {
+                        "success": False,
+                        "error": "Client authentication failed",
+                        "error_code": "invalid_client",
+                    },
+                    "permissions": {"success": False, "granted": [], "missing": []},
+                    "tenant_info": {},
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            )
             mock_client_class.return_value = mock_client
 
             result = await service.health_check_tenant("test-tenant-uuid")
@@ -429,24 +440,26 @@ class TestTenantServiceHealthCheck:
 
         with (
             patch.object(service, "get_decrypted_secret", return_value="decrypted-secret"),
-            patch("src.services.tenant.MSGraphClient") as mock_client_class
+            patch("src.services.tenant.MSGraphClient") as mock_client_class,
         ):
             mock_client = MagicMock()
-            mock_client.health_check = AsyncMock(return_value={
-                "status": "timeout",
-                "connectivity": {
-                    "success": False,
-                    "latency_ms": 0,
-                    "error": "Connection timed out after 30s"
-                },
-                "authentication": {
-                    "success": False,
-                    "error": "Authentication timed out after 30s"
-                },
-                "permissions": {"success": False, "granted": [], "missing": []},
-                "tenant_info": {},
-                "timestamp": datetime.now(UTC).isoformat()
-            })
+            mock_client.health_check = AsyncMock(
+                return_value={
+                    "status": "timeout",
+                    "connectivity": {
+                        "success": False,
+                        "latency_ms": 0,
+                        "error": "Connection timed out after 30s",
+                    },
+                    "authentication": {
+                        "success": False,
+                        "error": "Authentication timed out after 30s",
+                    },
+                    "permissions": {"success": False, "granted": [], "missing": []},
+                    "tenant_info": {},
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            )
             mock_client_class.return_value = mock_client
 
             result = await service.health_check_tenant("test-tenant-uuid")
@@ -472,32 +485,34 @@ class TestTenantServiceHealthCheck:
 
         with (
             patch.object(service, "get_decrypted_secret", return_value="decrypted-secret"),
-            patch("src.services.tenant.MSGraphClient") as mock_client_class
+            patch("src.services.tenant.MSGraphClient") as mock_client_class,
         ):
             mock_client = MagicMock()
-            mock_client.health_check = AsyncMock(return_value={
-                "status": "unhealthy",
-                "connectivity": {"success": True, "latency_ms": 200.0, "error": None},
-                "authentication": {"success": True, "error": None},
-                "permissions": {
-                    "success": False,
-                    "granted": [],
-                    "missing": ["AuditLog.Read.All"],
-                    "details": {
-                        "AuditLog.Read.All": {
-                            "granted": False,
-                            "error": "Permission not granted or admin consent required"
-                        }
+            mock_client.health_check = AsyncMock(
+                return_value={
+                    "status": "unhealthy",
+                    "connectivity": {"success": True, "latency_ms": 200.0, "error": None},
+                    "authentication": {"success": True, "error": None},
+                    "permissions": {
+                        "success": False,
+                        "granted": [],
+                        "missing": ["AuditLog.Read.All"],
+                        "details": {
+                            "AuditLog.Read.All": {
+                                "granted": False,
+                                "error": "Permission not granted or admin consent required",
+                            }
+                        },
+                        "error": None,
                     },
-                    "error": None
-                },
-                "tenant_info": {
-                    "display_name": "Test Organization",
-                    "tenant_id": "test-tenant-id",
-                    "verified_domains": ["test.com"]
-                },
-                "timestamp": datetime.now(UTC).isoformat()
-            })
+                    "tenant_info": {
+                        "display_name": "Test Organization",
+                        "tenant_id": "test-tenant-id",
+                        "verified_domains": ["test.com"],
+                    },
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            )
             mock_client_class.return_value = mock_client
 
             result = await service.health_check_tenant("test-tenant-uuid")
@@ -551,28 +566,32 @@ class TestHealthCheckAPI:
 
         with (
             patch("src.services.tenant.TenantService.get_decrypted_secret", return_value="secret"),
-            patch("src.services.tenant.MSGraphClient") as mock_client_class
+            patch("src.services.tenant.MSGraphClient") as mock_client_class,
         ):
             mock_client = MagicMock()
-            mock_client.health_check = AsyncMock(return_value={
-                "status": "healthy",
-                "connectivity": {"success": True, "latency_ms": 100.0, "error": None},
-                "authentication": {"success": True, "error": None},
-                "permissions": {
-                    "success": True,
-                    "granted": ["AuditLog.Read.All"],
-                    "missing": []
-                },
-                "tenant_info": {
-                    "display_name": "Test Org",
-                    "tenant_id": "ms-tenant-id",
-                    "verified_domains": ["test.com"]
-                },
-                "timestamp": datetime.now(UTC).isoformat()
-            })
+            mock_client.health_check = AsyncMock(
+                return_value={
+                    "status": "healthy",
+                    "connectivity": {"success": True, "latency_ms": 100.0, "error": None},
+                    "authentication": {"success": True, "error": None},
+                    "permissions": {
+                        "success": True,
+                        "granted": ["AuditLog.Read.All"],
+                        "missing": [],
+                    },
+                    "tenant_info": {
+                        "display_name": "Test Org",
+                        "tenant_id": "ms-tenant-id",
+                        "verified_domains": ["test.com"],
+                    },
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            )
             mock_client_class.return_value = mock_client
 
-            response = await async_client_with_mock_db.post("/api/v1/tenants/test-tenant-uuid/health-check")
+            response = await async_client_with_mock_db.post(
+                "/api/v1/tenants/test-tenant-uuid/health-check"
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -622,25 +641,27 @@ class TestHealthCheckAPI:
 
         with (
             patch("src.services.tenant.TenantService.get_decrypted_secret", return_value="secret"),
-            patch("src.services.tenant.MSGraphClient") as mock_client_class
+            patch("src.services.tenant.MSGraphClient") as mock_client_class,
         ):
             mock_client = MagicMock()
-            mock_client.health_check = AsyncMock(return_value={
-                "status": "healthy",
-                "connectivity": {"success": True, "latency_ms": 100.0, "error": None},
-                "authentication": {"success": True, "error": None},
-                "permissions": {
-                    "success": True,
-                    "granted": ["AuditLog.Read.All"],
-                    "missing": []
-                },
-                "tenant_info": {
-                    "display_name": "Test Org",
-                    "tenant_id": "ms-tenant-id",
-                    "verified_domains": ["test.com"]
-                },
-                "timestamp": datetime.now(UTC).isoformat()
-            })
+            mock_client.health_check = AsyncMock(
+                return_value={
+                    "status": "healthy",
+                    "connectivity": {"success": True, "latency_ms": 100.0, "error": None},
+                    "authentication": {"success": True, "error": None},
+                    "permissions": {
+                        "success": True,
+                        "granted": ["AuditLog.Read.All"],
+                        "missing": [],
+                    },
+                    "tenant_info": {
+                        "display_name": "Test Org",
+                        "tenant_id": "ms-tenant-id",
+                        "verified_domains": ["test.com"],
+                    },
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            )
             mock_client_class.return_value = mock_client
 
             response = await async_client_with_mock_db.post("/api/v1/tenants/health-check/all")
@@ -667,26 +688,28 @@ class TestHealthCheckAPI:
 
         with (
             patch("src.services.tenant.TenantService.get_decrypted_secret", return_value="secret"),
-            patch("src.services.tenant.MSGraphClient") as mock_client_class
+            patch("src.services.tenant.MSGraphClient") as mock_client_class,
         ):
             mock_client = MagicMock()
-            mock_client.health_check = AsyncMock(return_value={
-                "status": "healthy",
-                "connectivity": {"success": True, "latency_ms": 100.0, "error": None},
-                "authentication": {"success": True, "error": None},
-                "permissions": {
-                    "success": True,
-                    "granted": ["Custom.Permission"],
-                    "missing": []
-                },
-                "tenant_info": {"display_name": "Test Org"},
-                "timestamp": datetime.now(UTC).isoformat()
-            })
+            mock_client.health_check = AsyncMock(
+                return_value={
+                    "status": "healthy",
+                    "connectivity": {"success": True, "latency_ms": 100.0, "error": None},
+                    "authentication": {"success": True, "error": None},
+                    "permissions": {
+                        "success": True,
+                        "granted": ["Custom.Permission"],
+                        "missing": [],
+                    },
+                    "tenant_info": {"display_name": "Test Org"},
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            )
             mock_client_class.return_value = mock_client
 
             response = await async_client_with_mock_db.post(
                 "/api/v1/tenants/test-tenant-uuid/health-check",
-                params={"permissions": ["Custom.Permission"], "timeout": 45.0}
+                params={"permissions": ["Custom.Permission"], "timeout": 45.0},
             )
 
             assert response.status_code == 200
@@ -712,22 +735,27 @@ class TestHealthCheckAPI:
 
         with (
             patch("src.services.tenant.TenantService.get_decrypted_secret", return_value="secret"),
-            patch("src.services.tenant.MSGraphClient") as mock_client_class
+            patch("src.services.tenant.MSGraphClient") as mock_client_class,
         ):
             mock_client = MagicMock()
-            mock_client.health_check = AsyncMock(return_value={
-                "status": "healthy",
-                "connectivity": {"success": True, "latency_ms": 100.0, "error": None},
-                "authentication": {"success": True, "error": None},
-                "permissions": {"success": True, "granted": ["AuditLog.Read.All"], "missing": []},
-                "tenant_info": {"display_name": "Test Org"},
-                "timestamp": datetime.now(UTC).isoformat()
-            })
+            mock_client.health_check = AsyncMock(
+                return_value={
+                    "status": "healthy",
+                    "connectivity": {"success": True, "latency_ms": 100.0, "error": None},
+                    "authentication": {"success": True, "error": None},
+                    "permissions": {
+                        "success": True,
+                        "granted": ["AuditLog.Read.All"],
+                        "missing": [],
+                    },
+                    "tenant_info": {"display_name": "Test Org"},
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            )
             mock_client_class.return_value = mock_client
 
             response = await async_client_with_mock_db.post(
-                "/api/v1/tenants/test-tenant-uuid/health-check",
-                params={"timeout": 60.0}
+                "/api/v1/tenants/test-tenant-uuid/health-check", params={"timeout": 60.0}
             )
 
             assert response.status_code == 200

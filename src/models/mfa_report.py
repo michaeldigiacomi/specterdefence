@@ -1,7 +1,7 @@
 """MFA Enrollment Tracking models for SpecterDefence."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
@@ -21,6 +21,7 @@ def utc_now() -> datetime:
 
 class MFAMethodType(StrEnum):
     """Types of MFA methods."""
+
     FIDO2 = "fido2"
     AUTHENTICATOR_APP = "authenticatorApp"
     MICROSOFT_AUTHENTICATOR = "microsoftAuthenticator"
@@ -36,6 +37,7 @@ class MFAMethodType(StrEnum):
 
 class UserRole(StrEnum):
     """User role types for MFA compliance."""
+
     ADMIN = "admin"
     USER = "user"
     GUEST = "guest"
@@ -44,6 +46,7 @@ class UserRole(StrEnum):
 
 class ComplianceStatus(StrEnum):
     """MFA compliance status."""
+
     COMPLIANT = "compliant"
     NON_COMPLIANT = "non_compliant"
     EXEMPT = "exempt"
@@ -52,6 +55,7 @@ class ComplianceStatus(StrEnum):
 
 class MFAStrengthLevel(StrEnum):
     """MFA strength levels based on NIST guidelines."""
+
     STRONG = "strong"  # FIDO2, hardware tokens
     MODERATE = "moderate"  # Authenticator apps
     WEAK = "weak"  # SMS, voice, email
@@ -63,77 +67,51 @@ class MFAUserModel(Base):
 
     __tablename__ = "mfa_users"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("tenants.id"),
         nullable=False,
         index=True,
-        comment="Internal tenant UUID"
+        comment="Internal tenant UUID",
     )
 
     # User identification from Microsoft Graph
     user_id: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-        index=True,
-        comment="Microsoft Graph user ID"
+        String(255), nullable=False, index=True, comment="Microsoft Graph user ID"
     )
     user_principal_name: Mapped[str] = mapped_column(
-        String(500),
-        nullable=False,
-        index=True,
-        comment="User Principal Name (email)"
+        String(500), nullable=False, index=True, comment="User Principal Name (email)"
     )
     display_name: Mapped[str] = mapped_column(
-        String(500),
-        nullable=False,
-        comment="Display name of the user"
+        String(500), nullable=False, comment="Display name of the user"
     )
 
     # MFA status
     is_mfa_registered: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-        comment="Whether user has MFA registered"
+        Boolean, default=False, nullable=False, comment="Whether user has MFA registered"
     )
     mfa_methods: Mapped[list[str]] = mapped_column(
-        ARRAY(String(100)),
-        default=list,
-        nullable=False,
-        comment="List of registered MFA methods"
+        ARRAY(String(100)), default=list, nullable=False, comment="List of registered MFA methods"
     )
 
     # Primary/strength indicators
     primary_mfa_method: Mapped[str | None] = mapped_column(
-        String(100),
-        nullable=True,
-        comment="Primary/default MFA method"
+        String(100), nullable=True, comment="Primary/default MFA method"
     )
     mfa_strength: Mapped[MFAStrengthLevel] = mapped_column(
         SQLEnum(MFAStrengthLevel, name="mfa_strength_enum"),
         nullable=False,
         default=MFAStrengthLevel.NONE,
-        comment="Calculated MFA strength level"
+        comment="Calculated MFA strength level",
     )
 
     # Admin status
     is_admin: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-        comment="Whether user has admin privileges"
+        Boolean, default=False, nullable=False, comment="Whether user has admin privileges"
     )
     admin_roles: Mapped[list[str]] = mapped_column(
-        ARRAY(String(100)),
-        default=list,
-        nullable=False,
-        comment="List of admin roles assigned"
+        ARRAY(String(100)), default=list, nullable=False, comment="List of admin roles assigned"
     )
 
     # Compliance tracking
@@ -141,102 +119,79 @@ class MFAUserModel(Base):
         SQLEnum(ComplianceStatus, name="compliance_status_enum"),
         nullable=False,
         default=ComplianceStatus.NON_COMPLIANT,
-        comment="Current compliance status"
+        comment="Current compliance status",
     )
     compliance_exempt: Mapped[bool] = mapped_column(
         Boolean,
         default=False,
         nullable=False,
-        comment="Whether user is exempt from MFA requirements"
+        comment="Whether user is exempt from MFA requirements",
     )
     exemption_reason: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Reason for MFA exemption"
+        Text, nullable=True, comment="Reason for MFA exemption"
     )
     exemption_expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True,
-        comment="When exemption expires"
+        DateTime, nullable=True, comment="When exemption expires"
     )
 
     # Enrollment tracking
     first_mfa_registration: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True,
-        comment="When user first registered MFA"
+        DateTime, nullable=True, comment="When user first registered MFA"
     )
     last_mfa_update: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True,
-        comment="When MFA settings were last updated"
+        DateTime, nullable=True, comment="When MFA settings were last updated"
     )
 
     # User metadata
     account_enabled: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        nullable=False,
-        comment="Whether account is enabled"
+        Boolean, default=True, nullable=False, comment="Whether account is enabled"
     )
     sign_in_activity: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True,
-        comment="Last sign-in activity"
+        DateTime, nullable=True, comment="Last sign-in activity"
     )
     user_type: Mapped[str] = mapped_column(
-        String(50),
-        default="Member",
-        nullable=False,
-        comment="User type (Member, Guest, etc.)"
+        String(50), default="Member", nullable=False, comment="User type (Member, Guest, etc.)"
     )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=utc_now,
-        nullable=False,
-        comment="When record was first created"
+        DateTime, default=utc_now, nullable=False, comment="When record was first created"
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=utc_now,
         onupdate=utc_now,
         nullable=False,
-        comment="When record was last updated"
+        comment="When record was last updated",
     )
     last_scan_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=utc_now,
-        nullable=False,
-        comment="When user was last scanned"
+        DateTime, default=utc_now, nullable=False, comment="When user was last scanned"
     )
 
     # Raw data
     user_data: Mapped[dict[str, Any]] = mapped_column(
-        JSONB,
-        default=dict,
-        nullable=False,
-        comment="Raw user data from Graph API"
+        JSONB, default=dict, nullable=False, comment="Raw user data from Graph API"
     )
 
     __table_args__ = (
         # Composite index for deduplication lookups
-        Index('ix_mfa_users_tenant_user', 'tenant_id', 'user_id', unique=True),
+        Index("ix_mfa_users_tenant_user", "tenant_id", "user_id", unique=True),
         # Index for MFA compliance queries
-        Index('ix_mfa_users_compliance', 'tenant_id', 'compliance_status'),
+        Index("ix_mfa_users_compliance", "tenant_id", "compliance_status"),
         # Index for admin without MFA queries
-        Index('ix_mfa_users_admin_no_mfa', 'tenant_id', 'is_admin', 'is_mfa_registered'),
+        Index("ix_mfa_users_admin_no_mfa", "tenant_id", "is_admin", "is_mfa_registered"),
         # Index for non-compliant users
-        Index('ix_mfa_users_non_compliant', 'tenant_id', 'is_mfa_registered', 'compliance_exempt'),
+        Index("ix_mfa_users_non_compliant", "tenant_id", "is_mfa_registered", "compliance_exempt"),
         # Index for exemption queries
-        Index('ix_mfa_users_exempt', 'tenant_id', 'compliance_exempt'),
+        Index("ix_mfa_users_exempt", "tenant_id", "compliance_exempt"),
         # Index for strength queries
-        Index('ix_mfa_users_strength', 'tenant_id', 'mfa_strength'),
+        Index("ix_mfa_users_strength", "tenant_id", "mfa_strength"),
     )
 
     def __repr__(self) -> str:
-        return f"<MFAUser(id={self.id}, upn={self.user_principal_name}, mfa={self.is_mfa_registered})>"
+        return (
+            f"<MFAUser(id={self.id}, upn={self.user_principal_name}, mfa={self.is_mfa_registered})>"
+        )
 
     @property
     def is_compliant(self) -> bool:
@@ -245,7 +200,8 @@ class MFAUserModel(Base):
             return True
         if self.is_admin:
             return self.is_mfa_registered and self.mfa_strength in [
-                MFAStrengthLevel.STRONG, MFAStrengthLevel.MODERATE
+                MFAStrengthLevel.STRONG,
+                MFAStrengthLevel.MODERATE,
             ]
         return self.is_mfa_registered
 
@@ -266,129 +222,51 @@ class MFAEnrollmentHistoryModel(Base):
 
     __tablename__ = "mfa_enrollment_history"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[str] = mapped_column(
-        String(36),
-        ForeignKey("tenants.id"),
-        nullable=False,
-        index=True
+        String(36), ForeignKey("tenants.id"), nullable=False, index=True
     )
 
     # Snapshot data
     snapshot_date: Mapped[datetime] = mapped_column(
-        DateTime,
-        nullable=False,
-        index=True,
-        comment="Date of this snapshot"
+        DateTime, nullable=False, index=True, comment="Date of this snapshot"
     )
 
     # Enrollment counts
-    total_users: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-    mfa_registered_users: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-    non_compliant_users: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
+    total_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    mfa_registered_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    non_compliant_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Admin counts
-    total_admins: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-    admins_with_mfa: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-    admins_without_mfa: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
+    total_admins: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    admins_with_mfa: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    admins_without_mfa: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Method breakdown
-    fido2_users: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-    authenticator_app_users: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-    sms_users: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-    voice_users: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
+    fido2_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    authenticator_app_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    sms_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    voice_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Strength breakdown
-    strong_mfa_users: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-    moderate_mfa_users: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-    weak_mfa_users: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
+    strong_mfa_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    moderate_mfa_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    weak_mfa_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Exemptions
-    exempt_users: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
+    exempt_users: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Calculated percentages
-    mfa_coverage_percentage: Mapped[float] = mapped_column(
-        Float,
-        nullable=False,
-        default=0.0
-    )
-    admin_mfa_coverage_percentage: Mapped[float] = mapped_column(
-        Float,
-        nullable=False,
-        default=0.0
-    )
+    mfa_coverage_percentage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    admin_mfa_coverage_percentage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=utc_now,
-        nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     __table_args__ = (
         # Unique constraint for one snapshot per tenant per day
-        Index('ix_mfa_history_tenant_date', 'tenant_id', 'snapshot_date', unique=True),
+        Index("ix_mfa_history_tenant_date", "tenant_id", "snapshot_date", unique=True),
         # Index for trend queries
-        Index('ix_mfa_history_trends', 'tenant_id', 'snapshot_date'),
+        Index("ix_mfa_history_trends", "tenant_id", "snapshot_date"),
     )
 
     def __repr__(self) -> str:
@@ -400,79 +278,43 @@ class MFAComplianceAlertModel(Base):
 
     __tablename__ = "mfa_compliance_alerts"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("mfa_users.id"),
-        nullable=False,
-        index=True
+        UUID(as_uuid=True), ForeignKey("mfa_users.id"), nullable=False, index=True
     )
     tenant_id: Mapped[str] = mapped_column(
-        String(36),
-        ForeignKey("tenants.id"),
-        nullable=False,
-        index=True
+        String(36), ForeignKey("tenants.id"), nullable=False, index=True
     )
 
     # Alert details
     alert_type: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
-        comment="Type of alert (admin_no_mfa, weak_mfa, etc.)"
+        String(100), nullable=False, comment="Type of alert (admin_no_mfa, weak_mfa, etc.)"
     )
     severity: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-        comment="Alert severity (critical, high, medium, low)"
+        String(50), nullable=False, comment="Alert severity (critical, high, medium, low)"
     )
-    title: Mapped[str] = mapped_column(
-        String(500),
-        nullable=False
-    )
-    description: Mapped[str] = mapped_column(
-        Text,
-        nullable=False
-    )
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Alert state
-    is_resolved: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False
-    )
-    resolved_at: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True
-    )
-    resolved_by: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True
-    )
+    is_resolved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Metadata
-    alert_metadata: Mapped[dict[str, Any]] = mapped_column(
-        JSONB,
-        default=dict,
-        nullable=False
-    )
+    alert_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=utc_now,
-        nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     __table_args__ = (
-        Index('ix_mfa_alerts_unresolved', 'tenant_id', 'is_resolved', 'created_at'),
-        Index('ix_mfa_alerts_severity', 'severity', 'created_at'),
+        Index("ix_mfa_alerts_unresolved", "tenant_id", "is_resolved", "created_at"),
+        Index("ix_mfa_alerts_severity", "severity", "created_at"),
     )
 
     def __repr__(self) -> str:
-        return f"<MFAComplianceAlert(id={self.id}, type={self.alert_type}, severity={self.severity})>"
+        return (
+            f"<MFAComplianceAlert(id={self.id}, type={self.alert_type}, severity={self.severity})>"
+        )
 
 
 # Pydantic models for API requests/responses
@@ -480,6 +322,7 @@ class MFAComplianceAlertModel(Base):
 
 class MFAMethod(BaseModel):
     """MFA method details."""
+
     method_type: str
     display_name: str
     is_default: bool = False
@@ -488,6 +331,7 @@ class MFAMethod(BaseModel):
 
 class MFAUserBase(BaseModel):
     """Base model for MFA user data."""
+
     user_principal_name: str
     display_name: str
     is_mfa_registered: bool = False
@@ -495,6 +339,7 @@ class MFAUserBase(BaseModel):
 
 class MFAUserResponse(MFAUserBase):
     """Response model for MFA user."""
+
     id: str
     tenant_id: str
     user_id: str
@@ -520,6 +365,7 @@ class MFAUserResponse(MFAUserBase):
 
 class MFAUserListResponse(BaseModel):
     """Response model for listing MFA users."""
+
     items: list[MFAUserResponse]
     total: int
     limit: int
@@ -528,6 +374,7 @@ class MFAUserListResponse(BaseModel):
 
 class MFAEnrollmentSummary(BaseModel):
     """Summary of MFA enrollment for a tenant."""
+
     tenant_id: str
     snapshot_date: datetime
 
@@ -567,6 +414,7 @@ class MFAEnrollmentSummary(BaseModel):
 
 class MFAEnrollmentTrend(BaseModel):
     """MFA enrollment trend data point."""
+
     date: datetime
     total_users: int
     mfa_registered_users: int
@@ -576,6 +424,7 @@ class MFAEnrollmentTrend(BaseModel):
 
 class MFAEnrollmentTrendsResponse(BaseModel):
     """Response model for MFA enrollment trends."""
+
     tenant_id: str
     trends: list[MFAEnrollmentTrend]
     period_days: int
@@ -583,6 +432,7 @@ class MFAEnrollmentTrendsResponse(BaseModel):
 
 class MFAComplianceReport(BaseModel):
     """MFA compliance report."""
+
     tenant_id: str
     generated_at: datetime
 
@@ -604,6 +454,7 @@ class MFAComplianceReport(BaseModel):
 
 class MFAMethodDistribution(BaseModel):
     """Distribution of MFA methods."""
+
     method_type: str
     count: int
     percentage: float
@@ -611,6 +462,7 @@ class MFAMethodDistribution(BaseModel):
 
 class MFAMethodsDistributionResponse(BaseModel):
     """Response model for MFA methods distribution."""
+
     tenant_id: str
     total_mfa_users: int
     distribution: list[MFAMethodDistribution]
@@ -618,6 +470,7 @@ class MFAMethodsDistributionResponse(BaseModel):
 
 class MFAStrengthDistribution(BaseModel):
     """Distribution of MFA strength levels."""
+
     strength_level: MFAStrengthLevel
     count: int
     percentage: float
@@ -625,6 +478,7 @@ class MFAStrengthDistribution(BaseModel):
 
 class MFAStrengthDistributionResponse(BaseModel):
     """Response model for MFA strength distribution."""
+
     tenant_id: str
     distribution: list[MFAStrengthDistribution]
     strong_mfa_percentage: float
@@ -635,6 +489,7 @@ class MFAStrengthDistributionResponse(BaseModel):
 
 class MFAScanRequest(BaseModel):
     """Request model for triggering MFA scan."""
+
     tenant_id: str
     full_scan: bool = True
     check_compliance: bool = True
@@ -642,6 +497,7 @@ class MFAScanRequest(BaseModel):
 
 class MFAScanResponse(BaseModel):
     """Response model for MFA scan."""
+
     success: bool
     tenant_id: str
     users_scanned: int
@@ -653,6 +509,7 @@ class MFAScanResponse(BaseModel):
 
 class MFAComplianceThresholds(BaseModel):
     """MFA compliance thresholds configuration."""
+
     admin_mfa_required: bool = True
     admin_mfa_strength: MFAStrengthLevel = MFAStrengthLevel.MODERATE
     user_mfa_target_percentage: float = Field(default=95.0, ge=0.0, le=100.0)
@@ -661,12 +518,14 @@ class MFAComplianceThresholds(BaseModel):
 
 class MFAExemptionRequest(BaseModel):
     """Request model for MFA exemption."""
+
     exemption_reason: str = Field(..., min_length=1, max_length=1000)
     expires_at: datetime | None = None
 
 
 class MFAExemptionResponse(BaseModel):
     """Response model for MFA exemption."""
+
     success: bool
     user_id: str
     exemption_granted: bool
@@ -677,11 +536,13 @@ class MFAExemptionResponse(BaseModel):
 
 class MFAResolveAlertRequest(BaseModel):
     """Request model for resolving MFA alert."""
+
     resolved_by: str = Field(..., min_length=1)
 
 
 class MFAResolveAlertResponse(BaseModel):
     """Response model for resolving MFA alert."""
+
     success: bool
     alert_id: str
     is_resolved: bool

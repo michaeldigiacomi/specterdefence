@@ -24,32 +24,27 @@ class OAuthAppsClient:
         "MailboxSettings.Read": {"risk": "medium", "category": "mail"},
         "MailboxSettings.ReadWrite": {"risk": "high", "category": "mail"},
         "Exchange.ManageAsApp": {"risk": "critical", "category": "mail"},
-
         # User access
         "User.Read.All": {"risk": "high", "category": "user"},
         "User.ReadWrite.All": {"risk": "critical", "category": "user"},
         "User.Export.All": {"risk": "critical", "category": "user"},
         "Directory.Read.All": {"risk": "high", "category": "user"},
         "Directory.ReadWrite.All": {"risk": "critical", "category": "user"},
-
         # Group access
         "Group.Read.All": {"risk": "medium", "category": "group"},
         "Group.ReadWrite.All": {"risk": "high", "category": "group"},
         "GroupMember.Read.All": {"risk": "medium", "category": "group"},
         "GroupMember.ReadWrite.All": {"risk": "high", "category": "group"},
-
         # Files access
         "Files.Read.All": {"risk": "high", "category": "files"},
         "Files.ReadWrite.All": {"risk": "critical", "category": "files"},
         "Sites.Read.All": {"risk": "high", "category": "files"},
         "Sites.ReadWrite.All": {"risk": "critical", "category": "files"},
         "Sites.FullControl.All": {"risk": "critical", "category": "files"},
-
         # Calendar access
         "Calendars.Read": {"risk": "medium", "category": "calendar"},
         "Calendars.ReadWrite": {"risk": "high", "category": "calendar"},
         "Calendars.Read.Shared": {"risk": "medium", "category": "calendar"},
-
         # Admin/Role access
         "RoleManagement.Read.Directory": {"risk": "high", "category": "admin"},
         "RoleManagement.ReadWrite.Directory": {"risk": "critical", "category": "admin"},
@@ -57,13 +52,11 @@ class OAuthAppsClient:
         "Application.ReadWrite.All": {"risk": "critical", "category": "admin"},
         "Policy.Read.All": {"risk": "medium", "category": "admin"},
         "Policy.ReadWrite.ConditionalAccess": {"risk": "critical", "category": "admin"},
-
         # Device access
         "Device.Read.All": {"risk": "medium", "category": "device"},
         "Device.ReadWrite.All": {"risk": "high", "category": "device"},
         "DeviceManagementManagedDevices.Read.All": {"risk": "high", "category": "device"},
         "DeviceManagementManagedDevices.ReadWrite.All": {"risk": "critical", "category": "device"},
-
         # Security/Reports
         "SecurityEvents.Read.All": {"risk": "high", "category": "security"},
         "SecurityEvents.ReadWrite.All": {"risk": "critical", "category": "security"},
@@ -99,7 +92,9 @@ class OAuthAppsClient:
                 response = await client.get(
                     url,
                     headers={"Authorization": f"Bearer {token}"},
-                    params=params if url == "https://graph.microsoft.com/v1.0/applications" else None
+                    params=params
+                    if url == "https://graph.microsoft.com/v1.0/applications"
+                    else None,
                 )
 
                 if response.status_code != 200:
@@ -134,11 +129,15 @@ class OAuthAppsClient:
                 response = await client.get(
                     url,
                     headers={"Authorization": f"Bearer {token}"},
-                    params=params if url == "https://graph.microsoft.com/v1.0/servicePrincipals" else None
+                    params=params
+                    if url == "https://graph.microsoft.com/v1.0/servicePrincipals"
+                    else None,
                 )
 
                 if response.status_code != 200:
-                    raise MSGraphAPIError(f"Failed to fetch service principals: {response.status_code}")
+                    raise MSGraphAPIError(
+                        f"Failed to fetch service principals: {response.status_code}"
+                    )
 
                 data = response.json()
                 service_principals.extend(data.get("value", []))
@@ -163,10 +162,7 @@ class OAuthAppsClient:
         url = f"https://graph.microsoft.com/v1.0/servicePrincipals/{app_id}/appRoleAssignments"
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                url,
-                headers={"Authorization": f"Bearer {token}"}
-            )
+            response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
 
             if response.status_code == 404:
                 return []
@@ -192,10 +188,7 @@ class OAuthAppsClient:
         url = f"https://graph.microsoft.com/v1.0/servicePrincipals/{app_id}/oauth2PermissionGrants"
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                url,
-                headers={"Authorization": f"Bearer {token}"}
-            )
+            response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
 
             if response.status_code == 404:
                 return []
@@ -227,7 +220,9 @@ class OAuthAppsClient:
                 response = await client.get(
                     url,
                     headers={"Authorization": f"Bearer {token}"},
-                    params=params if url == "https://graph.microsoft.com/v1.0/oauth2PermissionGrants" else None
+                    params=params
+                    if url == "https://graph.microsoft.com/v1.0/oauth2PermissionGrants"
+                    else None,
                 )
 
                 if response.status_code != 200:
@@ -256,10 +251,7 @@ class OAuthAppsClient:
         url = f"https://graph.microsoft.com/v1.0/oauth2PermissionGrants/{grant_id}"
 
         async with httpx.AsyncClient() as client:
-            response = await client.delete(
-                url,
-                headers={"Authorization": f"Bearer {token}"}
-            )
+            response = await client.delete(url, headers={"Authorization": f"Bearer {token}"})
 
             return response.status_code == 204
 
@@ -279,11 +271,8 @@ class OAuthAppsClient:
         async with httpx.AsyncClient() as client:
             response = await client.patch(
                 url,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
-                },
-                json={"accountEnabled": False}
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json={"accountEnabled": False},
             )
 
             return response.status_code == 204
@@ -302,10 +291,7 @@ class OAuthAppsClient:
         url = f"https://graph.microsoft.com/v1.0/servicePrincipals/{app_id}"
 
         async with httpx.AsyncClient() as client:
-            response = await client.delete(
-                url,
-                headers={"Authorization": f"Bearer {token}"}
-            )
+            response = await client.delete(url, headers={"Authorization": f"Bearer {token}"})
 
             return response.status_code == 204
 
@@ -335,7 +321,9 @@ class OAuthAppsClient:
 
         for perm in permissions:
             # Get permission value from various possible fields
-            perm_value = perm.get("value") or perm.get("appRoleId") or perm.get("principalDisplayName", "")
+            perm_value = (
+                perm.get("value") or perm.get("appRoleId") or perm.get("principalDisplayName", "")
+            )
             if not perm_value:
                 continue
 
@@ -390,7 +378,9 @@ class OAuthAppsClient:
 
         return analysis
 
-    def analyze_app(self, app: dict[str, Any], permissions_analysis: dict[str, Any]) -> dict[str, Any]:
+    def analyze_app(
+        self, app: dict[str, Any], permissions_analysis: dict[str, Any]
+    ) -> dict[str, Any]:
         """Analyze an OAuth application for risk factors.
 
         Args:
@@ -435,7 +425,9 @@ class OAuthAppsClient:
                 analysis["detection_reasons"].append("Mail access by unverified publisher")
             if permissions_analysis.get("has_user_read_all"):
                 risk_score += 15
-                analysis["detection_reasons"].append("User directory access by unverified publisher")
+                analysis["detection_reasons"].append(
+                    "User directory access by unverified publisher"
+                )
 
         # Determine risk level based on score
         if risk_score >= 60:
@@ -470,10 +462,7 @@ class OAuthAppsClient:
         url = f"https://graph.microsoft.com/v1.0/servicePrincipals(appId='{app_id}')"
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                url,
-                headers={"Authorization": f"Bearer {token}"}
-            )
+            response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
 
             if response.status_code != 200:
                 raise MSGraphAPIError(f"Failed to fetch app: {response.status_code}")

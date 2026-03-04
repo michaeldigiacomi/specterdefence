@@ -23,7 +23,9 @@ class TestLogCollectionFlow:
     """Test full log collection flow with mocked O365 API."""
 
     @patch("src.collector.main.O365ManagementClient")
-    async def test_tenant_collector_initialization(self, mock_client_class, test_tenant: TenantModel, db_session):
+    async def test_tenant_collector_initialization(
+        self, mock_client_class, test_tenant: TenantModel, db_session
+    ):
         """Test that TenantCollector initializes correctly with decrypted credentials."""
         # Setup mock
         mock_client = MagicMock()
@@ -42,7 +44,9 @@ class TestLogCollectionFlow:
             assert collector_ctx.client.tenant_id == test_tenant.tenant_id
 
     @patch("src.collector.main.O365ManagementClient")
-    async def test_collection_state_created_on_first_run(self, mock_client_class, test_tenant: TenantModel, db_session):
+    async def test_collection_state_created_on_first_run(
+        self, mock_client_class, test_tenant: TenantModel, db_session
+    ):
         """Test that collection state is created on first collection run."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
@@ -56,7 +60,9 @@ class TestLogCollectionFlow:
             assert state.total_logs_collected == 0
 
     @patch("src.collector.main.O365ManagementClient")
-    async def test_collection_state_retrieved_existing(self, mock_client_class, test_tenant: TenantModel, db_session):
+    async def test_collection_state_retrieved_existing(
+        self, mock_client_class, test_tenant: TenantModel, db_session
+    ):
         """Test that existing collection state is retrieved correctly."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
@@ -78,7 +84,9 @@ class TestLogCollectionFlow:
             assert state.last_collection_time is not None
 
     @patch("src.collector.main.O365ManagementClient")
-    async def test_store_events_in_database(self, mock_client_class, test_tenant: TenantModel, db_session):
+    async def test_store_events_in_database(
+        self, mock_client_class, test_tenant: TenantModel, db_session
+    ):
         """Test that events are stored correctly in the database."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
@@ -119,7 +127,9 @@ class TestLogCollectionFlow:
         assert not logs[0].processed
 
     @patch("src.collector.main.O365ManagementClient")
-    async def test_store_events_with_different_content_types(self, mock_client_class, test_tenant: TenantModel, db_session):
+    async def test_store_events_with_different_content_types(
+        self, mock_client_class, test_tenant: TenantModel, db_session
+    ):
         """Test that different content types are mapped to correct log types."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
@@ -155,7 +165,9 @@ class TestLogCollectionFlow:
         assert logs[2].log_type == LogType.AUDIT_GENERAL
 
     @patch("src.collector.main.O365ManagementClient")
-    async def test_update_collection_state_success(self, mock_client_class, test_tenant: TenantModel, db_session):
+    async def test_update_collection_state_success(
+        self, mock_client_class, test_tenant: TenantModel, db_session
+    ):
         """Test successful collection state update."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
@@ -164,10 +176,7 @@ class TestLogCollectionFlow:
             state = await collector.get_collection_state()
 
             await collector.update_collection_state(
-                state=state,
-                success=True,
-                error_message=None,
-                events_count=100
+                state=state, success=True, error_message=None, events_count=100
             )
             await db_session.commit()
 
@@ -183,7 +192,9 @@ class TestLogCollectionFlow:
         assert updated_state.last_collection_time is not None
 
     @patch("src.collector.main.O365ManagementClient")
-    async def test_update_collection_state_failure(self, mock_client_class, test_tenant: TenantModel, db_session):
+    async def test_update_collection_state_failure(
+        self, mock_client_class, test_tenant: TenantModel, db_session
+    ):
         """Test collection state update on failure."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
@@ -192,10 +203,7 @@ class TestLogCollectionFlow:
             state = await collector.get_collection_state()
 
             await collector.update_collection_state(
-                state=state,
-                success=False,
-                error_message="Rate limit exceeded",
-                events_count=0
+                state=state, success=False, error_message="Rate limit exceeded", events_count=0
             )
             await db_session.commit()
 
@@ -210,7 +218,9 @@ class TestLogCollectionFlow:
         assert updated_state.total_logs_collected == 0
 
     @patch("src.collector.main.O365ManagementClient")
-    async def test_collect_all_with_mocked_client(self, mock_client_class, test_tenant: TenantModel, db_session):
+    async def test_collect_all_with_mocked_client(
+        self, mock_client_class, test_tenant: TenantModel, db_session
+    ):
         """Test full collection with mocked O365 Management client."""
         # Setup mock client
         mock_client = MagicMock()
@@ -240,7 +250,9 @@ class TestLogCollectionFlow:
         assert "Audit.AzureActiveDirectory" in result["content_types"]
 
     @patch("src.collector.main.O365ManagementClient")
-    async def test_get_active_tenants(self, mock_client_class, test_tenants: list[TenantModel], db_session):
+    async def test_get_active_tenants(
+        self, mock_client_class, test_tenants: list[TenantModel], db_session
+    ):
         """Test retrieving active tenants."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
@@ -369,7 +381,9 @@ class TestO365ManagementClient:
             client_secret="test-secret",
         )
 
-        events = await client.download_content("https://mock.blob.core.windows.net/audit-logs/blob.json")
+        events = await client.download_content(
+            "https://mock.blob.core.windows.net/audit-logs/blob.json"
+        )
 
         assert len(events) == 2
         assert events[0]["Id"] == "event-1"

@@ -41,7 +41,7 @@ class TestDiscordWebhookClient:
         mock_client = AsyncMock()
         mock_client.post = AsyncMock(return_value=mock_response)
 
-        with patch.object(client, '_get_client', return_value=mock_client):
+        with patch.object(client, "_get_client", return_value=mock_client):
             result = await client.send_alert(
                 title="Test Alert",
                 description="Test description",
@@ -67,17 +67,13 @@ class TestDiscordWebhookClient:
         mock_response.status_code = 404
         mock_response.text = "Not Found"
         mock_response.raise_for_status = MagicMock(
-            side_effect=HTTPStatusError(
-                "Not Found",
-                request=MagicMock(),
-                response=mock_response
-            )
+            side_effect=HTTPStatusError("Not Found", request=MagicMock(), response=mock_response)
         )
 
         mock_client = AsyncMock()
         mock_client.post = AsyncMock(return_value=mock_response)
 
-        with patch.object(client, '_get_client', return_value=mock_client):
+        with patch.object(client, "_get_client", return_value=mock_client):
             with pytest.raises(DiscordWebhookError) as exc_info:
                 await client.send_alert(
                     title="Test Alert",
@@ -94,7 +90,7 @@ class TestDiscordWebhookClient:
         mock_client = AsyncMock()
         mock_client.post = AsyncMock(side_effect=httpx.RequestError("Connection failed"))
 
-        with patch.object(client, '_get_client', return_value=mock_client):
+        with patch.object(client, "_get_client", return_value=mock_client):
             with pytest.raises(DiscordWebhookError) as exc_info:
                 await client.send_alert(
                     title="Test Alert",
@@ -222,9 +218,7 @@ class TestDiscordWebhookClient:
     @pytest.mark.asyncio
     async def test_build_embed_with_custom_fields(self, client):
         """Test embed building with custom fields."""
-        custom_fields = [
-            {"name": "Custom Field", "value": "Custom Value", "inline": True}
-        ]
+        custom_fields = [{"name": "Custom Field", "value": "Custom Value", "inline": True}]
 
         embed = client._build_embed(
             title="Test Alert",
@@ -244,20 +238,20 @@ class TestDiscordWebhookClient:
     async def test_format_location(self, client):
         """Test location formatting."""
         # City and country
-        assert client._format_location({
-            "city": "New York",
-            "country": "US"
-        }) == "New York, US"
+        assert client._format_location({"city": "New York", "country": "US"}) == "New York, US"
 
         # Only city
-        assert client._format_location({
-            "city": "Paris",
-        }) == "Paris"
+        assert (
+            client._format_location(
+                {
+                    "city": "Paris",
+                }
+            )
+            == "Paris"
+        )
 
         # Only country
-        assert client._format_location({
-            "country": "DE"
-        }) == "DE"
+        assert client._format_location({"country": "DE"}) == "DE"
 
         # Empty
         assert client._format_location({}) == "Unknown"
@@ -265,7 +259,7 @@ class TestDiscordWebhookClient:
     @pytest.mark.asyncio
     async def test_test_webhook_success(self, client):
         """Test webhook test with success."""
-        with patch.object(client, 'send_alert', return_value=True):
+        with patch.object(client, "send_alert", return_value=True):
             result = await client.test_webhook()
 
         assert result is True
@@ -273,7 +267,7 @@ class TestDiscordWebhookClient:
     @pytest.mark.asyncio
     async def test_test_webhook_failure(self, client):
         """Test webhook test with failure."""
-        with patch.object(client, 'send_alert', side_effect=DiscordWebhookError("Failed")):
+        with patch.object(client, "send_alert", side_effect=DiscordWebhookError("Failed")):
             result = await client.test_webhook()
 
         assert result is False
@@ -295,7 +289,7 @@ class TestDiscordWebhookClient:
         mock_client = AsyncMock()
         mock_client.post = AsyncMock(side_effect=ValueError("Unexpected error"))
 
-        with patch.object(client, '_get_client', return_value=mock_client):
+        with patch.object(client, "_get_client", return_value=mock_client):
             with pytest.raises(DiscordWebhookError) as exc_info:
                 await client.send_alert(
                     title="Test Alert",

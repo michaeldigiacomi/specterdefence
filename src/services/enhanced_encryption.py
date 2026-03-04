@@ -17,11 +17,13 @@ from src.config import settings
 
 class EncryptionError(Exception):
     """Raised when encryption/decryption operations fail."""
+
     pass
 
 
 class KeyRotationError(Exception):
     """Raised when key rotation operations fail."""
+
     pass
 
 
@@ -35,7 +37,7 @@ class EncryptedData:
         key_version: int = 1,
         encrypted_at: str | None = None,
         nonce: str | None = None,
-        tag: str | None = None
+        tag: str | None = None,
     ):
         self.ciphertext = ciphertext
         self.algorithm = algorithm
@@ -50,7 +52,7 @@ class EncryptedData:
             "ciphertext": self.ciphertext,
             "algorithm": self.algorithm,
             "key_version": self.key_version,
-            "encrypted_at": self.encrypted_at
+            "encrypted_at": self.encrypted_at,
         }
         if self.nonce:
             data["nonce"] = self.nonce
@@ -67,7 +69,7 @@ class EncryptedData:
             key_version=data.get("key_version", 1),
             encrypted_at=data.get("encrypted_at"),
             nonce=data.get("nonce"),
-            tag=data.get("tag")
+            tag=data.get("tag"),
         )
 
     def to_json(self) -> str:
@@ -98,9 +100,9 @@ class EnhancedEncryptionService:
         """Initialize encryption keys from configuration."""
         # Primary key (current)
         primary_key = self._derive_key(
-            getattr(settings, 'ENCRYPTION_KEY', settings.SECRET_KEY),
-            getattr(settings, 'ENCRYPTION_SALT', None),
-            version=1
+            getattr(settings, "ENCRYPTION_KEY", settings.SECRET_KEY),
+            getattr(settings, "ENCRYPTION_SALT", None),
+            version=1,
         )
         self._keys[1] = primary_key
         self._fernets[1] = Fernet(base64.urlsafe_b64encode(primary_key))
@@ -109,28 +111,23 @@ class EnhancedEncryptionService:
         # Format: ENCRYPTION_KEY_v2, ENCRYPTION_KEY_v3, etc.
         version = 2
         while True:
-            key_env = getattr(settings, f'ENCRYPTION_KEY_v{version}', None)
+            key_env = getattr(settings, f"ENCRYPTION_KEY_v{version}", None)
             if not key_env:
                 break
-            salt_env = getattr(settings, f'ENCRYPTION_SALT_v{version}', None)
+            salt_env = getattr(settings, f"ENCRYPTION_SALT_v{version}", None)
             key = self._derive_key(key_env, salt_env, version=version)
             self._keys[version] = key
             self._fernets[version] = Fernet(base64.urlsafe_b64encode(key))
             version += 1
 
         # Determine current key version from env or use latest
-        current_version = getattr(settings, 'ENCRYPTION_KEY_VERSION', None)
+        current_version = getattr(settings, "ENCRYPTION_KEY_VERSION", None)
         if current_version:
             self._current_key_version = int(current_version)
         else:
             self._current_key_version = max(self._keys.keys())
 
-    def _derive_key(
-        self,
-        secret_key: str,
-        salt_input: str | None,
-        version: int = 1
-    ) -> bytes:
+    def _derive_key(self, secret_key: str, salt_input: str | None, version: int = 1) -> bytes:
         """Derive encryption key using PBKDF2.
 
         Args:
@@ -164,10 +161,7 @@ class EnhancedEncryptionService:
         return kdf.derive(secret_key_bytes)
 
     def encrypt(
-        self,
-        plaintext: str,
-        algorithm: str | None = None,
-        key_version: int | None = None
+        self, plaintext: str, algorithm: str | None = None, key_version: int | None = None
     ) -> str:
         """Encrypt a string with metadata.
 
@@ -197,8 +191,12 @@ class EnhancedEncryptionService:
             ciphertext=base64.urlsafe_b64encode(encrypted["ciphertext"]).decode(),
             algorithm=algorithm,
             key_version=key_version,
-            nonce=base64.urlsafe_b64encode(encrypted["nonce"]).decode() if encrypted.get("nonce") else None,
-            tag=base64.urlsafe_b64encode(encrypted["tag"]).decode() if encrypted.get("tag") else None
+            nonce=base64.urlsafe_b64encode(encrypted["nonce"]).decode()
+            if encrypted.get("nonce")
+            else None,
+            tag=base64.urlsafe_b64encode(encrypted["tag"]).decode()
+            if encrypted.get("tag")
+            else None,
         )
 
         return encrypted_data.to_json()
@@ -230,11 +228,7 @@ class EnhancedEncryptionService:
         tag = ciphertext[-16:]
         ciphertext = ciphertext[:-16]
 
-        return {
-            "ciphertext": ciphertext,
-            "nonce": nonce,
-            "tag": tag
-        }
+        return {"ciphertext": ciphertext, "nonce": nonce, "tag": tag}
 
     def decrypt(self, encrypted_json: str) -> str:
         """Decrypt an encrypted JSON string.
@@ -292,7 +286,9 @@ class EnhancedEncryptionService:
         fernet = self._fernets[key_version]
         return fernet.decrypt(ciphertext).decode()
 
-    def _decrypt_aes256_gcm(self, ciphertext: bytes, nonce: bytes, tag: bytes, key_version: int) -> str:
+    def _decrypt_aes256_gcm(
+        self, ciphertext: bytes, nonce: bytes, tag: bytes, key_version: int
+    ) -> str:
         """Decrypt using AES-256-GCM."""
         if key_version not in self._keys:
             raise EncryptionError(f"Key version {key_version} not available")
@@ -344,7 +340,7 @@ class EnhancedEncryptionService:
                 "algorithm": encrypted_data.algorithm,
                 "key_version": encrypted_data.key_version,
                 "encrypted_at": encrypted_data.encrypted_at,
-                "needs_rotation": encrypted_data.key_version != self._current_key_version
+                "needs_rotation": encrypted_data.key_version != self._current_key_version,
             }
         except (json.JSONDecodeError, KeyError):
             # Legacy format
@@ -352,7 +348,7 @@ class EnhancedEncryptionService:
                 "algorithm": "fernet",
                 "key_version": "legacy",
                 "encrypted_at": None,
-                "needs_rotation": True
+                "needs_rotation": True,
             }
 
     def generate_new_key(self) -> tuple[str, str]:
@@ -363,10 +359,7 @@ class EnhancedEncryptionService:
         """
         key = secrets.token_bytes(32)
         salt = secrets.token_bytes(16)
-        return (
-            base64.urlsafe_b64encode(key).decode(),
-            base64.urlsafe_b64encode(salt).decode()
-        )
+        return (base64.urlsafe_b64encode(key).decode(), base64.urlsafe_b64encode(salt).decode())
 
 
 # Global enhanced encryption service instance

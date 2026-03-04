@@ -97,7 +97,7 @@ class TestCAPoliciesClient:
         mock_response1.status_code = 200
         mock_response1.json.return_value = {
             "value": [{"id": "policy-1", "displayName": "Policy 1", "state": "enabled"}],
-            "@odata.nextLink": "https://next.page"
+            "@odata.nextLink": "https://next.page",
         }
 
         mock_response2 = MagicMock()
@@ -242,7 +242,9 @@ class TestCAPoliciesClient:
             "conditions": {
                 "users": {"includeUsers": ["All"]},
                 "applications": {"includeApplications": ["All"]},
-                "devices": {"deviceFilter": {"mode": "include", "rule": "device.isCompliant -eq true"}},
+                "devices": {
+                    "deviceFilter": {"mode": "include", "rule": "device.isCompliant -eq true"}
+                },
             },
             "grantControls": {"operator": "OR", "builtInControls": ["compliantDevice"]},
         }
@@ -262,7 +264,9 @@ class TestCAPoliciesClient:
                 "users": {
                     "includeGuestsOrExternalUsers": {
                         "guestOrExternalUserTypes": "internalGuest,b2bCollaborationGuest",
-                        "externalTenants": {"@odata.type": "microsoft.graph.conditionalAccessAllExternalTenants"},
+                        "externalTenants": {
+                            "@odata.type": "microsoft.graph.conditionalAccessAllExternalTenants"
+                        },
                     },
                 },
                 "applications": {"includeApplications": ["All"]},
@@ -298,7 +302,9 @@ class TestCAPoliciesClient:
 
         assert result["has_session_controls"] is True
         assert result["sign_in_frequency"] == 4
-        assert result["sign_in_frequency_authentication_type"] == "primaryAndSecondaryAuthentication"
+        assert (
+            result["sign_in_frequency_authentication_type"] == "primaryAndSecondaryAuthentication"
+        )
 
     def test_analyze_policy_with_platforms(self, ca_client):
         """Test policy analysis with platform conditions."""
@@ -524,8 +530,7 @@ class TestCAPoliciesClient:
 
         for pattern in vip_patterns:
             assert any(
-                pattern.lower() in p or p in pattern.lower()
-                for p in ca_client.VIP_GROUP_PATTERNS
+                pattern.lower() in p or p in pattern.lower() for p in ca_client.VIP_GROUP_PATTERNS
             ), f"Pattern {pattern} should be detected as VIP"
 
     @pytest.mark.asyncio
