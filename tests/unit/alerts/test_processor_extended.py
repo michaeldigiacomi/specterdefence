@@ -20,11 +20,11 @@ class TestAlertEngine:
     """Tests for AlertEngine."""
 
     @pytest.fixture
-    def engine(self, test_db):
+    def engine(self, db_session):
         """Create an AlertEngine with test database."""
-        return AlertEngine(test_db)
+        return AlertEngine(db_session)
 
-    async def test_process_event_creates_alert(self, engine, test_db):
+    async def test_process_event_creates_alert(self, engine, db_session):
         """Test that processing an event creates alerts."""
         # Create webhook and rule
         webhook = AlertWebhookModel(
@@ -40,8 +40,8 @@ class TestAlertEngine:
             cooldown_minutes=30,
             is_active=True,
         )
-        test_db.add_all([webhook, rule])
-        await test_db.commit()
+        db_session.add_all([webhook, rule])
+        await db_session.commit()
 
         # Process an event
         results = await engine.process_event(
@@ -60,7 +60,7 @@ class TestAlertEngine:
         # Results may be empty if no webhooks are found, but should not error
         assert isinstance(results, list)
 
-    async def test_process_event_no_matching_rules(self, engine, test_db):
+    async def test_process_event_no_matching_rules(self, engine, db_session):
         """Test that events with no matching rules don't create alerts."""
         # Create a rule for a different event type
         rule = AlertRuleModel(
@@ -70,8 +70,8 @@ class TestAlertEngine:
             cooldown_minutes=30,
             is_active=True,
         )
-        test_db.add(rule)
-        await test_db.commit()
+        db_session.add(rule)
+        await db_session.commit()
 
         # Process an impossible travel event (shouldn't match brute force rule)
         results = await engine.process_event(
@@ -86,7 +86,7 @@ class TestAlertEngine:
 
         assert len(results) == 0
 
-    async def test_process_event_severity_too_low(self, engine, test_db):
+    async def test_process_event_severity_too_low(self, engine, db_session):
         """Test that events below minimum severity don't create alerts."""
         rule = AlertRuleModel(
             name="Test Rule",
@@ -95,8 +95,8 @@ class TestAlertEngine:
             cooldown_minutes=30,
             is_active=True,
         )
-        test_db.add(rule)
-        await test_db.commit()
+        db_session.add(rule)
+        await db_session.commit()
 
         # Process a medium severity event (below HIGH)
         results = await engine.process_event(
@@ -111,7 +111,7 @@ class TestAlertEngine:
 
         assert len(results) == 0
 
-    async def test_process_event_inactive_rule(self, engine, test_db):
+    async def test_process_event_inactive_rule(self, engine, db_session):
         """Test that inactive rules don't trigger alerts."""
         rule = AlertRuleModel(
             name="Test Rule",
@@ -120,8 +120,8 @@ class TestAlertEngine:
             cooldown_minutes=30,
             is_active=False,  # Inactive
         )
-        test_db.add(rule)
-        await test_db.commit()
+        db_session.add(rule)
+        await db_session.commit()
 
         results = await engine.process_event(
             event_type=EventType.IMPOSSIBLE_TRAVEL,
@@ -173,7 +173,7 @@ class TestAlertEngine:
 class TestAlertRules:
     """Tests for alert rules functionality."""
 
-    async def test_create_alert_rule(self, test_db):
+    async def test_create_alert_rule(self, db_session):
         """Test creating an alert rule."""
         rule = AlertRuleModel(
             name="Test Rule",
@@ -182,16 +182,16 @@ class TestAlertRules:
             cooldown_minutes=60,
             is_active=True,
         )
-        test_db.add(rule)
-        await test_db.commit()
-        await test_db.refresh(rule)
+        db_session.add(rule)
+        await db_session.commit()
+        await db_session.refresh(rule)
 
         assert rule.id is not None
         assert rule.name == "Test Rule"
         assert EventType.IMPOSSIBLE_TRAVEL in rule.event_types
         assert rule.min_severity == SeverityLevel.HIGH
 
-    async def test_create_webhook(self, test_db):
+    async def test_create_webhook(self, db_session):
         """Test creating a webhook."""
         webhook = AlertWebhookModel(
             name="Discord Webhook",
@@ -199,15 +199,15 @@ class TestAlertRules:
             webhook_type=WebhookType.DISCORD,
             is_active=True,
         )
-        test_db.add(webhook)
-        await test_db.commit()
-        await test_db.refresh(webhook)
+        db_session.add(webhook)
+        await db_session.commit()
+        await db_session.refresh(webhook)
 
         assert webhook.id is not None
         assert webhook.name == "Discord Webhook"
         assert webhook.webhook_type == WebhookType.DISCORD
 
-    async def test_alert_history_creation(self, test_db):
+    async def test_alert_history_creation(self, db_session):
         """Test creating alert history entry."""
         webhook = AlertWebhookModel(
             name="Test Webhook",
@@ -215,9 +215,9 @@ class TestAlertRules:
             webhook_type=WebhookType.DISCORD,
             is_active=True,
         )
-        test_db.add(webhook)
-        await test_db.commit()
-        await test_db.refresh(webhook)
+        db_session.add(webhook)
+        await db_session.commit()
+        await db_session.refresh(webhook)
 
         rule = AlertRuleModel(
             name="Test Rule",
@@ -226,9 +226,9 @@ class TestAlertRules:
             cooldown_minutes=30,
             is_active=True,
         )
-        test_db.add(rule)
-        await test_db.commit()
-        await test_db.refresh(rule)
+        db_session.add(rule)
+        await db_session.commit()
+        await db_session.refresh(rule)
 
         history = AlertHistoryModel(
             rule_id=rule.id,
@@ -241,9 +241,9 @@ class TestAlertRules:
             alert_metadata={"countries": ["US", "JP"]},
             dedup_hash="test-hash-123",
         )
-        test_db.add(history)
-        await test_db.commit()
-        await test_db.refresh(history)
+        db_session.add(history)
+        await db_session.commit()
+        await db_session.refresh(history)
 
         assert history.id is not None
         assert history.severity == SeverityLevel.HIGH

@@ -98,6 +98,7 @@ class FailedLoginTracker:
             suppress_after_alert_minutes: How long to suppress alerts after triggering
         """
         self.redis = redis_client
+        self._redis_explicitly_none = redis_client is None
         self.failure_threshold = failure_threshold
         self.window_minutes = window_minutes
         self.suppress_after_alert_minutes = suppress_after_alert_minutes
@@ -105,6 +106,9 @@ class FailedLoginTracker:
 
     async def _get_redis(self) -> Any | None:
         """Get Redis client or None if unavailable."""
+        # If redis was explicitly set to None (not just not provided), don't auto-connect
+        if hasattr(self, '_redis_explicitly_none') and self._redis_explicitly_none:
+            return None
         if self.redis is None and HAS_REDIS:
             try:
                 self.redis = await redis.from_url(
