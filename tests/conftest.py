@@ -63,8 +63,10 @@ def client() -> Generator:
 
 @pytest_asyncio.fixture
 async def async_client() -> AsyncGenerator[AsyncClient, None]:
-    """Create an async test client."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    """Create an async test client using ASGI transport."""
+    from httpx import ASGITransport
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
 
@@ -141,6 +143,13 @@ def mock_db():
     mock.execute.return_value = mock_result
     
     return mock
+
+
+# Alias for compatibility with tests that use test_db
+@pytest.fixture
+def test_db(mock_db):
+    """Alias for mock_db fixture."""
+    return mock_db
 
 
 # Mock tenant fixture
