@@ -783,7 +783,7 @@ class TestSecurityEventScenarios:
             .where(
                 and_(
                     LoginAnalyticsModel.user_email == "target@victim.com",
-                    not LoginAnalyticsModel.is_success,
+                    LoginAnalyticsModel.is_success.is_(False),
                 )
             )
             .order_by(LoginAnalyticsModel.login_time.desc())

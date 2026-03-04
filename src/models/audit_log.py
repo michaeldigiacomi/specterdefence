@@ -1,7 +1,7 @@
 """Audit log database models for SpecterDefence."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
@@ -17,8 +17,8 @@ from src.models.types import JSONB, UUID
 
 
 def utc_now() -> datetime:
-    """Return current UTC datetime."""
-    return datetime.utcnow()
+    """Return current UTC datetime with timezone info."""
+    return datetime.now(timezone.utc)
 
 
 class LogType(StrEnum):

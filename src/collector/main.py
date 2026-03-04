@@ -8,7 +8,7 @@ import asyncio
 import logging
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -52,6 +52,20 @@ class CollectorError(Exception):
     """Base exception for collector errors."""
 
     pass
+
+
+def ensure_timezone_aware(dt: datetime) -> datetime:
+    """Ensure datetime is timezone-aware (UTC).
+
+    Args:
+        dt: Datetime that may or may not have timezone info.
+
+    Returns:
+        Timezone-aware datetime in UTC.
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 class TenantCollector:
@@ -245,8 +259,10 @@ class TenantCollector:
         if state.last_collection_time:
             # Start from last collection time, but not more than 24 hours ago
             # (O365 API limit for historical data)
+            # Ensure both datetimes are timezone-aware for comparison
+            last_time = ensure_timezone_aware(state.last_collection_time)
             start_time = max(
-                state.last_collection_time, end_time - timedelta(hours=23)  # Leave buffer for API
+                last_time, end_time - timedelta(hours=23)  # Leave buffer for API
             )
         else:
             # First time collection - go back configured lookback period
