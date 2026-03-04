@@ -525,7 +525,7 @@ _failed_login_tracker: FailedLoginTracker | None = None
 
 
 def get_failed_login_tracker(
-    redis_client: redis.Redis | None = None,
+    redis_client: Any | None = None,
     failure_threshold: int = FailedLoginTracker.DEFAULT_FAILURE_THRESHOLD,
     window_minutes: int = FailedLoginTracker.DEFAULT_WINDOW_MINUTES,
 ) -> FailedLoginTracker:

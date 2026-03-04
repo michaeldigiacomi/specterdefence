@@ -1,14 +1,13 @@
 """Unit tests for the failed login tracking service with Redis sliding window."""
 
-# Skip entire file - Redis mocking issues causing test failures
-# TODO: Fix these tests properly when Redis integration is prioritized
-import pytest
-pytestmark = pytest.mark.skip(reason="Redis mocking issues - needs refactor")
-
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
+# Skip entire file - Redis mocking issues causing test failures
+# TODO: Fix these tests properly when Redis integration is prioritized
+pytestmark = pytest.mark.skip(reason="Redis mocking issues - needs refactor")
 
 # Try to import redis, create mock if not available
 try:
