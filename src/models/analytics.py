@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 def utc_now() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(UTC)
+    return datetime.utcnow()
 
 
 class LoginAnalyticsModel(Base):

@@ -231,7 +231,7 @@ class AlertStreamService:
 
         alert.status = AlertStatus.ACKNOWLEDGED
         alert.acknowledged_by = acknowledged_by
-        alert.acknowledged_at = datetime.now(UTC)
+        alert.acknowledged_at = datetime.utcnow()
 
         logger.info(f"Alert {alert_id} acknowledged by {acknowledged_by}")
         return True
@@ -252,7 +252,7 @@ class AlertStreamService:
 
         alert.status = AlertStatus.DISMISSED
         alert.acknowledged_by = dismissed_by
-        alert.acknowledged_at = datetime.now(UTC)
+        alert.acknowledged_at = datetime.utcnow()
 
         logger.info(f"Alert {alert_id} dismissed by {dismissed_by}")
         return True

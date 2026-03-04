@@ -9,8 +9,8 @@ from src.database import Base
 
 
 def utc_now() -> datetime:
-    """Return current UTC datetime."""
-    return datetime.now(UTC)
+    """Return current UTC datetime (timezone-naive for PostgreSQL compatibility)."""
+    return datetime.utcnow()
 
 
 class UserModel(Base):

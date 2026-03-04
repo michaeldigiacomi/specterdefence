@@ -79,7 +79,7 @@ class SettingsService:
             if hasattr(settings, field):
                 setattr(settings, field, value)
 
-        settings.updated_at = datetime.now(UTC)
+        settings.updated_at = datetime.utcnow()
         await self.db.commit()
         await self.db.refresh(settings)
 
@@ -129,7 +129,7 @@ class SettingsService:
             if hasattr(prefs, field):
                 setattr(prefs, field, value)
 
-        prefs.updated_at = datetime.now(UTC)
+        prefs.updated_at = datetime.utcnow()
         await self.db.commit()
         await self.db.refresh(prefs)
 
@@ -195,7 +195,7 @@ class SettingsService:
             if hasattr(thresholds, field):
                 setattr(thresholds, field, value)
 
-        thresholds.updated_at = datetime.now(UTC)
+        thresholds.updated_at = datetime.utcnow()
         await self.db.commit()
         await self.db.refresh(thresholds)
 
@@ -231,7 +231,7 @@ class SettingsService:
         expires_at = None
         if expires_days:
             from datetime import timedelta
-            expires_at = datetime.now(UTC) + timedelta(days=expires_days)
+            expires_at = datetime.utcnow() + timedelta(days=expires_days)
 
         api_key_model = ApiKeyModel(
             name=name,
@@ -366,11 +366,11 @@ class SettingsService:
             return None
 
         # Check expiration
-        if key_model.expires_at and key_model.expires_at < datetime.now(UTC):
+        if key_model.expires_at and key_model.expires_at < datetime.utcnow():
             return None
 
         # Update last used
-        key_model.last_used_at = datetime.now(UTC)
+        key_model.last_used_at = datetime.utcnow()
         await self.db.commit()
 
         return key_model

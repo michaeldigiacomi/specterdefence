@@ -14,7 +14,7 @@ from src.models.types import JSONB, UUID
 
 def utc_now() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(UTC)
+    return datetime.utcnow()
 
 
 class TimeZone(StrEnum):

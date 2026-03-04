@@ -21,38 +21,23 @@ COPY frontend/ ./
 RUN npm run build
 
 # ============================================
-# Stage 2: Build Python dependencies
-# ============================================
-FROM python:3.12-slim AS python-builder
-
-WORKDIR /app
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt && \
-    pip list | grep msal
-
-# ============================================
-# Stage 3: Production image
+# Stage 2: Production image
 # ============================================
 FROM python:3.12-slim AS production
 
 WORKDIR /app
 
-# Create non-root user
-RUN useradd --create-home --shell /bin/bash app && \
-    chown -R app:app /app
+# Install build dependencies and create user in one layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app
 
-# Copy Python dependencies from builder
-COPY --from=python-builder /root/.local /home/app/.local
-
-# Verify msal is installed
-RUN python -c "import msal; print('msal version:', msal.__version__)"
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip list | grep msal
 
 # Copy application code
 COPY --chown=app:app src/ ./src/
@@ -61,8 +46,7 @@ COPY --chown=app:app src/ ./src/
 COPY --from=frontend-builder --chown=app:app /app/frontend/dist ./frontend/dist/
 
 # Set environment
-ENV PATH=/home/app/.local/bin:$PATH \
-    PYTHONDONTWRITEBYTECODE=1 \
+ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
 
@@ -76,7 +60,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ============================================
-# Stage 4: Development image
+# Stage 3: Development image
 # ============================================
 FROM python:3.12-slim AS development
 

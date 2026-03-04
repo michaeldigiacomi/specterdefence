@@ -11,7 +11,7 @@ from src.database import Base
 
 def utc_now() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(UTC)
+    return datetime.utcnow()
 
 
 class TenantModel(Base):

@@ -343,7 +343,7 @@ class TenantService:
             is_active=True,
             connection_status=initial_status,
             connection_error=connection_error,
-            last_health_check=datetime.now(UTC) if validate else None
+            last_health_check=datetime.utcnow() if validate else None
         )
 
         self.db.add(tenant)
