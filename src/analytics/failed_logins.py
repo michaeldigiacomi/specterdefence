@@ -5,7 +5,12 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
-import redis.asyncio as redis
+try:
+    import redis.asyncio as redis
+    HAS_REDIS = True
+except ImportError:
+    HAS_REDIS = False
+    redis = None
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +83,7 @@ class FailedLoginTracker:
 
     def __init__(
         self,
-        redis_client: redis.Redis | None = None,
+        redis_client: Any | None = None,
         failure_threshold: int = DEFAULT_FAILURE_THRESHOLD,
         window_minutes: int = DEFAULT_WINDOW_MINUTES,
         suppress_after_alert_minutes: int = DEFAULT_SUPPRESS_AFTER_ALERT_MINUTES,
@@ -87,7 +92,7 @@ class FailedLoginTracker:
         Initialize the failed login tracker.
 
         Args:
-            redis_client: Redis client instance
+            redis_client: Redis client instance (optional)
             failure_threshold: Number of failures to trigger alert
             window_minutes: Sliding window size in minutes
             suppress_after_alert_minutes: How long to suppress alerts after triggering
@@ -98,9 +103,9 @@ class FailedLoginTracker:
         self.suppress_after_alert_minutes = suppress_after_alert_minutes
         self._local_cache: dict[str, list[datetime]] = {}  # Fallback if Redis unavailable
 
-    async def _get_redis(self) -> redis.Redis | None:
+    async def _get_redis(self) -> Any | None:
         """Get Redis client or None if unavailable."""
-        if self.redis is None:
+        if self.redis is None and HAS_REDIS:
             try:
                 self.redis = await redis.from_url(
                     "redis://localhost:6379", encoding="utf-8", decode_responses=True
