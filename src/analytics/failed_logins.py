@@ -170,8 +170,8 @@ class FailedLoginTracker:
         user_key = self._get_user_key(user_email, tenant_id)
         ip_key = self._get_ip_key(ip_address, tenant_id)
 
-        # Store failure details
-        failure_data = {
+        # Store failure details (for future use)
+        _failure_data = {
             "timestamp": timestamp.isoformat(),
             "error_code": error_code,
             "failure_reason": failure_reason,
