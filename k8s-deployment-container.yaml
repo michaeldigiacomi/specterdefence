@@ -46,7 +46,7 @@ spec:
         - name: ghcr-registry-secret
       containers:
         - name: specterdefence
-          image: ghcr.io/digiacomi-shared/specterdefence:v1.1.0-password-fix
+          image: ghcr.io/digiacomi-shared/specterdefence:v1.1.2-datetime-fix
           imagePullPolicy: Always
           ports:
             - name: http
