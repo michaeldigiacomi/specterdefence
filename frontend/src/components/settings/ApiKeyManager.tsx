@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Plus, Copy, Trash2, X, Key,
-  Clock, Shield, CheckCircle
+  Clock, Shield, CheckCircle, Save
 } from 'lucide-react';
 import { 
   useApiKeys, 

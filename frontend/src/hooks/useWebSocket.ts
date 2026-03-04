@@ -53,7 +53,7 @@ export interface UseWebSocketReturn {
   };
 }
 
-// @ts-expect-error - import.meta is not fully typed
+// @ts-ignore - import.meta is not fully typed
 const WS_URL = (import.meta as any).env?.VITE_WS_URL || 'ws://localhost:8000/ws/alerts';
 const RECONNECT_INTERVAL = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
