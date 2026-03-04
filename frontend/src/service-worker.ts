@@ -25,7 +25,7 @@ const API_ROUTES = [
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
-  
+
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Caching static assets');
@@ -34,7 +34,7 @@ self.addEventListener('install', (event) => {
       console.error('[SW] Failed to cache static assets:', err);
     })
   );
-  
+
   // Skip waiting to activate immediately
   self.skipWaiting();
 });
@@ -42,7 +42,7 @@ self.addEventListener('install', (event) => {
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating service worker...');
-  
+
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -65,31 +65,31 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  
+
   // Skip non-GET requests
   if (request.method !== 'GET') {
     return;
   }
-  
+
   // Skip cross-origin requests
   if (url.origin !== self.location.origin) {
     return;
   }
-  
+
   // API routes - Network first, fallback to cache
   if (API_ROUTES.some((route) => url.pathname.startsWith(route))) {
     event.respondWith(networkFirstStrategy(request));
     return;
   }
-  
+
   // Static assets - Cache first, fallback to network
-  if (STATIC_ASSETS.includes(url.pathname) || 
+  if (STATIC_ASSETS.includes(url.pathname) ||
       url.pathname.startsWith('/assets/') ||
       url.pathname.startsWith('/icons/')) {
     event.respondWith(cacheFirstStrategy(request));
     return;
   }
-  
+
   // Default - Stale while revalidate
   event.respondWith(staleWhileRevalidateStrategy(request));
 });
@@ -98,21 +98,21 @@ self.addEventListener('fetch', (event) => {
 async function networkFirstStrategy(request: Request): Promise<Response> {
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.log('[SW] Network failed, trying cache:', request.url);
     const cachedResponse = await caches.match(request);
-    
+
     if (cachedResponse) {
       return cachedResponse;
     }
-    
+
     // Return offline fallback for API
     return new Response(
       JSON.stringify({
@@ -132,7 +132,7 @@ async function networkFirstStrategy(request: Request): Promise<Response> {
 // Cache first strategy - for static assets
 async function cacheFirstStrategy(request: Request): Promise<Response> {
   const cachedResponse = await caches.match(request);
-  
+
   if (cachedResponse) {
     // Update cache in background
     fetch(request).then((networkResponse) => {
@@ -144,24 +144,24 @@ async function cacheFirstStrategy(request: Request): Promise<Response> {
     }).catch(() => {
       // Ignore network errors for background updates
     });
-    
+
     return cachedResponse;
   }
-  
+
   const networkResponse = await fetch(request);
-  
+
   if (networkResponse.ok) {
     const cache = await caches.open(CACHE_NAME);
     cache.put(request, networkResponse.clone());
   }
-  
+
   return networkResponse;
 }
 
 // Stale while revalidate strategy - for pages
 async function staleWhileRevalidateStrategy(request: Request): Promise<Response> {
   const cachedResponse = await caches.match(request);
-  
+
   const networkFetch = fetch(request).then((networkResponse) => {
     if (networkResponse.ok) {
       caches.open(CACHE_NAME).then((cache) => {
@@ -173,17 +173,17 @@ async function staleWhileRevalidateStrategy(request: Request): Promise<Response>
     console.log('[SW] Network fetch failed:', error);
     return null;
   });
-  
+
   if (cachedResponse) {
     return cachedResponse;
   }
-  
+
   const networkResponse = await networkFetch;
-  
+
   if (networkResponse) {
     return networkResponse;
   }
-  
+
   // Return offline page
   return caches.match('/index.html').then((response) => {
     return response || new Response('Offline', { status: 503 });
@@ -193,11 +193,11 @@ async function staleWhileRevalidateStrategy(request: Request): Promise<Response>
 // Push notification event
 self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received:', event);
-  
+
   if (!event.data) {
     return;
   }
-  
+
   let data: PushNotificationData;
   try {
     data = event.data.json() as PushNotificationData;
@@ -210,8 +210,8 @@ self.addEventListener('push', (event) => {
       tag: 'default',
     };
   }
-  
-  const options: NotificationOptions & { 
+
+  const options: NotificationOptions & {
     actions?: Array<{ action: string; title: string }>;
     timestamp?: number;
     vibrate?: number[];
@@ -229,7 +229,7 @@ self.addEventListener('push', (event) => {
     timestamp: Date.now(),
     vibrate: data.vibrate || [200, 100, 200],
   };
-  
+
   event.waitUntil(
     self.registration.showNotification(data.title, options)
   );
@@ -238,29 +238,29 @@ self.addEventListener('push', (event) => {
 // Notification click event
 self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked:', event);
-  
+
   event.notification.close();
-  
+
   const notificationData = event.notification.data as NotificationData;
   const action = event.action;
-  
+
   if (action === 'dismiss') {
     // Just close the notification
     return;
   }
-  
+
   // Default action or 'view' - open the app
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       const url = notificationData?.url || '/';
-      
+
       // Check if there's already a window open
       for (const client of clientList) {
         if (client.url === url && 'focus' in client) {
           return client.focus();
         }
       }
-      
+
       // Open new window
       if (self.clients.openWindow) {
         return self.clients.openWindow(url);
@@ -273,7 +273,7 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('sync', ((event: Event) => {
   const syncEvent = event as SyncEvent;
   console.log('[SW] Background sync:', syncEvent.tag);
-  
+
   if (syncEvent.tag === 'sync-alerts') {
     syncEvent.waitUntil(syncPendingAlerts());
   } else if (syncEvent.tag === 'sync-acknowledgments') {
@@ -286,13 +286,13 @@ async function syncPendingAlerts(): Promise<void> {
   try {
     const cache = await caches.open(CACHE_NAME);
     const pendingRequests = await cache.match('pending-alerts');
-    
+
     if (!pendingRequests) {
       return;
     }
-    
+
     const requests: PendingRequest[] = await pendingRequests.json();
-    
+
     for (const request of requests) {
       try {
         await fetch(request.url, {
@@ -304,7 +304,7 @@ async function syncPendingAlerts(): Promise<void> {
         console.error('[SW] Failed to sync pending alert:', error);
       }
     }
-    
+
     // Clear pending alerts after sync
     await cache.delete('pending-alerts');
   } catch (error) {
@@ -317,13 +317,13 @@ async function syncPendingAcknowledgments(): Promise<void> {
   try {
     const cache = await caches.open(CACHE_NAME);
     const pendingRequests = await cache.match('pending-acknowledgments');
-    
+
     if (!pendingRequests) {
       return;
     }
-    
+
     const requests: PendingRequest[] = await pendingRequests.json();
-    
+
     for (const request of requests) {
       try {
         await fetch(request.url, {
@@ -335,7 +335,7 @@ async function syncPendingAcknowledgments(): Promise<void> {
         console.error('[SW] Failed to sync pending acknowledgment:', error);
       }
     }
-    
+
     // Clear pending acknowledgments after sync
     await cache.delete('pending-acknowledgments');
   } catch (error) {
@@ -346,16 +346,16 @@ async function syncPendingAcknowledgments(): Promise<void> {
 // Message handling from main thread
 self.addEventListener('message', (event) => {
   const { type, payload } = event.data as ServiceWorkerMessage;
-  
+
   switch (type) {
     case 'SKIP_WAITING':
       self.skipWaiting();
       break;
-      
+
     case 'GET_VERSION':
       event.ports[0]?.postMessage({ version: CACHE_NAME });
       break;
-      
+
     case 'CACHE_URLS':
       event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
@@ -363,7 +363,7 @@ self.addEventListener('message', (event) => {
         })
       );
       break;
-      
+
     case 'CLEAR_CACHE':
       event.waitUntil(
         caches.delete(CACHE_NAME).then(() => {
@@ -371,7 +371,7 @@ self.addEventListener('message', (event) => {
         })
       );
       break;
-      
+
     default:
       console.log('[SW] Unknown message type:', type);
   }

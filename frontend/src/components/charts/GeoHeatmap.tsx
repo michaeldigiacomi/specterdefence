@@ -44,7 +44,7 @@ export function GeoHeatmap({
   // Calculate map center based on data
   const center = useMemo(() => {
     if (data.length === 0) return [20, 0] as [number, number];
-    
+
     const avgLat = data.reduce((sum, d) => sum + d.latitude, 0) / data.length;
     const avgLng = data.reduce((sum, d) => sum + d.longitude, 0) / data.length;
     return [avgLat, avgLng] as [number, number];
@@ -146,7 +146,7 @@ export function GeoHeatmap({
                       </div>
                       <div className="flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-gray-400" />
-                        <span>Risk Score: {location.risk_score_avg.toFixed(1)}</span>
+                        <span>Risk Score: {location.risk_score_avg?.toFixed(1) ?? 'N/A'}</span>
                       </div>
                     </div>
                   </div>
@@ -181,7 +181,7 @@ export function GeoHeatmap({
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {(data.reduce((sum, d) => sum + d.risk_score_avg, 0) / data.length).toFixed(1)}
+              {data.length > 0 ? (data.reduce((sum, d) => sum + (d.risk_score_avg || 0), 0) / data.length).toFixed(1) : '0.0'}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Avg Risk Score</p>
           </div>

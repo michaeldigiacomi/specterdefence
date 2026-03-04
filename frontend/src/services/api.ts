@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import { 
-  LoginAnalyticsResponse, 
-  LoginFilters, 
+import {
+  LoginAnalyticsResponse,
+  LoginFilters,
   UserLoginSummary,
   Tenant,
   TenantCreate,
@@ -38,7 +38,7 @@ import {
   LoginResponse,
   User,
 } from '@/types';
-import type { 
+import type {
   TimeRange,
   DashboardDataResponse,
   DashboardSummary,
@@ -106,7 +106,7 @@ class ApiService {
 
   async getLoginAnalytics(filters: LoginFilters): Promise<LoginAnalyticsResponse> {
     const params = new URLSearchParams();
-    
+
     if (filters.tenant_id) params.append('tenant_id', filters.tenant_id);
     if (filters.user) params.append('user', filters.user);
     if (filters.start_time) params.append('start_time', filters.start_time);
@@ -132,7 +132,7 @@ class ApiService {
 
   async getRecentAnomalies(filters: AlertFilters): Promise<AnomalyDetail[]> {
     const params = new URLSearchParams();
-    
+
     if (filters.tenant_id) params.append('tenant_id', filters.tenant_id);
     if (filters.hours) params.append('hours', String(filters.hours));
     if (filters.min_risk_score) params.append('min_risk_score', String(filters.min_risk_score));
@@ -177,7 +177,7 @@ class ApiService {
 
   async getAlertHistory(filters: AlertFilters): Promise<AlertHistoryList> {
     const params = new URLSearchParams();
-    
+
     if (filters.tenant_id) params.append('tenant_id', filters.tenant_id);
     if (filters.hours) params.append('hours', String(filters.hours));
     if (filters.limit) params.append('limit', String(filters.limit));
@@ -206,8 +206,8 @@ class ApiService {
     }).length;
 
     // Get failed logins from the last 24h
-    const failedLoginsResponse = await this.getLoginAnalytics({ 
-      status: 'failed', 
+    const failedLoginsResponse = await this.getLoginAnalytics({
+      status: 'failed',
       page_size: 1,
       start_time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     });
@@ -308,7 +308,7 @@ class ApiService {
   // Export logins to CSV
   async exportLoginsToCSV(filters: LoginFilters): Promise<Blob> {
     const params = new URLSearchParams();
-    
+
     // Add all filters
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {

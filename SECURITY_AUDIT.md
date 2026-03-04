@@ -1,7 +1,7 @@
 # SpecterDefence Security Audit Report
 
-**Date:** March 2, 2026  
-**Auditor:** Blue  
+**Date:** March 2, 2026
+**Auditor:** Blue
 **Scope:** Authentication, Credential Storage, Encryption, JWT Handling
 
 ---
@@ -70,7 +70,7 @@ Three secure backends available:
 ## ✅ Implemented Mitigations (Recently Added)
 
 ### Rate Limiting on Login (March 2, 2026)
-**Status:** ✅ IMPLEMENTED  
+**Status:** ✅ IMPLEMENTED
 **Location:** `src/api/auth_local.py`
 
 ```python
@@ -88,7 +88,7 @@ async def login(
 - Returns HTTP 429 with `Retry-After` header
 
 ### JWT Expiration Reduced (March 2, 2026)
-**Status:** ✅ IMPLEMENTED  
+**Status:** ✅ IMPLEMENTED
 **Location:** `src/services/auth.py`
 
 ```python
@@ -122,10 +122,10 @@ persist(
   (set, _get) => ({...}),
   {
     name: 'specterdefence-storage', // localStorage key
-    partialize: (state) => ({ 
-      theme: state.theme, 
+    partialize: (state) => ({
+      theme: state.theme,
       token: state.token, // ⚠️ Stored in localStorage
-      isAuthenticated: state.isAuthenticated 
+      isAuthenticated: state.isAuthenticated
     }),
   }
 )

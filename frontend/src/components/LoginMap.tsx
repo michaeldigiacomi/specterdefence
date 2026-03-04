@@ -46,11 +46,11 @@ const anomalyIcon = new L.DivIcon({
 // Map bounds updater component
 function MapBoundsUpdater({ bounds }: { bounds: L.LatLngBoundsExpression | null }) {
   const map = useMap();
-  
+
   if (bounds) {
     map.fitBounds(bounds, { padding: [50, 50] });
   }
-  
+
   return null;
 }
 
@@ -70,10 +70,10 @@ export default function LoginMap({ logins, loading = false, height = '500px' }: 
 
   const mapBounds = useMemo(() => {
     if (filteredLogins.length === 0) return null;
-    
+
     const validLogins = filteredLogins.filter(l => l.latitude && l.longitude);
     if (validLogins.length === 0) return null;
-    
+
     const coords = validLogins.map(l => [l.latitude!, l.longitude!] as [number, number]);
     return L.latLngBounds(coords);
   }, [filteredLogins]);
@@ -82,7 +82,7 @@ export default function LoginMap({ logins, loading = false, height = '500px' }: 
 
   if (loading) {
     return (
-      <div 
+      <div
         className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 animate-pulse"
         style={{ height }}
       >
@@ -95,7 +95,7 @@ export default function LoginMap({ logins, loading = false, height = '500px' }: 
 
   if (validLogins.length === 0) {
     return (
-      <div 
+      <div
         className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center"
         style={{ height }}
       >
@@ -205,8 +205,8 @@ export default function LoginMap({ logins, loading = false, height = '500px' }: 
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-gray-400" />
                         <span className="text-gray-600">
-                          {login.city && login.country 
-                            ? `${login.city}, ${login.country}` 
+                          {login.city && login.country
+                            ? `${login.city}, ${login.country}`
                             : login.country || 'Unknown location'}
                         </span>
                       </div>
@@ -227,7 +227,7 @@ export default function LoginMap({ logins, loading = false, height = '500px' }: 
                           </div>
                           <div className="mt-1 flex flex-wrap gap-1">
                             {login.anomaly_flags.map((flag, idx) => (
-                              <span 
+                              <span
                                 key={idx}
                                 className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs rounded"
                               >

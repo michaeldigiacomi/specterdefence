@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
   <rect width="100" height="100" rx="20" fill="#3b82f6"/>
-  <path 
-    d="M50 20L70 30V50C70 63.3333 61.6667 75 50 80C38.3333 75 30 63.3333 30 50V30L50 20Z" 
+  <path
+    d="M50 20L70 30V50C70 63.3333 61.6667 75 50 80C38.3333 75 30 63.3333 30 50V30L50 20Z"
     fill="white"
     stroke="white"
     stroke-width="4"
     stroke-linejoin="round"
   />
-  <path 
-    d="M50 35V60M50 60L42 52M50 60L58 52" 
+  <path
+    d="M50 35V60M50 60L42 52M50 60L58 52"
     stroke="#3b82f6"
     stroke-width="4"
     stroke-linecap="round"

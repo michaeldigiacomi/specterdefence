@@ -101,20 +101,20 @@
 ## Remaining Work (Non-Critical)
 
 ### Rate Limiting (HIGH-004)
-**Status:** Not implemented  
+**Status:** Not implemented
 **Recommendation:** Add `slowapi` middleware for:
 - Login endpoint: 5 attempts/minute
 - API endpoints: 100 requests/minute
 - Tenant creation: 10/minute
 
 ### Token Refresh (MED-002)
-**Status:** Not implemented  
+**Status:** Not implemented
 **Recommendation:** Implement refresh tokens with:
 - Access tokens: 15 minutes
 - Refresh tokens: 7 days, single-use
 
 ### Database SSL (LOW-003)
-**Status:** Not implemented  
+**Status:** Not implemented
 **Recommendation:** Add `sslmode=require` for PostgreSQL connections in production
 
 ---
@@ -155,8 +155,8 @@ ADMIN_PASSWORD_HASH=$(python3 -c "from src.api.auth_local import get_password_ha
 
 ## Git Changes
 
-**Commit:** `38e2c8e`  
-**Branch:** main  
+**Commit:** `38e2c8e`
+**Branch:** main
 **Repository:** https://github.com/bluedigiacomi/specterdefence
 
 Files changed:
@@ -185,5 +185,5 @@ The SpecterDefence application now has a significantly improved security posture
 
 ---
 
-*Security Audit completed by OpenClaw Security Subagent*  
+*Security Audit completed by OpenClaw Security Subagent*
 *Report Date: 2026-03-02*

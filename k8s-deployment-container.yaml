@@ -6,6 +6,9 @@ metadata:
     app.kubernetes.io/name: specterdefence
     app.kubernetes.io/part-of: specterdefence
 ---
+# NOTE: If using SQLite with multiple pods, you will have password persistence issues.
+# For multi-pod deployments, use PostgreSQL (see k8s/postgres.yaml)
+# The PVC below is only suitable for single-pod SQLite deployments.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -31,7 +34,11 @@ metadata:
     app.kubernetes.io/component: api
     app.kubernetes.io/part-of: specterdefence
 spec:
-  replicas: 2
+  # WARNING: Using SQLite with replicas > 1 will cause password persistence issues.
+  # Each pod will have its own database, leading to inconsistent state.
+  # For multi-pod deployments, use PostgreSQL (see k8s/postgres.yaml)
+  # OR set replicas: 1 for SQLite deployments.
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: specterdefence
@@ -63,16 +70,19 @@ spec:
               value: "1"
             - name: PYTHONUNBUFFERED
               value: "1"
-            - name: SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: specterdefence-secrets
-                  key: SECRET_KEY
+            # DATABASE_URL format:
+            # SQLite (single pod only): sqlite:///app/data/specterdefence.db
+            # PostgreSQL (multi-pod): postgresql+asyncpg://user:pass@host:5432/dbname
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: specterdefence-secrets
                   key: DATABASE_URL
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: SECRET_KEY
             - name: ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
@@ -106,6 +116,9 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1000m"
+          # Note: These volume mounts are primarily for SQLite database storage.
+          # When using PostgreSQL, you can remove these mounts unless you need
+          # persistent storage for other application data.
           volumeMounts:
             - name: data
               mountPath: /app/data

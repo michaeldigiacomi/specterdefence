@@ -166,14 +166,14 @@ class AlertEnrichmentService:
     """
     Enriches security alerts with AI-generated analysis.
     """
-    
+
     async def enrich_alert(self, alert_id: str) -> AIAnalysis:
         # 1. Gather context
         alert = await self.get_alert(alert_id)
         user_history = await self.get_user_history(alert.user_id)
         related_alerts = await self.get_related_alerts(alert)
         tenant_context = await self.get_tenant_security_posture(alert.tenant_id)
-        
+
         # 2. Build prompt
         prompt = self.build_analysis_prompt(
             alert=alert,
@@ -181,14 +181,14 @@ class AlertEnrichmentService:
             related_alerts=related_alerts,
             tenant_context=tenant_context
         )
-        
+
         # 3. Call Kimi API
         analysis = await self.kimi_client.generate(
             prompt=prompt,
             temperature=0.3,
             max_tokens=2048
         )
-        
+
         # 4. Parse and store
         return await self.store_analysis(alert_id, analysis)
 ```
@@ -209,20 +209,20 @@ class AlertEnrichmentService:
 class AIAnalysis(BaseModel):
     id: UUID
     alert_id: UUID
-    
+
     # Analysis Results
     summary: str  # Natural language summary
     risk_score: int  # 0-100
     recommended_severity: AlertSeverity
     false_positive_probability: float  # 0.0-1.0
-    
+
     # Risk Factors
     risk_factors: List[RiskFactor]
-    
+
     # Recommendations
     remediation_steps: List[RemediationStep]
     suggested_actions: List[AutoAction]
-    
+
     # Metadata
     model_version: str
     created_at: datetime
@@ -290,18 +290,18 @@ class AdaptiveThresholdEngine:
     """
     Learns from analyst feedback to optimize alert thresholds.
     """
-    
+
     async def process_feedback(self, feedback: AlertFeedback):
         """Process analyst feedback to update thresholds."""
-        
+
         # Update feedback statistics
         await self.update_feedback_stats(feedback)
-        
+
         # Check if threshold adjustment needed
         if await self.should_adjust_threshold(feedback.alert_id):
             # Calculate new threshold
             adjustment = await self.calculate_adjustment(feedback)
-            
+
             # Apply adjustment
             await self.apply_threshold_adjustment(
                 rule_id=feedback.rule_id,
@@ -309,22 +309,22 @@ class AdaptiveThresholdEngine:
                 tenant_id=feedback.tenant_id,
                 adjustment=adjustment
             )
-    
+
     async def calculate_adjustment(self, feedback: AlertFeedback) -> Adjustment:
         """Calculate threshold adjustment based on feedback patterns."""
-        
+
         # Get recent feedback for this context
         recent_feedback = await self.get_recent_feedback(
             rule_id=feedback.rule_id,
             user_id=feedback.user_id,
             days=30
         )
-        
+
         # Calculate false positive rate
         total = len(recent_feedback)
         false_positives = sum(1 for f in recent_feedback if f.is_false_positive)
         fp_rate = false_positives / total if total > 0 else 0
-        
+
         # Determine adjustment direction
         if fp_rate > 0.7:  # High FP rate - raise threshold
             return Adjustment(direction="increase", magnitude=0.15)
@@ -342,24 +342,24 @@ class AdaptiveThreshold(BaseModel):
     rule_id: Optional[UUID]  # Null for global thresholds
     user_id: Optional[str]   # Null for non-user-specific
     tenant_id: UUID
-    
+
     # Threshold Values
     base_threshold: float  # Original rule threshold
     current_threshold: float  # Adjusted threshold
     adjustment_history: List[ThresholdAdjustment]
-    
+
     # Learning State
     total_alerts: int
     false_positives: int
     true_positives: int
     fp_rate_7d: float
     fp_rate_30d: float
-    
+
     # Auto-adjustment settings
     auto_adjust_enabled: bool
     min_samples_before_adjust: int  # Min alerts before auto-adjust
     max_adjustment_percent: float  # Cap on total adjustment
-    
+
     created_at: datetime
     updated_at: datetime
 ```
@@ -428,11 +428,11 @@ class NLPQueryEngine:
     """
     Converts natural language to SQL queries.
     """
-    
+
     # Database schema for context
     SCHEMA_CONTEXT = """
     Database Schema:
-    
+
     Table: users
     - id (UUID): User ID
     - email (TEXT): User email
@@ -441,7 +441,7 @@ class NLPQueryEngine:
     - created_at (TIMESTAMP)
     - last_login_at (TIMESTAMP)
     - mfa_enabled (BOOLEAN)
-    
+
     Table: login_events
     - id (UUID)
     - user_id (UUID) → users.id
@@ -450,7 +450,7 @@ class NLPQueryEngine:
     - location (TEXT): City, Country
     - success (BOOLEAN)
     - auth_method (TEXT): password, mfa, sso
-    
+
     Table: alerts
     - id (UUID)
     - user_id (UUID) → users.id
@@ -460,10 +460,10 @@ class NLPQueryEngine:
     - created_at (TIMESTAMP)
     - ai_risk_score (INTEGER): 0-100
     """
-    
+
     async def process_query(self, query: str, tenant_id: UUID) -> QueryResult:
         """Process a natural language query."""
-        
+
         # Build prompt with schema and examples
         prompt = f"""{self.SCHEMA_CONTEXT}
 
@@ -485,46 +485,46 @@ Respond in this JSON format:
     "estimated_rows": number
 }}
 """
-        
+
         # Call Kimi API
         response = await self.kimi_client.generate(
             prompt=prompt,
             temperature=0.1,  # Low creativity for SQL
             response_format={"type": "json_object"}
         )
-        
+
         # Parse and validate
         query_spec = json.loads(response)
         validated_sql = self.validate_sql(query_spec["sql"])
-        
+
         # Execute with safety limits
         results = await self.execute_safe_query(validated_sql)
-        
+
         # Generate natural language summary
         summary = await self.summarize_results(query, results)
-        
+
         return QueryResult(
             original_query=query,
             sql=validated_sql,
             results=results,
             summary=summary
         )
-    
+
     def validate_sql(self, sql: str) -> str:
         """Validate SQL for safety before execution."""
-        
+
         # Block dangerous operations
         forbidden_keywords = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'TRUNCATE', 'ALTER']
         sql_upper = sql.upper()
-        
+
         for keyword in forbidden_keywords:
             if keyword in sql_upper:
                 raise UnsafeQueryError(f"Forbidden operation: {keyword}")
-        
+
         # Ensure LIMIT is present
         if 'LIMIT' not in sql_upper:
             sql += " LIMIT 1000"
-        
+
         return sql
 ```
 
@@ -583,41 +583,41 @@ Respond in this JSON format:
 ```python
 class UserBehaviorBaseline(BaseModel):
     """Baseline behavioral profile for a user."""
-    
+
     id: UUID
     user_id: str
     tenant_id: UUID
-    
+
     # Time-based patterns
     login_time_distribution: TimeDistribution  # Hour of day
     work_days: List[int]  # 0=Monday, 6=Sunday
     typical_session_duration: DurationStats
-    
+
     # Location patterns
     common_locations: List[LocationPattern]
     ip_ranges: List[IPRangePattern]
     country_whitelist: List[str]  # Countries user normally accesses from
-    
+
     # Application patterns
     app_usage_frequency: Dict[str, FrequencyStats]  # app_name -> stats
     admin_action_frequency: Dict[str, FrequencyStats]
-    
+
     # Data access patterns
     typical_download_volume: VolumeStats  # MB per day
     typical_share_count: FrequencyStats
     sensitive_file_access: FrequencyStats
-    
+
     # Peer comparison
     department: Optional[str]
     role: str
     peer_group_baseline: Optional[PeerGroupStats]
-    
+
     # Model metadata
     baseline_period_days: int
     sample_size: int
     confidence_score: float  # 0-1, higher = more reliable
     last_updated: datetime
-    
+
     # Versioning
     version: int
     previous_version_id: Optional[UUID]
@@ -644,17 +644,17 @@ class BehavioralAnalysisService:
     """
     Detects behavioral anomalies based on user baselines.
     """
-    
+
     async def analyze_activity(
         self,
         user_id: str,
         activity: UserActivity
     ) -> AnomalyReport:
         """Analyze user activity for anomalies."""
-        
+
         # Get user's baseline
         baseline = await self.get_user_baseline(user_id)
-        
+
         if not baseline or baseline.confidence_score < 0.5:
             # Insufficient data for reliable detection
             return AnomalyReport(
@@ -663,10 +663,10 @@ class BehavioralAnalysisService:
                 anomalies=[],
                 reliability="low"
             )
-        
+
         anomalies = []
         total_score = 0
-        
+
         # Check time-based anomaly
         time_anomaly = self.check_time_anomaly(
             activity.timestamp, baseline.login_time_distribution
@@ -674,7 +674,7 @@ class BehavioralAnalysisService:
         if time_anomaly.score > 2.0:
             anomalies.append(time_anomaly)
             total_score += time_anomaly.score
-        
+
         # Check location anomaly
         location_anomaly = self.check_location_anomaly(
             activity.location, baseline.common_locations
@@ -682,7 +682,7 @@ class BehavioralAnalysisService:
         if location_anomaly.score > 2.0:
             anomalies.append(location_anomaly)
             total_score += location_anomaly.score
-        
+
         # Check application access anomaly
         app_anomaly = self.check_app_anomaly(
             activity.application, baseline.app_usage_frequency
@@ -690,7 +690,7 @@ class BehavioralAnalysisService:
         if app_anomaly.score > 2.0:
             anomalies.append(app_anomaly)
             total_score += app_anomaly.score
-        
+
         # Check volume anomaly
         volume_anomaly = self.check_volume_anomaly(
             activity.data_volume, baseline.typical_download_volume
@@ -698,24 +698,24 @@ class BehavioralAnalysisService:
         if volume_anomaly.score > 2.0:
             anomalies.append(volume_anomaly)
             total_score += volume_anomaly.score
-        
+
         # Calculate combined anomaly score
         combined_score = min(total_score / len(anomalies) if anomalies else 0, 10)
-        
+
         return AnomalyReport(
             user_id=user_id,
             anomaly_score=combined_score,
             anomalies=anomalies,
             reliability="high" if baseline.confidence_score > 0.8 else "medium"
         )
-    
+
     def check_location_anomaly(
         self,
         current_location: Location,
         baseline_locations: List[LocationPattern]
     ) -> Anomaly:
         """Check if current location is anomalous."""
-        
+
         # Check if in known locations
         for loc in baseline_locations:
             if self.is_same_location(current_location, loc):
@@ -724,20 +724,20 @@ class BehavioralAnalysisService:
                     score=0,
                     description="Location in normal pattern"
                 )
-        
+
         # Check for impossible travel
         last_location = self.get_last_known_location(current_location.user_id)
         if last_location:
             travel_time = current_location.timestamp - last_location.timestamp
             distance = self.calculate_distance(last_location, current_location)
-            
+
             if distance > 500 and travel_time < timedelta(hours=4):
                 return Anomaly(
                     type="impossible_travel",
                     score=10,
                     description=f"Impossible travel: {distance}km in {travel_time}"
                 )
-        
+
         # New country check
         known_countries = {loc.country for loc in baseline_locations}
         if current_location.country not in known_countries:
@@ -746,7 +746,7 @@ class BehavioralAnalysisService:
                 score=5,
                 description=f"First access from {current_location.country}"
             )
-        
+
         return Anomaly(type="location", score=0, description="")
 ```
 
@@ -822,52 +822,52 @@ class BehavioralAnalysisService:
 ```python
 class AutoResponsePolicy(BaseModel):
     """Policy for automated response actions."""
-    
+
     id: UUID
     name: str
     tenant_id: UUID
     enabled: bool
     priority: int  # Higher = evaluated first
-    
+
     # Matching conditions
     conditions: PolicyConditions
-    
+
     # Response configuration
     action_type: AutoActionType
     action_config: Dict[str, Any]
-    
+
     # Execution settings
     execution_mode: ExecutionMode  # auto, suggest, disabled
     require_approval_above_severity: Optional[AlertSeverity]
-    
+
     # Safety limits
     daily_action_limit: int  # Max auto-actions per day
     cooldown_hours: float  # Hours before re-triggering for same user
-    
+
     created_at: datetime
     updated_at: datetime
 
 class PolicyConditions(BaseModel):
     """Conditions for triggering a policy."""
-    
+
     # Alert characteristics
     min_severity: Optional[AlertSeverity]
     alert_types: Optional[List[str]]
-    
+
     # AI analysis criteria
     min_ai_confidence: float  # 0-1
     min_risk_score: int  # 0-100
-    
+
     # User criteria
     user_roles: Optional[List[str]]
     exclude_users: Optional[List[str]]
-    
+
     # Behavioral criteria
     behavioral_anomaly_score: Optional[float]
-    
+
     # Time-based
     active_hours_only: bool  # Only auto-respond during business hours
-    
+
     # Composite conditions (AND/OR logic)
     require_all: bool = True  # True = AND, False = OR
 
@@ -885,37 +885,37 @@ class AutoResponseEngine:
     """
     Executes automated response actions based on policies.
     """
-    
+
     async def evaluate_and_execute(
         self,
         alert: Alert,
         ai_analysis: AIAnalysis
     ) -> ActionResult:
         """Evaluate policies and execute appropriate actions."""
-        
+
         # Get applicable policies
         policies = await self.get_applicable_policies(
             tenant_id=alert.tenant_id,
             alert=alert,
             ai_analysis=ai_analysis
         )
-        
+
         for policy in sorted(policies, key=lambda p: p.priority, reverse=True):
             # Check if conditions met
             if not self.check_conditions(policy.conditions, alert, ai_analysis):
                 continue
-            
+
             # Check rate limits
             if not await self.check_rate_limits(policy, alert):
                 logger.warning(f"Rate limit exceeded for policy {policy.id}")
                 continue
-            
+
             # Execute based on mode
             if policy.execution_mode == ExecutionMode.AUTO:
                 result = await self.execute_action(policy, alert, ai_analysis)
                 await self.log_decision(policy, alert, result, auto_executed=True)
                 return result
-                
+
             elif policy.execution_mode == ExecutionMode.SUGGEST:
                 await self.suggest_action(policy, alert, ai_analysis)
                 await self.log_decision(policy, alert, None, auto_executed=False)
@@ -923,12 +923,12 @@ class AutoResponseEngine:
                     status="suggested",
                     message="Action suggested to analyst"
                 )
-        
+
         return ActionResult(
             status="no_action",
             message="No matching policies"
         )
-    
+
     async def execute_action(
         self,
         policy: AutoResponsePolicy,
@@ -936,7 +936,7 @@ class AutoResponseEngine:
         ai_analysis: AIAnalysis
     ) -> ActionResult:
         """Execute the configured action."""
-        
+
         action_handlers = {
             AutoActionType.DISABLE_USER: self.handle_disable_user,
             AutoActionType.REVOKE_SESSIONS: self.handle_revoke_sessions,
@@ -945,23 +945,23 @@ class AutoResponseEngine:
             AutoActionType.NOTIFY_ADMIN: self.handle_notify_admin,
             AutoActionType.ADD_TO_WATCHLIST: self.handle_add_to_watchlist,
         }
-        
+
         handler = action_handlers.get(policy.action_type)
         if not handler:
             raise ValueError(f"Unknown action type: {policy.action_type}")
-        
+
         # Execute with timeout and error handling
         try:
             result = await asyncio.wait_for(
                 handler(policy.action_config, alert, ai_analysis),
                 timeout=30
             )
-            
+
             # Create audit log entry
             await self.create_audit_log(policy, alert, result)
-            
+
             return result
-            
+
         except asyncio.TimeoutError:
             return ActionResult(
                 status="failed",
@@ -973,7 +973,7 @@ class AutoResponseEngine:
                 status="failed",
                 message=str(e)
             )
-    
+
     async def handle_disable_user(
         self,
         config: Dict[str, Any],
@@ -981,22 +981,22 @@ class AutoResponseEngine:
         ai_analysis: AIAnalysis
     ) -> ActionResult:
         """Disable a user account."""
-        
+
         # Get Microsoft Graph client for tenant
         graph_client = await self.get_graph_client(alert.tenant_id)
-        
+
         # Disable user
         await graph_client.users.by_id(alert.user_id).patch({
             "accountEnabled": False
         })
-        
+
         # Notify security team
         await self.send_notification(
             tenant_id=alert.tenant_id,
             subject=f"User {alert.user_id} auto-disabled",
             body=f"User was automatically disabled due to alert: {alert.id}"
         )
-        
+
         return ActionResult(
             status="success",
             action="disable_user",
@@ -1074,33 +1074,33 @@ CREATE TABLE ai_analysis (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     alert_id UUID NOT NULL REFERENCES alerts(id) ON DELETE CASCADE,
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    
+
     -- Analysis content
     summary TEXT NOT NULL,
     risk_score INTEGER CHECK (risk_score >= 0 AND risk_score <= 100),
     recommended_severity VARCHAR(20) CHECK (recommended_severity IN ('low', 'medium', 'high', 'critical')),
     false_positive_probability DECIMAL(3,2) CHECK (false_positive_probability >= 0 AND false_positive_probability <= 1),
-    
+
     -- Detailed analysis (JSON)
     risk_factors JSONB NOT NULL DEFAULT '[]',
     remediation_steps JSONB NOT NULL DEFAULT '[]',
     suggested_actions JSONB NOT NULL DEFAULT '[]',
     attack_chain_analysis JSONB,
-    
+
     -- Model metadata
     model_version VARCHAR(50) NOT NULL,
     model_provider VARCHAR(20) NOT NULL DEFAULT 'kimi',
     prompt_tokens INTEGER,
     completion_tokens INTEGER,
-    
+
     -- Performance metrics
     processing_time_ms INTEGER,
     api_latency_ms INTEGER,
-    
+
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     expires_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '90 days'),
-    
+
     -- Constraints
     CONSTRAINT unique_alert_analysis UNIQUE (alert_id)
 );
@@ -1125,28 +1125,28 @@ CREATE TABLE ai_decisions (
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     policy_id UUID REFERENCES auto_response_policies(id),
     ai_analysis_id UUID REFERENCES ai_analysis(id),
-    
+
     -- Decision details
     decision_type VARCHAR(50) NOT NULL, -- 'severity_adjustment', 'auto_action', 'suggestion'
     recommended_action VARCHAR(100) NOT NULL,
     recommended_severity VARCHAR(20),
     confidence_score DECIMAL(3,2) NOT NULL CHECK (confidence_score >= 0 AND confidence_score <= 1),
     reasoning TEXT,
-    
+
     -- Execution tracking
     auto_executed BOOLEAN NOT NULL DEFAULT FALSE,
     action_executed VARCHAR(100),
     executed_by VARCHAR(100), -- 'system' or analyst ID
     executed_at TIMESTAMP WITH TIME ZONE,
-    
+
     -- Outcome tracking
     outcome VARCHAR(20), -- 'confirmed_threat', 'false_positive', 'pending', 'cancelled'
     outcome_verified_at TIMESTAMP WITH TIME ZONE,
     outcome_verified_by UUID REFERENCES users(id),
-    
+
     -- Model metadata
     model_version VARCHAR(50) NOT NULL,
-    
+
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -1168,11 +1168,11 @@ CREATE TABLE user_behavior_baselines (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id VARCHAR(255) NOT NULL,
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    
+
     -- User context
     department VARCHAR(100),
     role VARCHAR(50) NOT NULL,
-    
+
     -- Baseline data (JSON structures)
     time_patterns JSONB NOT NULL DEFAULT '{}',
     location_patterns JSONB NOT NULL DEFAULT '[]',
@@ -1180,21 +1180,21 @@ CREATE TABLE user_behavior_baselines (
     admin_action_patterns JSONB NOT NULL DEFAULT '{}',
     data_access_patterns JSONB NOT NULL DEFAULT '{}',
     peer_group_stats JSONB,
-    
+
     -- Statistics
     baseline_period_days INTEGER NOT NULL,
     sample_size INTEGER NOT NULL,
     confidence_score DECIMAL(3,2) NOT NULL CHECK (confidence_score >= 0 AND confidence_score <= 1),
-    
+
     -- Versioning
     version INTEGER NOT NULL DEFAULT 1,
     previous_version_id UUID REFERENCES user_behavior_baselines(id),
-    
+
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     next_scheduled_update TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '7 days'),
-    
+
     -- Constraints
     CONSTRAINT unique_user_baseline_version UNIQUE (user_id, tenant_id, version)
 );
@@ -1219,28 +1219,28 @@ CREATE TABLE alert_feedback (
     alert_id UUID NOT NULL REFERENCES alerts(id) ON DELETE CASCADE,
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     ai_analysis_id UUID REFERENCES ai_analysis(id),
-    
+
     -- Analyst info
     analyst_id UUID NOT NULL REFERENCES users(id),
     analyst_role VARCHAR(50),
-    
+
     -- Feedback content
     was_accurate BOOLEAN NOT NULL, -- Did the alert represent a real threat?
     is_false_positive BOOLEAN NOT NULL DEFAULT FALSE,
     severity_correct BOOLEAN, -- Was the AI severity assessment correct?
     would_auto_resolve BOOLEAN, -- Would the analyst have accepted auto-resolution?
-    
+
     -- Detailed feedback
     feedback_text TEXT,
     missed_indicators TEXT, -- What did the AI miss?
     incorrect_assumptions TEXT, -- What did the AI get wrong?
-    
+
     -- Time spent
     review_time_seconds INTEGER, -- How long did analyst spend reviewing?
-    
+
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     -- Constraints
     CONSTRAINT valid_accuracy CHECK (
         (was_accurate = TRUE AND is_false_positive = FALSE) OR
@@ -1264,49 +1264,49 @@ CREATE INDEX idx_alert_feedback_ai_analysis ON alert_feedback(ai_analysis_id);
 -- Tracks AI model versions and performance metrics
 CREATE TABLE ai_models (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     -- Model identification
     name VARCHAR(100) NOT NULL,
     version VARCHAR(50) NOT NULL,
     model_type VARCHAR(50) NOT NULL, -- 'kimi', 'local', 'openai', etc.
-    
+
     -- Configuration
     config JSONB NOT NULL DEFAULT '{}',
-    
+
     -- Training info
     training_data_start DATE,
     training_data_end DATE,
     training_samples_count INTEGER,
     training_metrics JSONB,
-    
+
     -- Performance metrics
     accuracy DECIMAL(4,3),
     precision_score DECIMAL(4,3),
     recall_score DECIMAL(4,3),
     f1_score DECIMAL(4,3),
     false_positive_rate DECIMAL(4,3),
-    
+
     -- Validation results
     validation_results JSONB,
-    
+
     -- Deployment status
     is_active BOOLEAN NOT NULL DEFAULT FALSE,
     deployed_at TIMESTAMP WITH TIME ZONE,
     deployed_by UUID REFERENCES users(id),
-    
+
     -- A/B testing
     traffic_percentage INTEGER CHECK (traffic_percentage >= 0 AND traffic_percentage <= 100),
     ab_test_group VARCHAR(20), -- 'control', 'treatment', null
-    
+
     -- Cost tracking
     avg_cost_per_request DECIMAL(10,6),
     total_requests INTEGER DEFAULT 0,
     total_cost DECIMAL(12,4) DEFAULT 0,
-    
+
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     -- Constraints
     CONSTRAINT unique_model_version UNIQUE (name, version)
 );
@@ -1668,9 +1668,9 @@ class KimiClient:
     """
     Async client for Kimi API with rate limiting, caching, and error handling.
     """
-    
+
     BASE_URL = "https://api.moonshot.cn/v1"
-    
+
     def __init__(
         self,
         api_key: str,
@@ -1683,18 +1683,18 @@ class KimiClient:
         self.model = model
         self.max_retries = max_retries
         self.timeout = timeout
-        
+
         # Rate limiting
         self.rate_limit_rpm = rate_limit_rpm
         self._request_times: list[float] = []
         self._rate_limit_lock = asyncio.Lock()
-        
+
         # HTTP client
         self._client: Optional[httpx.AsyncClient] = None
-        
+
         # Cache (Redis-backed in production)
         self._cache: Dict[str, Any] = {}
-    
+
     async def __aenter__(self):
         self._client = httpx.AsyncClient(
             base_url=self.BASE_URL,
@@ -1705,28 +1705,28 @@ class KimiClient:
             timeout=self.timeout
         )
         return self
-    
+
     async def __aexit__(self, *args):
         if self._client:
             await self._client.aclose()
-    
+
     async def _wait_for_rate_limit(self):
         """Ensure we don't exceed rate limits."""
         async with self._rate_limit_lock:
             now = asyncio.get_event_loop().time()
             minute_ago = now - 60
-            
+
             # Remove old requests
             self._request_times = [t for t in self._request_times if t > minute_ago]
-            
+
             # Check if we need to wait
             if len(self._request_times) >= self.rate_limit_rpm:
                 sleep_time = self._request_times[0] - minute_ago + 0.1
                 if sleep_time > 0:
                     await asyncio.sleep(sleep_time)
-            
+
             self._request_times.append(asyncio.get_event_loop().time())
-    
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
@@ -1741,15 +1741,15 @@ class KimiClient:
         use_cache: bool = True
     ) -> KimiResponse:
         """Generate a completion from Kimi API."""
-        
+
         # Check cache
         cache_key = self._get_cache_key(messages, temperature, max_tokens)
         if use_cache and cache_key in self._cache:
             return self._cache[cache_key]
-        
+
         # Rate limiting
         await self._wait_for_rate_limit()
-        
+
         # Build request
         payload = {
             "model": self.model,
@@ -1757,10 +1757,10 @@ class KimiClient:
             "temperature": temperature,
             "max_tokens": max_tokens
         }
-        
+
         if response_format:
             payload["response_format"] = response_format
-        
+
         # Make request
         try:
             response = await self._client.post(
@@ -1768,15 +1768,15 @@ class KimiClient:
                 json=payload
             )
             response.raise_for_status()
-            
+
             result = KimiResponse(**response.json())
-            
+
             # Cache successful response
             if use_cache:
                 self._cache[cache_key] = result
-            
+
             return result
-            
+
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 429:
                 # Rate limited - wait and retry
@@ -1789,7 +1789,7 @@ class KimiClient:
                 raise AuthenticationError("Invalid API key")
             else:
                 raise KimiAPIError(f"API error: {e.response.status_code}")
-    
+
     async def generate_stream(
         self,
         messages: list[KimiMessage],
@@ -1797,9 +1797,9 @@ class KimiClient:
         max_tokens: int = 2048
     ) -> AsyncGenerator[str, None]:
         """Stream completion tokens from Kimi API."""
-        
+
         await self._wait_for_rate_limit()
-        
+
         payload = {
             "model": self.model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
@@ -1807,7 +1807,7 @@ class KimiClient:
             "max_tokens": max_tokens,
             "stream": True
         }
-        
+
         async with self._client.stream(
             "POST",
             "/chat/completions",
@@ -1820,7 +1820,7 @@ class KimiClient:
                     if data == "[DONE]":
                         break
                     yield data
-    
+
     def _get_cache_key(
         self,
         messages: list[KimiMessage],
@@ -2087,10 +2087,10 @@ RATE_LIMITS = {
 
 class RateLimiter:
     """Token bucket rate limiter with Redis backend."""
-    
+
     def __init__(self, redis_client):
         self.redis = redis_client
-    
+
     async def is_allowed(
         self,
         key: str,
@@ -2098,37 +2098,37 @@ class RateLimiter:
         burst_size: int
     ) -> tuple[bool, dict]:
         """Check if request is allowed under rate limit."""
-        
+
         pipe = self.redis.pipeline()
         now = time.time()
-        
+
         # Token bucket algorithm
         bucket_key = f"rate_limit:{key}"
-        
+
         # Get current tokens
         current = await self.redis.hmget(bucket_key, ["tokens", "last_update"])
         tokens = float(current[0]) if current[0] else burst_size
         last_update = float(current[1]) if current[1] else now
-        
+
         # Add tokens based on time passed
         time_passed = now - last_update
         tokens = min(burst_size, tokens + time_passed * (requests_per_minute / 60))
-        
+
         if tokens >= 1:
             tokens -= 1
             allowed = True
         else:
             allowed = False
-        
+
         # Update bucket
         await self.redis.hmset(bucket_key, {
             "tokens": tokens,
             "last_update": now
         })
         await self.redis.expire(bucket_key, 3600)
-        
+
         reset_time = now + (1 - tokens) / (requests_per_minute / 60)
-        
+
         return allowed, {
             "limit": requests_per_minute,
             "remaining": int(tokens),
@@ -2161,22 +2161,22 @@ CACHE_CONFIG = {
 
 class AIResponseCache:
     """Multi-layer cache for AI responses."""
-    
+
     def __init__(self, redis_client):
         self.redis = redis_client
         self.local_cache: Dict[str, Any] = {}
         self.local_cache_ttl: Dict[str, float] = {}
-    
+
     async def get(self, key: str) -> Optional[Any]:
         """Get from cache (L1 local, L2 Redis)."""
-        
+
         # Check local cache
         if key in self.local_cache:
             if time.time() < self.local_cache_ttl.get(key, 0):
                 return self.local_cache[key]
             else:
                 del self.local_cache[key]
-        
+
         # Check Redis
         value = await self.redis.get(key)
         if value:
@@ -2185,9 +2185,9 @@ class AIResponseCache:
             self.local_cache[key] = data
             self.local_cache_ttl[key] = time.time() + 60  # 1 min local TTL
             return data
-        
+
         return None
-    
+
     async def set(
         self,
         key: str,
@@ -2195,18 +2195,18 @@ class AIResponseCache:
         ttl_seconds: int = 3600
     ):
         """Set in both cache layers."""
-        
+
         # Local cache
         self.local_cache[key] = value
         self.local_cache_ttl[key] = time.time() + min(ttl_seconds, 60)
-        
+
         # Redis
         await self.redis.setex(
             key,
             ttl_seconds,
             json.dumps(value, default=str)
         )
-    
+
     async def invalidate_pattern(self, pattern: str):
         """Invalidate all keys matching pattern."""
         keys = await self.redis.keys(pattern)
@@ -2219,7 +2219,7 @@ class AIResponseCache:
 ```python
 class AIErrorHandler:
     """Handles AI service errors with graceful fallbacks."""
-    
+
     FALLBACK_RULES = {
         "alert_analysis": {
             "risk_score": 50,  # Medium risk when AI unavailable
@@ -2242,7 +2242,7 @@ class AIErrorHandler:
             "summary": "Insights generation temporarily unavailable. Please check back later."
         }
     }
-    
+
     async def handle_error(
         self,
         operation: str,
@@ -2250,7 +2250,7 @@ class AIErrorHandler:
         context: dict
     ) -> dict:
         """Handle AI error and return fallback response."""
-        
+
         logger.error(
             f"AI operation failed: {operation}",
             extra={
@@ -2259,17 +2259,17 @@ class AIErrorHandler:
                 "operation": operation
             }
         )
-        
+
         # Log to error tracking
         await self.log_error(operation, error, context)
-        
+
         # Return fallback
         fallback = self.FALLBACK_RULES.get(operation, {}).copy()
         fallback["_fallback"] = True
         fallback["_error_type"] = type(error).__name__
-        
+
         return fallback
-    
+
     async def log_error(
         self,
         operation: str,
@@ -2277,7 +2277,7 @@ class AIErrorHandler:
         context: dict
     ):
         """Log error for monitoring and alerting."""
-        
+
         error_record = {
             "timestamp": datetime.utcnow().isoformat(),
             "operation": operation,
@@ -2287,19 +2287,19 @@ class AIErrorHandler:
             "tenant_id": context.get("tenant_id"),
             "user_id": context.get("user_id")
         }
-        
+
         # Store in error tracking table
         await self.store_error_record(error_record)
-        
+
         # Alert if error rate is high
         await self.check_error_rate_and_alert(operation)
-    
+
     async def check_error_rate_and_alert(self, operation: str):
         """Check error rate and alert if threshold exceeded."""
-        
+
         # Count errors in last 5 minutes
         error_count = await self.get_recent_error_count(operation, minutes=5)
-        
+
         if error_count > 10:  # More than 10 errors in 5 min
             await self.send_alert(
                 severity="high",
@@ -2379,53 +2379,53 @@ class LearningLoop:
     """
     Processes analyst feedback to improve AI systems.
     """
-    
+
     async def process_feedback(self, feedback: AlertFeedback):
         """Main entry point for processing analyst feedback."""
-        
+
         # 1. Validate and store feedback
         await self.store_feedback(feedback)
-        
+
         # 2. Update decision outcomes
         await self.update_decision_outcomes(feedback)
-        
+
         # 3. Update model accuracy metrics
         await self.update_model_metrics(feedback)
-        
+
         # 4. Trigger threshold adjustments if needed
         await self.evaluate_threshold_adjustments(feedback)
-        
+
         # 5. Schedule baseline updates if applicable
         await self.schedule_baseline_update(feedback)
-        
+
         # 6. Check for model retraining trigger
         await self.check_retraining_threshold(feedback)
-    
+
     async def evaluate_threshold_adjustments(self, feedback: AlertFeedback):
         """Evaluate if threshold adjustments are needed."""
-        
+
         # Get recent feedback for this rule
         recent_feedback = await self.get_feedback_batch(
             rule_id=feedback.rule_id,
             days=7,
             min_samples=10
         )
-        
+
         if len(recent_feedback) < 10:
             return  # Insufficient data
-        
+
         # Calculate false positive rate
         false_positives = sum(1 for f in recent_feedback if f.is_false_positive)
         fp_rate = false_positives / len(recent_feedback)
-        
+
         # Determine if adjustment needed
         threshold = await self.get_adaptive_threshold(
             rule_id=feedback.rule_id,
             user_id=feedback.user_id
         )
-        
+
         adjustment = None
-        
+
         if fp_rate > 0.7:
             # Too many false positives - increase threshold
             adjustment = ThresholdAdjustment(
@@ -2440,10 +2440,10 @@ class LearningLoop:
                 magnitude=0.05,
                 reason=f"Low FP rate: {fp_rate:.1%} - may be missing alerts"
             )
-        
+
         if adjustment:
             await self.apply_threshold_adjustment(threshold, adjustment)
-            
+
             # Log the adjustment
             await self.log_threshold_adjustment(
                 threshold=threshold,
@@ -2451,21 +2451,21 @@ class LearningLoop:
                 feedback_count=len(recent_feedback),
                 fp_rate=fp_rate
             )
-    
+
     async def update_model_metrics(self, feedback: AlertFeedback):
         """Update per-model accuracy metrics."""
-        
+
         # Get the AI analysis that was reviewed
         analysis = await self.get_ai_analysis(feedback.ai_analysis_id)
         if not analysis:
             return
-        
+
         # Get model record
         model = await self.get_ai_model(analysis.model_version)
-        
+
         # Calculate metrics
         total_requests = model.total_requests + 1
-        
+
         # Accuracy: Did AI correctly identify threat?
         if feedback.was_accurate is not None:
             correct_predictions = model.correct_predictions or 0
@@ -2474,18 +2474,18 @@ class LearningLoop:
             accuracy = correct_predictions / total_requests
         else:
             accuracy = model.accuracy
-        
+
         # False positive rate
         total_positives = model.total_positives or 0
         false_positives = model.false_positives or 0
-        
+
         if feedback.is_false_positive:
             false_positives += 1
         if feedback.was_accurate or feedback.is_false_positive:
             total_positives += 1
-        
+
         fp_rate = false_positives / total_positives if total_positives > 0 else 0
-        
+
         # Update model record
         await self.update_model_record(
             model_id=model.id,
@@ -2505,7 +2505,7 @@ class RetrainingScheduler:
     """
     Schedules and manages model retraining based on feedback thresholds.
     """
-    
+
     RETRAINING_TRIGGERS = {
         "accuracy_drop": {
             "window_days": 7,
@@ -2524,15 +2524,15 @@ class RetrainingScheduler:
             "enabled": True
         }
     }
-    
+
     async def check_retraining_needed(self) -> list[RetrainingJob]:
         """Check if any models need retraining."""
-        
+
         jobs = []
-        
+
         # Get all active models
         models = await self.get_active_models()
-        
+
         for model in models:
             # Check accuracy drop
             accuracy_drop = await self.check_accuracy_drop(model)
@@ -2544,7 +2544,7 @@ class RetrainingScheduler:
                     priority="high"
                 ))
                 continue
-            
+
             # Check FP spike
             fp_spike = await self.check_fp_spike(model)
             if fp_spike.needs_retraining:
@@ -2555,7 +2555,7 @@ class RetrainingScheduler:
                     priority="high"
                 ))
                 continue
-            
+
             # Check scheduled retraining
             scheduled = await self.check_scheduled_retraining(model)
             if scheduled.needs_retraining:
@@ -2565,38 +2565,38 @@ class RetrainingScheduler:
                     reason=f"Scheduled retraining ({model.days_since_training} days)",
                     priority="medium"
                 ))
-        
+
         return jobs
-    
+
     async def prepare_training_data(
         self,
         model_id: str,
         min_feedback_samples: int = 500
     ) -> TrainingDataset:
         """Prepare training data from feedback history."""
-        
+
         # Get labeled feedback
         feedback = await self.get_labeled_feedback(
             min_samples=min_feedback_samples,
             balanced=True  # Ensure roughly equal TP/FP
         )
-        
+
         # Get alert data for each feedback
         training_samples = []
         for f in feedback:
             alert = await self.get_alert(f.alert_id)
             analysis = await self.get_ai_analysis(f.ai_analysis_id)
-            
+
             training_samples.append(TrainingSample(
                 alert_data=alert,
                 ai_analysis=analysis,
                 feedback=f,
                 label=self.get_label(f)  # true_positive, false_positive, etc.
             ))
-        
+
         # Split into train/validation
         train, validation = train_test_split(training_samples, test_size=0.2)
-        
+
         return TrainingDataset(
             train=train,
             validation=validation,
@@ -2615,7 +2615,7 @@ class ABTestFramework:
     """
     A/B testing framework for new AI models and rules.
     """
-    
+
     async def create_ab_test(
         self,
         name: str,
@@ -2626,7 +2626,7 @@ class ABTestFramework:
         success_metric: str = "accuracy"
     ) -> ABTest:
         """Create a new A/B test."""
-        
+
         test = ABTest(
             id=uuid4(),
             name=name,
@@ -2638,46 +2638,46 @@ class ABTestFramework:
             status="running",
             started_at=datetime.utcnow()
         )
-        
+
         await self.store_ab_test(test)
-        
+
         # Deploy treatment model with traffic percentage
         await self.deploy_model(
             model_id=treatment_model,
             traffic_percentage=int(traffic_split * 100),
             ab_test_group="treatment"
         )
-        
+
         return test
-    
+
     async def route_request(
         self,
         tenant_id: str,
         user_id: str
     ) -> str:
         """Route request to control or treatment model."""
-        
+
         # Check for active A/B tests
         active_tests = await self.get_active_ab_tests()
-        
+
         for test in active_tests:
             # Consistent routing based on user_id hash
             user_hash = hashlib.sha256(user_id.encode()).hexdigest()
             user_bucket = int(user_hash[:8], 16) % 100
-            
+
             if user_bucket < (test.traffic_split * 100):
                 # Treatment group
                 await self.log_ab_exposure(test.id, user_id, "treatment")
                 return test.treatment_model
-        
+
         # Default to control
         return active_tests[0].control_model if active_tests else "default"
-    
+
     async def evaluate_ab_test(self, test_id: str) -> ABTestResults:
         """Evaluate A/B test results."""
-        
+
         test = await self.get_ab_test(test_id)
-        
+
         # Get metrics for both groups
         control_metrics = await self.get_metrics_for_model(
             test.control_model,
@@ -2687,13 +2687,13 @@ class ABTestFramework:
             test.treatment_model,
             since=test.started_at
         )
-        
+
         # Statistical significance test
         significance = self.calculate_statistical_significance(
             control_metrics,
             treatment_metrics
         )
-        
+
         # Determine winner
         if significance.p_value < 0.05:
             if treatment_metrics[test.success_metric] > control_metrics[test.success_metric]:
@@ -2705,7 +2705,7 @@ class ABTestFramework:
         else:
             winner = None
             recommendation = "continue_test"
-        
+
         return ABTestResults(
             test_id=test_id,
             control_metrics=control_metrics,
@@ -2718,22 +2718,22 @@ class ABTestFramework:
                 "treatment": treatment_metrics.sample_size
             }
         )
-    
+
     async def promote_treatment(self, test_id: str):
         """Promote treatment model to 100% traffic."""
-        
+
         test = await self.get_ab_test(test_id)
-        
+
         # Update treatment model to 100% traffic
         await self.update_model_traffic(test.treatment_model, 100)
-        
+
         # Set control model to 0%
         await self.update_model_traffic(test.control_model, 0)
         await self.deactivate_model(test.control_model)
-        
+
         # Mark test as complete
         await self.complete_ab_test(test_id, winner="treatment")
-        
+
         # Notify stakeholders
         await self.send_notification(
             subject=f"A/B Test Complete: {test.name}",

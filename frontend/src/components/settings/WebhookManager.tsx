@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { 
-  Plus, Edit2, Trash2, Save, X, Webhook, Send, 
-  Loader2 
+import {
+  Plus, Edit2, Trash2, Save, X, Webhook, Send,
+  Loader2
 } from 'lucide-react';
-import { 
-  useWebhooks, 
-  useCreateWebhook, 
-  useUpdateWebhook, 
+import {
+  useWebhooks,
+  useCreateWebhook,
+  useUpdateWebhook,
   useDeleteWebhook,
   useTestWebhook
 } from '@/hooks/useSettings';
@@ -48,7 +48,7 @@ export default function WebhookManager() {
   const updateWebhook = useUpdateWebhook();
   const deleteWebhook = useDeleteWebhook();
   const testWebhook = useTestWebhook();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<WebhookConfig | null>(null);
   const [testingWebhookId, setTestingWebhookId] = useState<string | null>(null);
@@ -83,7 +83,7 @@ export default function WebhookManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || (!editingWebhook && !formData.webhook_url)) {
       toast.error('Please fill in all required fields');
       return;
@@ -108,7 +108,7 @@ export default function WebhookManager() {
 
   const handleDelete = async (webhookId: string) => {
     if (!confirm('Are you sure you want to delete this webhook?')) return;
-    
+
     try {
       await deleteWebhook.mutateAsync(webhookId);
       toast.success('Webhook deleted');
@@ -119,7 +119,7 @@ export default function WebhookManager() {
 
   const handleTest = async (webhook: WebhookConfig) => {
     setTestingWebhookId(webhook.id);
-    
+
     try {
       // In a real implementation, we'd need the webhook URL from the backend
       // For now, we'll just show a success message
@@ -200,14 +200,14 @@ export default function WebhookManager() {
           webhooks?.map((webhook) => {
             const typeInfo = WEBHOOK_TYPES.find(t => t.value === webhook.webhook_type);
             const Icon = typeInfo?.icon || Webhook;
-            
+
             return (
               <div
                 key={webhook.id}
                 className={cn(
                   "bg-white dark:bg-gray-800 rounded-lg border p-4 transition-all",
-                  webhook.is_active 
-                    ? "border-gray-200 dark:border-gray-700" 
+                  webhook.is_active
+                    ? "border-gray-200 dark:border-gray-700"
                     : "border-gray-200 dark:border-gray-700 opacity-60"
                 )}
               >
@@ -219,7 +219,7 @@ export default function WebhookManager() {
                     )}>
                       <Icon />
                     </div>
-                    
+
                     <div>
                       <div className="flex items-center gap-2">
                         <h4 className="font-semibold text-gray-900 dark:text-white">{webhook.name}</h4>
@@ -236,11 +236,11 @@ export default function WebhookManager() {
                           </span>
                         )}
                       </div>
-                      
+
                       <p className="text-sm text-gray-500 mt-1">
                         Created {new Date(webhook.created_at).toLocaleDateString()}
                       </p>
-                      
+
                       {webhook.tenant_id && (
                         <p className="text-xs text-gray-500 mt-1">
                           Tenant: {tenantsData?.items.find(t => t.id === webhook.tenant_id)?.name || webhook.tenant_id}
@@ -248,7 +248,7 @@ export default function WebhookManager() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleTest(webhook)}
@@ -382,7 +382,7 @@ export default function WebhookManager() {
                     </button>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
-                    {formData.webhook_type === 'discord' 
+                    {formData.webhook_type === 'discord'
                       ? 'Create a webhook in your Discord server settings'
                       : 'Create an incoming webhook in your Slack app'}
                   </p>

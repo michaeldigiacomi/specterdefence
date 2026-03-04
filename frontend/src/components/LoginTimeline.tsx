@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  ChevronLeft, 
+import {
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  ChevronLeft,
   ChevronRight,
   MapPin,
   Globe
@@ -26,13 +26,13 @@ interface LoginTimelineProps {
   loading?: boolean;
 }
 
-export default function LoginTimeline({ 
-  logins, 
-  total, 
-  page, 
-  pageSize, 
+export default function LoginTimeline({
+  logins,
+  total,
+  page,
+  pageSize,
   onPageChange,
-  loading = false 
+  loading = false
 }: LoginTimelineProps) {
   const [expandedLogin, setExpandedLogin] = useState<string | null>(null);
 
@@ -83,14 +83,14 @@ export default function LoginTimeline({
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         {logins.map((login) => (
           <div key={login.id} className="group">
-            <div 
+            <div
               onClick={() => toggleExpand(login.id)}
               className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
             >
               <div className="flex items-start gap-4">
                 <div className={cn(
                   'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
-                  login.is_success 
+                  login.is_success
                     ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400'
                     : 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400'
                 )}>
@@ -104,7 +104,7 @@ export default function LoginTimeline({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-gray-900 dark:text-white truncate">{login.user_email}</span>
-                    
+
                     {login.anomaly_flags.length > 0 && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 text-xs rounded-full">
                         <AlertTriangle className="w-3 h-3" />
@@ -118,10 +118,10 @@ export default function LoginTimeline({
                     <span className="hidden sm:inline">•</span>
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
-                      {login.city && login.country 
-                        ? `${login.city}, ${login.country}` 
-                        : login.country 
-                        ? login.country 
+                      {login.city && login.country
+                        ? `${login.city}, ${login.country}`
+                        : login.country
+                        ? login.country
                         : 'Unknown location'}
                     </span>
                     <span className="hidden sm:inline">•</span>
@@ -149,22 +149,22 @@ export default function LoginTimeline({
                       <p className="text-gray-500 dark:text-gray-400">IP Address</p>
                       <p className="font-medium text-gray-900 dark:text-white">{login.ip_address}</p>
                     </div>
-                    
+
                     <div>
                       <p className="text-gray-500 dark:text-gray-400">Login Time</p>
                       <p className="font-medium text-gray-900 dark:text-white">{format(parseISO(login.login_time), 'PPpp')}</p>
                     </div>
-                    
+
                     <div>
                       <p className="text-gray-500 dark:text-gray-400">Country</p>
                       <p className="font-medium text-gray-900 dark:text-white">{login.country || 'Unknown'} ({login.country_code || 'N/A'})</p>
                     </div>
-                    
+
                     <div>
                       <p className="text-gray-500 dark:text-gray-400">Region</p>
                       <p className="font-medium text-gray-900 dark:text-white">{login.region || 'Unknown'}</p>
                     </div>
-                    
+
                     <div>
                       <p className="text-gray-500 dark:text-gray-400">Status</p>
                       <p className={cn(
@@ -175,11 +175,11 @@ export default function LoginTimeline({
                         {login.failure_reason && ` - ${login.failure_reason}`}
                       </p>
                     </div>
-                    
+
                     <div>
                       <p className="text-gray-500 dark:text-gray-400">Coordinates</p>
                       <p className="font-medium text-gray-900 dark:text-white">
-                        {login.latitude && login.longitude 
+                        {login.latitude && login.longitude
                           ? `${login.latitude.toFixed(4)}, ${login.longitude.toFixed(4)}`
                           : 'Unknown'}
                       </p>
@@ -190,7 +190,7 @@ export default function LoginTimeline({
                         <p className="text-gray-500 dark:text-gray-400 mb-2">Detected Anomalies</p>
                         <div className="flex flex-wrap gap-2">
                           {login.anomaly_flags.map((flag, idx) => (
-                            <span 
+                            <span
                               key={idx}
                               className="px-2 py-1 bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 text-xs rounded"
                             >

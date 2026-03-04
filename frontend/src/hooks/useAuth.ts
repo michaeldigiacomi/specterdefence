@@ -23,7 +23,7 @@ export function useLogin() {
     onSuccess: async (data) => {
       // Store token in app state
       login(data.access_token);
-      
+
       // Fetch current user info
       try {
         const user = await apiService.getCurrentUser();
@@ -32,10 +32,10 @@ export function useLogin() {
         // If fetching user fails, still continue with login
         setUser({ username: 'admin', is_authenticated: true });
       }
-      
+
       // Invalidate and refetch auth queries
       queryClient.invalidateQueries({ queryKey: queryKeys.auth() });
-      
+
       toast.success('Login successful!');
       navigate('/');
     },
@@ -55,10 +55,10 @@ export function useLogout() {
     onSuccess: () => {
       // Clear auth state
       logout();
-      
+
       // Clear all queries from cache
       queryClient.clear();
-      
+
       toast.success('Logged out successfully');
       navigate('/login');
     },

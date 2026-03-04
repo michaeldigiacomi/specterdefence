@@ -14,7 +14,7 @@
 ```
 🚨 IMPOSSIBLE TRAVEL DETECTED
 
-Analysis: User john.doe@company.com logged in from NYC at 9:00 AM 
+Analysis: User john.doe@company.com logged in from NYC at 9:00 AM
 and again from Singapore at 9:15 AM - physically impossible.
 
 Risk Factors:
@@ -23,7 +23,7 @@ Risk Factors:
 - VPN not detected on either connection
 - Occurred outside normal business hours (weekend)
 
-Recommendation: HIGH severity. Suggest immediate password reset 
+Recommendation: HIGH severity. Suggest immediate password reset
 and session revocation. Check for credential stuffing attack.
 ```
 
@@ -124,7 +124,7 @@ Human Review: Required within 1 hour for permanent action
 ```
 🔴 CRITICAL ATTACK PATH DETECTED
 
-Path: Compromised contractor → SharePoint access → 
+Path: Compromised contractor → SharePoint access →
       Sensitive doc download → External email forwarding
 
 Blast Radius: 12,000 documents, $2M+ value
@@ -188,7 +188,7 @@ Time to Fix: 15 minutes
    - Action: {alert.action}
    - Location: {alert.location}
    - Historical context: {user_history}
-   
+
    Provide: risk assessment, recommended severity, remediation steps
    """
    analysis = kimi.generate(prompt)
@@ -200,7 +200,7 @@ Time to Fix: 15 minutes
    prompt = """
    Convert to SQL query for this schema:
    Tables: users, mfa_methods, admin_roles
-   
+
    Question: {user_question}
    """
    sql = kimi.generate(prompt)

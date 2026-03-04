@@ -10,7 +10,7 @@ export function AlertFeedPage() {
         description="Real-time security alerts from your Microsoft 365 environment"
         icon={Bell}
       />
-      
+
       <div className="mt-6">
         <AlertFeed maxHeight="calc(100vh - 250px)" />
       </div>

@@ -60,7 +60,7 @@ export default function Tenants() {
       } else {
         // Validate first
         const validation = await validateTenant.mutateAsync(formData as TenantCreate);
-        
+
         if (!validation.valid) {
           setValidationError(validation.message || 'Validation failed');
           return;
@@ -202,14 +202,14 @@ export default function Tenants() {
                         <button
                           onClick={() => handleOpenModal(tenant)}
                           className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
-                          title="Edit"
+                          aria-label="Edit"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(tenant.id)}
                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="Delete"
+                          aria-label="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

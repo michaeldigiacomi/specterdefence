@@ -1,9 +1,9 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { 
-  Bell, 
-  Pause, 
-  Play, 
-  Trash2, 
+import {
+  Bell,
+  Pause,
+  Play,
+  Trash2,
   Filter,
   Wifi,
   WifiOff,
@@ -49,11 +49,11 @@ interface AlertFeedProps {
   tenantId?: string;
 }
 
-export function AlertFeed({ 
-  className, 
+export function AlertFeed({
+  className,
   compact = false,
   maxHeight = '600px',
-  tenantId 
+  tenantId
 }: AlertFeedProps) {
   const {
     alerts,
@@ -89,7 +89,7 @@ export function AlertFeed({
     if (alerts.length > prevAlertsLength.current && soundEnabled && !isPaused) {
       const newAlerts = alerts.slice(0, alerts.length - prevAlertsLength.current);
       const hasCritical = newAlerts.some(a => a.severity === 'CRITICAL');
-      
+
       if (hasCritical && audioRef.current) {
         audioRef.current.play().catch(() => {
           // Audio play failed (likely due to autoplay policy)
@@ -130,8 +130,8 @@ export function AlertFeed({
 
   // Toggle severity selection
   const toggleSeverity = (severity: string) => {
-    setSelectedSeverities(prev => 
-      prev.includes(severity) 
+    setSelectedSeverities(prev =>
+      prev.includes(severity)
         ? prev.filter(s => s !== severity)
         : [...prev, severity]
     );
@@ -139,8 +139,8 @@ export function AlertFeed({
 
   // Toggle event type selection
   const toggleEventType = (eventType: string) => {
-    setSelectedEventTypes(prev => 
-      prev.includes(eventType) 
+    setSelectedEventTypes(prev =>
+      prev.includes(eventType)
         ? prev.filter(e => e !== eventType)
         : [...prev, eventType]
     );
@@ -200,7 +200,7 @@ export function AlertFeed({
         </div>
 
         {/* Alert List */}
-        <div 
+        <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto p-2 space-y-2"
           style={{ maxHeight }}
@@ -257,8 +257,8 @@ export function AlertFeed({
             <div className="flex items-center gap-2 mt-0.5">
               {severityOptions.map(({ value, label, color }) => (
                 alertCounts[value] > 0 && (
-                  <span 
-                    key={value} 
+                  <span
+                    key={value}
                     className={cn(
                       'text-xs text-white px-1.5 py-0.5 rounded-full',
                       color
@@ -274,7 +274,7 @@ export function AlertFeed({
 
         <div className="flex items-center gap-2">
           {/* Connection status */}
-          <div 
+          <div
             className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800"
             title={`${connectionStats.connectedClients} connected clients`}
           >
@@ -289,8 +289,8 @@ export function AlertFeed({
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={cn(
               'p-2 rounded-lg transition-colors',
-              soundEnabled 
-                ? 'text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20' 
+              soundEnabled
+                ? 'text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
                 : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}
             title={soundEnabled ? 'Sound on' : 'Sound off'}
@@ -430,7 +430,7 @@ export function AlertFeed({
       )}
 
       {/* Alert list */}
-      <div 
+      <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-3"
         style={{ maxHeight }}
@@ -456,7 +456,7 @@ export function AlertFeed({
                 />
               ))}
             </div>
-            
+
             {/* Mobile Alert Cards */}
             <div className="md:hidden">
               {alerts.map(alert => (
@@ -480,7 +480,7 @@ export function AlertFeed({
             <span className="text-gray-300 dark:text-gray-600">|</span>
             <span>{connectionStats.connectedClients} connected clients</span>
           </div>
-          
+
           {isPaused && (
             <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
               <Pause className="w-4 h-4" />

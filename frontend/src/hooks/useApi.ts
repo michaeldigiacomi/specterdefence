@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiService from '@/services/api';
-import { 
-  LoginFilters, 
-  AlertFilters, 
-  TenantCreate, 
+import {
+  LoginFilters,
+  AlertFilters,
+  TenantCreate,
   TenantUpdate
 } from '@/types';
 
@@ -64,7 +64,7 @@ export function useTenant(id: string) {
 
 export function useCreateTenant() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: TenantCreate) => apiService.createTenant(data),
     onSuccess: () => {
@@ -75,7 +75,7 @@ export function useCreateTenant() {
 
 export function useUpdateTenant(id: string) {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: TenantUpdate) => apiService.updateTenant(id, data),
     onSuccess: () => {
@@ -87,7 +87,7 @@ export function useUpdateTenant(id: string) {
 
 export function useDeleteTenant() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (id: string) => apiService.deleteTenant(id),
     onSuccess: () => {

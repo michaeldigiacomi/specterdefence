@@ -12,19 +12,24 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const navigate = useNavigate();
   const isAuthenticated = useAppStore((state) => state.isAuthenticated);
   const token = useAppStore((state) => state.token);
-  
+
+  // Redirect immediately if not authenticated (before any hooks)
+  if (!isAuthenticated || !token) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
   // Use auth check to verify token is still valid
   const { isLoading, isError } = useAuthCheck();
 
   useEffect(() => {
-    // If we have a token but auth check failed, redirect to login
-    if (token && isError) {
+    // If auth check failed, redirect to login
+    if (isError) {
       navigate('/login', { replace: true });
     }
-  }, [token, isError, navigate]);
+  }, [isError, navigate]);
 
   // Show loading state while checking auth
-  if (isLoading && token) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center">
@@ -36,11 +41,6 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         </div>
       </div>
     );
-  }
-
-  // Redirect to login if not authenticated
-  if (!isAuthenticated || !token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Render children if authenticated

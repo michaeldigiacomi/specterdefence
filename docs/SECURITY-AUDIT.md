@@ -1,9 +1,9 @@
 # SpecterDefence Security Audit Report
 
-**Date:** 2026-03-02  
-**Auditor:** Cloud Security Engineer (OpenClaw Subagent)  
-**Scope:** Complete codebase and infrastructure review  
-**Application:** SpecterDefence - Microsoft 365 Security Monitoring Platform  
+**Date:** 2026-03-02
+**Auditor:** Cloud Security Engineer (OpenClaw Subagent)
+**Scope:** Complete codebase and infrastructure review
+**Application:** SpecterDefence - Microsoft 365 Security Monitoring Platform
 
 ---
 
@@ -11,19 +11,19 @@
 
 This security audit covers the SpecterDefence application, which stores customer Service Principal Names (SPNs) and credentials for Microsoft 365 tenant access. The audit evaluated secret management, application security, infrastructure security, database security, API security, and compliance with security best practices.
 
-**Overall Risk Rating:** MEDIUM-HIGH  
+**Overall Risk Rating:** MEDIUM-HIGH
 
-**Critical Findings:** 1  
-**High Priority Issues:** 4  
-**Medium Priority Issues:** 6  
-**Low Priority Issues:** 5  
+**Critical Findings:** 1
+**High Priority Issues:** 4
+**Medium Priority Issues:** 6
+**Low Priority Issues:** 5
 
 ---
 
 ## 🚨 Critical Findings (Immediate Action Required)
 
 ### CRIT-001: Weak Default Secret Keys in Configuration
-**CVSS Score:** 9.1 (Critical)  
+**CVSS Score:** 9.1 (Critical)
 **Location:** `src/config.py`
 
 **Issue:** Default hardcoded values for `SECRET_KEY` and `JWT_SECRET_KEY` are weak and predictable:
@@ -50,7 +50,7 @@ class Settings(BaseSettings):
         min_length=32,
         description="JWT signing key - MUST be changed in production"
     )
-    
+
     @field_validator('SECRET_KEY', 'JWT_SECRET_KEY')
     @classmethod
     def validate_not_default(cls, v: str) -> str:
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
 ## 🔴 High Priority Issues
 
 ### HIGH-001: Fixed Salt in Encryption Service
-**CVSS Score:** 7.5 (High)  
+**CVSS Score:** 7.5 (High)
 **Location:** `src/services/encryption.py:19`
 
 **Issue:** The encryption service uses a hardcoded salt value:
@@ -83,11 +83,11 @@ import os
 class EncryptionService:
     def __init__(self) -> None:
         secret_key = settings.SECRET_KEY.encode()
-        
+
         # Use a per-encryption salt stored with the ciphertext
         # Or derive from a separate ENCRYPTION_SALT env var
         salt = settings.ENCRYPTION_SALT.encode() if hasattr(settings, 'ENCRYPTION_SALT') else secret_key[:16]
-        
+
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
@@ -100,7 +100,7 @@ class EncryptionService:
 **Status:** ⚠️ **NOT FIXED**
 
 ### HIGH-002: CORS Misconfiguration - Allow All Origins
-**CVSS Score:** 6.5 (Medium-High)  
+**CVSS Score:** 6.5 (Medium-High)
 **Location:** `src/config.py:21`, `src/main.py:30`
 
 **Issue:** Default CORS configuration allows all origins:
@@ -116,7 +116,7 @@ from pydantic import field_validator
 
 class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = Field(default_factory=list)
-    
+
     @field_validator('CORS_ORIGINS')
     @classmethod
     def validate_cors_origins(cls, v: List[str]) -> List[str]:
@@ -128,7 +128,7 @@ class Settings(BaseSettings):
 **Status:** ⚠️ **NOT FIXED**
 
 ### HIGH-003: Default Admin Password Hash in Code
-**CVSS Score:** 7.2 (High)  
+**CVSS Score:** 7.2 (High)
 **Location:** `src/config.py:32`
 
 **Issue:** Default admin password hash is hardcoded:
@@ -159,7 +159,7 @@ def validate_admin_password_set(cls, v: str) -> str:
 **Status:** ⚠️ **NOT FIXED**
 
 ### HIGH-004: Missing API Rate Limiting
-**CVSS Score:** 6.8 (Medium-High)  
+**CVSS Score:** 6.8 (Medium-High)
 **Location:** `src/main.py`, all API routes
 
 **Issue:** No rate limiting implemented on any endpoints, including authentication.
@@ -199,7 +199,7 @@ async def create_tenant(...):
 ## 🟡 Medium Priority Issues
 
 ### MED-001: HTTP Ingress Without TLS Redirect
-**CVSS Score:** 5.3 (Medium)  
+**CVSS Score:** 5.3 (Medium)
 **Location:** `k8s-deployment.yaml:116-134`
 
 **Issue:** Ingress configured for HTTP only without HTTPS redirect:
@@ -221,7 +221,7 @@ annotations:
 **Status:** ⚠️ **NOT FIXED**
 
 ### MED-002: JWT Token Missing Refresh Mechanism
-**CVSS Score:** 4.8 (Medium)  
+**CVSS Score:** 4.8 (Medium)
 **Location:** `src/api/auth_local.py`
 
 **Issue:** No token refresh mechanism; tokens valid for 24 hours without rotation.
@@ -244,7 +244,7 @@ class TokenResponse(BaseModel):
 **Status:** ⚠️ **NOT FIXED**
 
 ### MED-003: Missing Security Headers
-**CVSS Score:** 4.3 (Medium)  
+**CVSS Score:** 4.3 (Medium)
 **Location:** `src/main.py`
 
 **Issue:** No security headers (CSP, X-Frame-Options, HSTS, etc.) configured.
@@ -273,7 +273,7 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["specterdefence.digital
 **Status:** ⚠️ **NOT FIXED**
 
 ### MED-004: Insufficient PBKDF2 Iterations
-**CVSS Score:** 4.0 (Medium)  
+**CVSS Score:** 4.0 (Medium)
 **Location:** `src/services/encryption.py:22`
 
 **Issue:** PBKDF2 uses 480,000 iterations. OWASP 2023 recommends 600,000+ for SHA256.
@@ -291,7 +291,7 @@ kdf = PBKDF2HMAC(
 **Status:** ⚠️ **NOT FIXED**
 
 ### MED-005: No Audit Logging for Credential Access
-**CVSS Score:** 4.5 (Medium)  
+**CVSS Score:** 4.5 (Medium)
 **Location:** `src/services/tenant.py`
 
 **Issue:** No audit trail when tenant credentials are accessed or decrypted.
@@ -319,7 +319,7 @@ def get_decrypted_secret(self, tenant: TenantModel) -> str:
 **Status:** ⚠️ **NOT FIXED**
 
 ### MED-006: Missing Input Sanitization on Tenant Fields
-**CVSS Score:** 4.0 (Medium)  
+**CVSS Score:** 4.0 (Medium)
 **Location:** `src/api/tenants.py`
 
 **Issue:** No additional sanitization beyond Pydantic validation for tenant names/descriptions that may be logged or displayed.
@@ -342,7 +342,7 @@ def sanitize_name(cls, v: str) -> str:
 ## 🟢 Low Priority Issues
 
 ### LOW-001: Service Account Auto-mounts Token
-**CVSS Score:** 3.5 (Low)  
+**CVSS Score:** 3.5 (Low)
 **Location:** `helm/specterdefence/templates/serviceaccount.yaml`
 
 **Issue:** Service account auto-mounts API token:
@@ -358,7 +358,7 @@ automountServiceAccountToken: false  # Only enable if needed
 **Status:** ⚠️ **NOT FIXED**
 
 ### LOW-002: Debug Mode Enabled by Default
-**CVSS Score:** 3.0 (Low)  
+**CVSS Score:** 3.0 (Low)
 **Location:** `src/config.py:16`
 
 **Issue:** Debug mode defaults to False but has no environment-based enforcement.
@@ -366,7 +366,7 @@ automountServiceAccountToken: false  # Only enable if needed
 **Status:** ✅ **ACCEPTABLE** - Correctly defaults to False
 
 ### LOW-003: Missing Database Connection Encryption
-**CVSS Score:** 3.5 (Low)  
+**CVSS Score:** 3.5 (Low)
 **Location:** `src/database.py`
 
 **Issue:** No SSL/TLS enforcement for database connections.
@@ -387,7 +387,7 @@ engine = create_async_engine(
 **Status:** ⚠️ **NOT FIXED**
 
 ### LOW-004: Container Runs as Non-Root but Without Full Security Context
-**CVSS Score:** 2.5 (Low)  
+**CVSS Score:** 2.5 (Low)
 **Location:** `Dockerfile`
 
 **Issue:** Good practice with non-root user, but could add more hardening.
@@ -395,7 +395,7 @@ engine = create_async_engine(
 **Status:** ✅ **ACCEPTABLE** - Good security practices already in place
 
 ### LOW-005: Frontend node_modules in Container Context
-**CVSS Score:** 2.0 (Low)  
+**CVSS Score:** 2.0 (Low)
 **Location:** `frontend/Dockerfile` (if exists)
 
 **Issue:** .dockerignore may not exclude all unnecessary files.
@@ -508,5 +508,5 @@ The application demonstrates understanding of security principles but needs hard
 
 ---
 
-*Report generated by OpenClaw Security Audit Subagent*  
+*Report generated by OpenClaw Security Audit Subagent*
 *Classification: INTERNAL USE - CONFIDENTIAL*

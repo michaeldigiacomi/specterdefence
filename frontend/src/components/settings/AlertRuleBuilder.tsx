@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { 
-  Plus, Edit2, Trash2, Save, X, Bell, AlertTriangle, 
+import {
+  Plus, Edit2, Trash2, Save, X, Bell, AlertTriangle,
   Shield, Globe, Lock, Clock
 } from 'lucide-react';
-import { 
-  useAlertRules, 
-  useCreateAlertRule, 
-  useUpdateAlertRule, 
-  useDeleteAlertRule 
+import {
+  useAlertRules,
+  useCreateAlertRule,
+  useUpdateAlertRule,
+  useDeleteAlertRule
 } from '@/hooks/useSettings';
 import { useTenants } from '@/hooks/useApi';
 import { AlertRule, EventType, SeverityLevel } from '@/types';
@@ -20,39 +20,39 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const EVENT_TYPES: { value: EventType; label: string; icon: React.ReactNode; description: string }[] = [
-  { 
-    value: 'impossible_travel', 
-    label: 'Impossible Travel', 
+  {
+    value: 'impossible_travel',
+    label: 'Impossible Travel',
     icon: <Globe className="w-4 h-4" />,
     description: 'Logins from geographically distant locations'
   },
-  { 
-    value: 'new_country', 
-    label: 'New Country', 
+  {
+    value: 'new_country',
+    label: 'New Country',
     icon: <Globe className="w-4 h-4" />,
     description: 'First login from a new country'
   },
-  { 
-    value: 'brute_force', 
-    label: 'Brute Force', 
+  {
+    value: 'brute_force',
+    label: 'Brute Force',
     icon: <Lock className="w-4 h-4" />,
     description: 'Multiple failed login attempts'
   },
-  { 
-    value: 'new_ip', 
-    label: 'New IP Address', 
+  {
+    value: 'new_ip',
+    label: 'New IP Address',
     icon: <Shield className="w-4 h-4" />,
     description: 'First login from a new IP'
   },
-  { 
-    value: 'multiple_failures', 
-    label: 'Multiple Failures', 
+  {
+    value: 'multiple_failures',
+    label: 'Multiple Failures',
     icon: <AlertTriangle className="w-4 h-4" />,
     description: 'User with repeated auth failures'
   },
-  { 
-    value: 'admin_action', 
-    label: 'Admin Action', 
+  {
+    value: 'admin_action',
+    label: 'Admin Action',
     icon: <Shield className="w-4 h-4" />,
     description: 'Administrative actions'
   },
@@ -71,7 +71,7 @@ export default function AlertRuleBuilder() {
   const createRule = useCreateAlertRule();
   const updateRule = useUpdateAlertRule();
   const deleteRule = useDeleteAlertRule();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
   const [formData, setFormData] = useState<Partial<AlertRule>>({
@@ -122,7 +122,7 @@ export default function AlertRuleBuilder() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || formData.event_types?.length === 0) {
       toast.error('Please fill in all required fields');
       return;
@@ -159,7 +159,7 @@ export default function AlertRuleBuilder() {
 
   const handleDelete = async (ruleId: string) => {
     if (!confirm('Are you sure you want to delete this alert rule?')) return;
-    
+
     try {
       await deleteRule.mutateAsync(ruleId);
       toast.success('Alert rule deleted');
@@ -215,8 +215,8 @@ export default function AlertRuleBuilder() {
               key={rule.id}
               className={cn(
                 "bg-white dark:bg-gray-800 rounded-lg border p-4 transition-all",
-                rule.is_active 
-                  ? "border-gray-200 dark:border-gray-700" 
+                rule.is_active
+                  ? "border-gray-200 dark:border-gray-700"
                   : "border-gray-200 dark:border-gray-700 opacity-60"
               )}
             >
@@ -228,7 +228,7 @@ export default function AlertRuleBuilder() {
                   )}>
                     <Bell className="w-5 h-5 text-primary-500" />
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="font-semibold text-gray-900 dark:text-white">{rule.name}</h4>
@@ -245,7 +245,7 @@ export default function AlertRuleBuilder() {
                         </span>
                       )}
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 mt-2">
                       {rule.event_types.map((et) => {
                         const eventType = EVENT_TYPES.find(e => e.value === et);
@@ -260,7 +260,7 @@ export default function AlertRuleBuilder() {
                         );
                       })}
                     </div>
-                    
+
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
@@ -274,7 +274,7 @@ export default function AlertRuleBuilder() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleOpenModal(rule)}

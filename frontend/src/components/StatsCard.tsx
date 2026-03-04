@@ -42,11 +42,11 @@ const colorVariants = {
   },
 };
 
-export default function StatsCard({ 
-  title, 
-  value, 
-  icon: Icon, 
-  trend, 
+export default function StatsCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
   color = 'blue',
   loading = false
 }: StatsCardProps) {
@@ -67,7 +67,7 @@ export default function StatsCard({
         <div>
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
           <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
-          
+
           {trend && (
             <div className="mt-2 flex items-center gap-1">
               {trend.positive ? (

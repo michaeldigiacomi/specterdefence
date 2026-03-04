@@ -147,7 +147,7 @@ export default function AnomalyCard({ anomaly, compact = false }: AnomalyCardPro
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Previously seen in:</p>
               <div className="flex flex-wrap gap-1">
                 {anomaly.previous_countries.map((country, idx) => (
-                  <span 
+                  <span
                     key={idx}
                     className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded"
                   >

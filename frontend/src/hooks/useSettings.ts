@@ -38,7 +38,7 @@ export function useSystemSettings() {
 
 export function useUpdateSystemSettings() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: SystemSettingsUpdate) => apiService.updateSystemSettings(data),
     onSuccess: () => {
@@ -60,7 +60,7 @@ export function useUserPreferences(userEmail: string) {
 
 export function useUpdateUserPreferences(userEmail: string) {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: UserPreferencesUpdate) => apiService.updateUserPreferences(userEmail, data),
     onSuccess: () => {
@@ -81,7 +81,7 @@ export function useDetectionThresholds(tenantId?: string) {
 
 export function useUpdateDetectionThresholds(tenantId?: string) {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: DetectionThresholdsUpdate) => apiService.updateDetectionThresholds(data, tenantId),
     onSuccess: () => {
@@ -102,7 +102,7 @@ export function useApiKeys(includeInactive?: boolean) {
 
 export function useCreateApiKey() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: ApiKeyCreate) => apiService.createApiKey(data),
     onSuccess: () => {
@@ -113,9 +113,9 @@ export function useCreateApiKey() {
 
 export function useUpdateApiKey() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ keyId, data }: { keyId: string; data: ApiKeyUpdate }) => 
+    mutationFn: ({ keyId, data }: { keyId: string; data: ApiKeyUpdate }) =>
       apiService.updateApiKey(keyId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsQueryKeys.apiKeys() });
@@ -125,7 +125,7 @@ export function useUpdateApiKey() {
 
 export function useRevokeApiKey() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (keyId: string) => apiService.revokeApiKey(keyId),
     onSuccess: () => {
@@ -154,7 +154,7 @@ export function useConfigurationBackups() {
 
 export function useExportConfiguration() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: ConfigExportRequest) => apiService.exportConfiguration(data),
     onSuccess: () => {
@@ -165,7 +165,7 @@ export function useExportConfiguration() {
 
 export function useImportConfiguration() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: ConfigImportRequest) => apiService.importConfiguration(data),
     onSuccess: () => {
@@ -177,7 +177,7 @@ export function useImportConfiguration() {
 
 export function useDeleteConfigurationBackup() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (backupId: string) => apiService.deleteConfigurationBackup(backupId),
     onSuccess: () => {
@@ -198,7 +198,7 @@ export function useAlertRules() {
 
 export function useCreateAlertRule() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: AlertRuleCreate) => apiService.createAlertRule(data),
     onSuccess: () => {
@@ -209,9 +209,9 @@ export function useCreateAlertRule() {
 
 export function useUpdateAlertRule() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ ruleId, data }: { ruleId: string; data: AlertRuleUpdate }) => 
+    mutationFn: ({ ruleId, data }: { ruleId: string; data: AlertRuleUpdate }) =>
       apiService.updateAlertRule(ruleId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsQueryKeys.alertRules() });
@@ -221,7 +221,7 @@ export function useUpdateAlertRule() {
 
 export function useDeleteAlertRule() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (ruleId: string) => apiService.deleteAlertRule(ruleId),
     onSuccess: () => {
@@ -242,7 +242,7 @@ export function useWebhooks() {
 
 export function useCreateWebhook() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: WebhookCreate) => apiService.createWebhook(data),
     onSuccess: () => {
@@ -253,9 +253,9 @@ export function useCreateWebhook() {
 
 export function useUpdateWebhook() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ webhookId, data }: { webhookId: string; data: WebhookUpdate }) => 
+    mutationFn: ({ webhookId, data }: { webhookId: string; data: WebhookUpdate }) =>
       apiService.updateWebhook(webhookId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsQueryKeys.webhooks() });
@@ -265,7 +265,7 @@ export function useUpdateWebhook() {
 
 export function useDeleteWebhook() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (webhookId: string) => apiService.deleteWebhook(webhookId),
     onSuccess: () => {

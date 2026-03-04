@@ -3,7 +3,7 @@ import LoginMap from '@/components/LoginMap';
 import { useLoginAnalytics } from '@/hooks/useApi';
 
 export default function MapPage() {
-  const { data, isLoading } = useLoginAnalytics({ 
+  const { data, isLoading } = useLoginAnalytics({
     page_size: 1000,
     start_time: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // Last 7 days
   });
@@ -22,7 +22,7 @@ export default function MapPage() {
       </div>
 
       {/* Map */}
-      <LoginMap 
+      <LoginMap
         logins={data?.logins || []}
         loading={isLoading}
         height="600px"

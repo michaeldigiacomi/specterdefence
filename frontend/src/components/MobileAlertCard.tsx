@@ -1,10 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { 
-  Check, 
-  X, 
-  AlertTriangle, 
-  Info, 
+import {
+  Check,
+  X,
+  AlertTriangle,
+  Info,
   AlertCircle,
   Flame,
   MapPin,
@@ -62,11 +62,11 @@ const severityConfig = {
 // Swipe threshold in pixels
 const SWIPE_THRESHOLD = 100;
 
-export function MobileAlertCard({ 
-  alert, 
-  onAcknowledge, 
+export function MobileAlertCard({
+  alert,
+  onAcknowledge,
   onDismiss,
-  onView 
+  onView
 }: MobileAlertCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -74,38 +74,38 @@ export function MobileAlertCard({
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const cardRef = useRef<HTMLDivElement>(null);
-  
+
   const config = severityConfig[alert.severity];
   const Icon = config.icon;
-  
+
   // Handle touch start
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     setIsSwiping(false);
   }, []);
-  
+
   // Handle touch move
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!touchStartX.current) return;
-    
+
     const touchX = e.touches[0].clientX;
     const touchY = e.touches[0].clientY;
     const deltaX = touchX - touchStartX.current;
     const deltaY = touchY - touchStartY.current;
-    
+
     // Determine if horizontal swipe
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
       setIsSwiping(true);
       e.preventDefault();
-      
+
       // Limit swipe distance
       const maxSwipe = 150;
       const limitedDelta = Math.max(-maxSwipe, Math.min(maxSwipe, deltaX));
       setSwipeOffset(limitedDelta);
     }
   }, []);
-  
+
   // Handle touch end
   const handleTouchEnd = useCallback(() => {
     if (Math.abs(swipeOffset) > SWIPE_THRESHOLD) {
@@ -117,13 +117,13 @@ export function MobileAlertCard({
         onDismiss(alert.id);
       }
     }
-    
+
     setSwipeOffset(0);
     setIsSwiping(false);
     touchStartX.current = 0;
     touchStartY.current = 0;
   }, [swipeOffset, alert.id, onAcknowledge, onDismiss]);
-  
+
   // Handle card click
   const handleCardClick = () => {
     if (!isSwiping) {
@@ -134,22 +134,22 @@ export function MobileAlertCard({
       }
     }
   };
-  
+
   const handleAcknowledge = (e: React.MouseEvent) => {
     e.stopPropagation();
     onAcknowledge?.(alert.id);
   };
-  
+
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDismiss?.(alert.id);
   };
-  
+
   // Format location data
-  const location = (alert.metadata?.current_location as { city?: string; country?: string } | undefined) 
+  const location = (alert.metadata?.current_location as { city?: string; country?: string } | undefined)
     || (alert.metadata?.location as { city?: string; country?: string } | undefined);
   const ipAddress = alert.metadata?.ip_address as string | undefined;
-  
+
   // Calculate swipe background color
   const getSwipeBackground = () => {
     if (swipeOffset > 0) {
@@ -159,11 +159,11 @@ export function MobileAlertCard({
     }
     return 'bg-gray-200 dark:bg-gray-700';
   };
-  
+
   return (
     <div className="relative overflow-hidden rounded-xl mb-3 touch-pan-y">
       {/* Swipe Background Actions */}
-      <div 
+      <div
         className={cn(
           'absolute inset-0 flex items-center justify-between px-4 transition-colors duration-200',
           getSwipeBackground()
@@ -177,7 +177,7 @@ export function MobileAlertCard({
           <Check className="w-6 h-6" />
           <span className="font-medium">Acknowledge</span>
         </div>
-        
+
         {/* Left swipe - Dismiss */}
         <div className={cn(
           'flex items-center gap-2 text-white transition-opacity duration-200',
@@ -187,7 +187,7 @@ export function MobileAlertCard({
           <X className="w-6 h-6" />
         </div>
       </div>
-      
+
       {/* Main Card */}
       <div
         ref={cardRef}
@@ -216,7 +216,7 @@ export function MobileAlertCard({
             )}>
               <Icon className="w-5 h-5" />
             </div>
-            
+
             {/* Content */}
             <div className="flex-1 min-w-0">
               {/* Badge and Time */}
@@ -231,25 +231,25 @@ export function MobileAlertCard({
                   {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}
                 </span>
               </div>
-              
+
               {/* Title */}
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white mt-1 leading-tight">
                 {alert.title}
               </h3>
-              
+
               {/* Message */}
               <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
                 {alert.message}
               </p>
             </div>
-            
+
             {/* Chevron */}
             <ChevronRight className={cn(
               'w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200',
               expanded && 'rotate-90'
             )} />
           </div>
-          
+
           {/* Meta Info Row */}
           <div className="flex items-center gap-3 mt-3 flex-wrap">
             {alert.user_email && (
@@ -270,7 +270,7 @@ export function MobileAlertCard({
               </span>
             )}
           </div>
-          
+
           {/* Action Buttons */}
           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
             {alert.status !== 'acknowledged' && onAcknowledge && (
@@ -301,7 +301,7 @@ export function MobileAlertCard({
             )}
           </div>
         </div>
-        
+
         {/* Expanded Details */}
         {expanded && (
           <div className="px-4 pb-4 border-t border-gray-200 dark:border-gray-700">
@@ -313,7 +313,7 @@ export function MobileAlertCard({
                   {alert.event_type_name}
                 </span>
               </div>
-              
+
               {/* Metadata */}
               {Object.keys(alert.metadata).length > 0 && (
                 <div>
@@ -327,7 +327,7 @@ export function MobileAlertCard({
                   </div>
                 </div>
               )}
-              
+
               {/* Alert ID and Tenant */}
               <div className="flex flex-col gap-1 text-xs text-gray-500 dark:text-gray-400">
                 <span className="font-mono">ID: {alert.id.slice(0, 16)}...</span>
@@ -342,7 +342,7 @@ export function MobileAlertCard({
           </div>
         )}
       </div>
-      
+
       {/* Swipe Hints */}
       <div className="absolute bottom-1 left-0 right-0 flex justify-between px-4 pointer-events-none">
         <span className="text-[10px] text-gray-400 dark:text-gray-600 opacity-0">

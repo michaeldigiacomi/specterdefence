@@ -470,14 +470,14 @@ rules:
       - group: ""
         resources: ["secrets"]
     namespaces: ["specterdefence"]
-  
+
   # Log pod creation/deletion
   - level: RequestResponse
     resources:
       - group: ""
         resources: ["pods"]
     namespaces: ["specterdefence"]
-  
+
   # Log RBAC changes
   - level: RequestResponse
     resources:

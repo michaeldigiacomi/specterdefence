@@ -188,12 +188,12 @@ global:
 
 api:
   replicaCount: 3
-  
+
   image:
     repository: ghcr.io/bluedigiacomi/specterdefence-api
     pullPolicy: IfNotPresent
     tag: "stable"
-  
+
   resources:
     limits:
       cpu: 2000m
@@ -201,30 +201,30 @@ api:
     requests:
       cpu: 500m
       memory: 1Gi
-  
+
   autoscaling:
     enabled: true
     minReplicas: 3
     maxReplicas: 20
     targetCPUUtilizationPercentage: 60
     targetMemoryUtilizationPercentage: 75
-  
+
   podDisruptionBudget:
     enabled: true
     minAvailable: 2
-  
+
   config:
     debug: "false"
     logLevel: "info"
     corsOrigins: "https://specterdefence.digitaladrenalin.net"
-  
+
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 1000
     fsGroup: 1000
     seccompProfile:
       type: RuntimeDefault
-  
+
   containerSecurityContext:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
@@ -233,7 +233,7 @@ api:
         - ALL
     seccompProfile:
       type: RuntimeDefault
-  
+
   topologySpreadConstraints:
     - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
@@ -244,12 +244,12 @@ api:
 
 frontend:
   replicaCount: 3
-  
+
   image:
     repository: ghcr.io/bluedigiacomi/specterdefence-frontend
     pullPolicy: IfNotPresent
     tag: "stable"
-  
+
   resources:
     limits:
       cpu: 1000m
@@ -257,7 +257,7 @@ frontend:
     requests:
       cpu: 250m
       memory: 256Mi
-  
+
   autoscaling:
     enabled: true
     minReplicas: 3
@@ -266,7 +266,7 @@ frontend:
 ingress:
   enabled: true
   className: nginx
-  
+
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
@@ -285,7 +285,7 @@ ingress:
       add_header X-XSS-Protection "1; mode=block" always;
       add_header Referrer-Policy "strict-origin-when-cross-origin" always;
       add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
-  
+
   tls:
     enabled: true
     secretName: specterdefence-tls
@@ -473,7 +473,7 @@ spec:
         severity: critical
       annotations:
         summary: "High error rate on SpecterDefence API"
-        
+
     - alert: SpecterDefenceUnauthenticatedAccess
       expr: increase(http_requests_total{service="specterdefence-api",status="401"}[5m]) > 10
       for: 5m

@@ -22,8 +22,8 @@ function DetectionCard({ title, description, icon, enabled, onToggle, children }
   return (
     <div className={cn(
       "bg-white dark:bg-gray-800 rounded-lg border p-6 transition-all",
-      enabled 
-        ? "border-primary-200 dark:border-primary-800" 
+      enabled
+        ? "border-primary-200 dark:border-primary-800"
         : "border-gray-200 dark:border-gray-700 opacity-75"
     )}>
       <div className="flex items-start justify-between mb-4">
@@ -39,7 +39,7 @@ function DetectionCard({ title, description, icon, enabled, onToggle, children }
             <p className="text-sm text-gray-500">{description}</p>
           </div>
         </div>
-        
+
         <label className="relative inline-flex items-center cursor-pointer">
           <input
             type="checkbox"
@@ -56,7 +56,7 @@ function DetectionCard({ title, description, icon, enabled, onToggle, children }
           )}></div>
         </label>
       </div>
-      
+
       {enabled && <div className="pt-4 border-t border-gray-100 dark:border-gray-700">{children}</div>}
     </div>
   );
@@ -79,7 +79,7 @@ export default function DetectionSettings({ tenantId }: DetectionSettingsProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       await updateThresholds.mutateAsync({
         impossible_travel_enabled: currentThresholds.impossible_travel_enabled,
@@ -127,7 +127,7 @@ export default function DetectionSettings({ tenantId }: DetectionSettingsProps) 
           <TrendingUp className="w-6 h-6" />
           <h3 className="text-lg font-semibold">Risk Score Multiplier</h3>
         </div>
-        
+
         <div className="flex items-center gap-6">
           <div className="flex-1">
             <input
@@ -178,7 +178,7 @@ export default function DetectionSettings({ tenantId }: DetectionSettingsProps) 
               />
               <p className="mt-1 text-xs text-gray-500">Speed threshold to trigger alert (commercial flights ~900 km/h)</p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Time Window (minutes)
@@ -243,7 +243,7 @@ export default function DetectionSettings({ tenantId }: DetectionSettingsProps) 
                 className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Time Window (minutes)
@@ -308,7 +308,7 @@ export default function DetectionSettings({ tenantId }: DetectionSettingsProps) 
                 className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Time Window (minutes)

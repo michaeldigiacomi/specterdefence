@@ -64,7 +64,7 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
   const [isPaused, setIsPaused] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectionStats, setConnectionStats] = useState<{ connectedClients: number; timestamp?: string }>({ connectedClients: 0 });
-  
+
   const ws = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,7 +73,7 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
 
   const buildWsUrl = useCallback((): string => {
     const params = new URLSearchParams();
-    
+
     if (filters.current.severity?.length) {
       params.append('severity', filters.current.severity.join(','));
     }
@@ -83,7 +83,7 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
     if (filters.current.tenant_id) {
       params.append('tenant_id', filters.current.tenant_id);
     }
-    
+
     const queryString = params.toString();
     return queryString ? `${WS_URL}?${queryString}` : WS_URL;
   }, []);
@@ -103,7 +103,7 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
       ws.current.onopen = () => {
         setConnectionStatus('connected');
         reconnectAttempts.current = 0;
-        
+
         // Process any pending alerts that arrived while disconnected
         if (pendingAlerts.current.length > 0 && !isPaused) {
           setAlerts(prev => [...pendingAlerts.current, ...prev].slice(0, 100));
@@ -145,11 +145,11 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
     }
 
     reconnectAttempts.current += 1;
-    
+
     if (reconnectTimer.current) {
       clearTimeout(reconnectTimer.current);
     }
-    
+
     reconnectTimer.current = setTimeout(() => {
       connect();
     }, RECONNECT_INTERVAL * reconnectAttempts.current);
@@ -160,13 +160,13 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
       case 'connection':
         console.log('WebSocket connected:', data);
         break;
-        
+
       case 'initial_alerts': {
         const initialAlerts = (data.alerts as Alert[]) || [];
         setAlerts(initialAlerts);
         break;
       }
-        
+
       case 'new_alert': {
         const newAlert = data.alert as Alert;
         if (isPaused) {
@@ -176,7 +176,7 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
         }
         break;
       }
-        
+
       case 'alert_acknowledged': {
         const ackId = data.alert_id as string;
         setAlerts(prev =>
@@ -188,28 +188,28 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
         );
         break;
       }
-        
+
       case 'alert_dismissed': {
         const dismissId = data.alert_id as string;
         setAlerts(prev => prev.filter(a => a.id !== dismissId));
         break;
       }
-        
+
       case 'stats':
         setConnectionStats({
           connectedClients: (data.connected_clients as number) || 0,
           timestamp: data.timestamp as string,
         });
         break;
-        
+
       case 'pong':
         // Keepalive response
         break;
-        
+
       case 'error':
         setError(data.message as string);
         break;
-        
+
       default:
         console.log('Unknown message type:', data.type);
     }

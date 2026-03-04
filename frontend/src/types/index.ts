@@ -104,13 +104,13 @@ export interface TenantListResponse {
 export type SeverityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 /** Event type */
-export type EventType = 
-  | 'impossible_travel' 
-  | 'new_country' 
-  | 'brute_force' 
-  | 'admin_action' 
-  | 'new_ip' 
-  | 'multiple_failures' 
+export type EventType =
+  | 'impossible_travel'
+  | 'new_country'
+  | 'brute_force'
+  | 'admin_action'
+  | 'new_ip'
+  | 'multiple_failures'
   | 'suspicious_location';
 
 /** Alert history item */

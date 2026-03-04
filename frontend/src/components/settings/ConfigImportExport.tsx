@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { 
-  Download, Upload, Trash2, FileJson, AlertTriangle, 
+import {
+  Download, Upload, Trash2, FileJson, AlertTriangle,
   X, Clock
 } from 'lucide-react';
-import { 
-  useConfigurationBackups, 
-  useExportConfiguration, 
+import {
+  useConfigurationBackups,
+  useExportConfiguration,
   useImportConfiguration,
   useDeleteConfigurationBackup
 } from '@/hooks/useSettings';
@@ -29,7 +29,7 @@ export default function ConfigImportExport() {
   const exportConfig = useExportConfiguration();
   const importConfig = useImportConfiguration();
   const deleteBackup = useDeleteConfigurationBackup();
-  
+
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['system', 'detection']);
@@ -40,7 +40,7 @@ export default function ConfigImportExport() {
   const [importFile, setImportFile] = useState<File | null>(null);
 
   const handleToggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
+    setSelectedCategories(prev =>
       prev.includes(category)
         ? prev.filter(c => c !== category)
         : [...prev, category]
@@ -49,7 +49,7 @@ export default function ConfigImportExport() {
 
   const handleExport = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (selectedCategories.length === 0) {
       toast.error('Please select at least one category');
       return;
@@ -61,7 +61,7 @@ export default function ConfigImportExport() {
         name: exportName || `Backup ${new Date().toISOString().split('T')[0]}`,
         description: exportDescription,
       });
-      
+
       toast.success('Configuration exported successfully');
       setExportModalOpen(false);
       setExportName('');
@@ -73,10 +73,10 @@ export default function ConfigImportExport() {
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       let configData;
-      
+
       if (importFile) {
         const text = await importFile.text();
         configData = JSON.parse(text);
@@ -97,7 +97,7 @@ export default function ConfigImportExport() {
       } else {
         toast.success('Configuration imported successfully');
       }
-      
+
       setImportModalOpen(false);
       setImportJson('');
       setImportFile(null);
@@ -130,7 +130,7 @@ export default function ConfigImportExport() {
 
   const handleDelete = async (backupId: string) => {
     if (!confirm('Are you sure you want to delete this backup?')) return;
-    
+
     try {
       await deleteBackup.mutateAsync(backupId);
       toast.success('Backup deleted');
@@ -185,7 +185,7 @@ export default function ConfigImportExport() {
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold text-gray-900 dark:text-white">Configuration Backups</h3>
         </div>
-        
+
         {backups?.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <FileJson className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
@@ -211,7 +211,7 @@ export default function ConfigImportExport() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleDownload(backup.id, backup.name)}

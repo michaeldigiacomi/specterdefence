@@ -12,12 +12,12 @@ export default function Layout() {
       <div className="hidden lg:block">
         <Sidebar />
       </div>
-      
+
       {/* Mobile Navigation */}
       <MobileNav />
-      
+
       {/* Main Content */}
-      <main 
+      <main
         className={`flex-1 overflow-auto transition-all duration-300 lg:ml-0 ${
           sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'
         }`}

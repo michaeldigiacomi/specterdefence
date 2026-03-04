@@ -36,14 +36,14 @@ describe('appStore', () => {
 
   it('supports theme toggling', () => {
     const themes: Array<'light' | 'dark'> = ['light', 'dark'];
-    
+
     expect(themes).toContain('light');
     expect(themes).toContain('dark');
   });
 
   it('toggles theme correctly', () => {
     let theme: 'light' | 'dark' = 'light';
-    
+
     const toggleTheme = () => {
       theme = theme === 'light' ? 'dark' : 'light';
     };
@@ -57,7 +57,7 @@ describe('appStore', () => {
 
   it('toggles sidebar correctly', () => {
     let sidebarOpen = true;
-    
+
     const toggleSidebar = () => {
       sidebarOpen = !sidebarOpen;
     };
@@ -71,28 +71,28 @@ describe('appStore', () => {
 
   it('sets sidebar open correctly', () => {
     let sidebarOpen = true;
-    
+
     const setSidebarOpen = (open: boolean) => {
       sidebarOpen = open;
     };
 
     setSidebarOpen(false);
     expect(sidebarOpen).toBe(false);
-    
+
     setSidebarOpen(true);
     expect(sidebarOpen).toBe(true);
   });
 
   it('sets theme correctly', () => {
     let theme: 'light' | 'dark' = 'light';
-    
+
     const setTheme = (newTheme: 'light' | 'dark') => {
       theme = newTheme;
     };
 
     setTheme('dark');
     expect(theme).toBe('dark');
-    
+
     setTheme('light');
     expect(theme).toBe('light');
   });

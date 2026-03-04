@@ -8,9 +8,9 @@ import { LoginFilters } from '@/types';
 import toast from 'react-hot-toast';
 
 export default function LoginAnalytics() {
-  const [filters, setFilters] = useState<LoginFilters>({ 
-    page: 1, 
-    page_size: 20 
+  const [filters, setFilters] = useState<LoginFilters>({
+    page: 1,
+    page_size: 20
   });
 
   const { data, isLoading, error } = useLoginAnalytics(filters);
@@ -29,17 +29,17 @@ export default function LoginAnalytics() {
   const chartData = data?.logins.reduce((acc, login) => {
     const hour = new Date(login.login_time).getHours();
     const key = `${hour}:00`;
-    
+
     if (!acc[key]) {
       acc[key] = { time: key, success: 0, failed: 0 };
     }
-    
+
     if (login.is_success) {
       acc[key].success++;
     } else {
       acc[key].failed++;
     }
-    
+
     return acc;
   }, {} as Record<string, { time: string; success: number; failed: number }>);
 
@@ -99,18 +99,18 @@ export default function LoginAnalytics() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartDataArray}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
-                <XAxis 
-                  dataKey="time" 
+                <XAxis
+                  dataKey="time"
                   stroke="#6B7280"
                   fontSize={12}
                   tickLine={false}
                 />
-                <YAxis 
+                <YAxis
                   stroke="#6B7280"
                   fontSize={12}
                   tickLine={false}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
                     backgroundColor: 'rgba(17, 24, 39, 0.9)',
                     border: 'none',

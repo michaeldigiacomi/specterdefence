@@ -87,7 +87,7 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       await updatePreferences.mutateAsync({
         timezone: currentPrefs.timezone,
@@ -129,7 +129,7 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
           <Palette className="w-5 h-5 text-primary-500" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Display</h3>
         </div>
-        
+
         <div className="space-y-6">
           {/* Theme Selection */}
           <div>
@@ -157,7 +157,7 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
               })}
             </div>
           </div>
-          
+
           {/* Date Format */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -187,7 +187,7 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
           <Globe className="w-5 h-5 text-primary-500" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Timezone</h3>
         </div>
-        
+
         <select
           value={currentPrefs.timezone || 'UTC'}
           onChange={(e) => handleChange('timezone', e.target.value)}
@@ -208,7 +208,7 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
           <Bell className="w-5 h-5 text-primary-500" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
         </div>
-        
+
         <div className="space-y-4">
           <label className="flex items-center gap-3 cursor-pointer">
             <input
@@ -222,7 +222,7 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
               <p className="text-xs text-gray-500">Receive alerts via email</p>
             </div>
           </label>
-          
+
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
@@ -235,7 +235,7 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
               <p className="text-xs text-gray-500">Receive alerts via Discord</p>
             </div>
           </label>
-          
+
           <div className="pt-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Minimum Severity
@@ -269,7 +269,7 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
           <Monitor className="w-5 h-5 text-primary-500" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Dashboard</h3>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Auto-refresh Interval (seconds)

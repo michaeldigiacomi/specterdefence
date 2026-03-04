@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BarChart3, 
-  Map, 
-  AlertTriangle, 
-  Building2, 
+import {
+  LayoutDashboard,
+  BarChart3,
+  Map,
+  AlertTriangle,
+  Building2,
   Bell,
   Menu,
   X,
@@ -45,7 +45,7 @@ export function MobileNav() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const { theme, toggleTheme } = useAppStore();
   const location = useLocation();
-  
+
   // Handle body scroll lock when menu is open
   useEffect(() => {
     if (isOpen) {
@@ -53,45 +53,45 @@ export function MobileNav() {
     } else {
       document.body.style.overflow = '';
     }
-    
+
     return () => {
       document.body.style.overflow = '';
     };
   }, [isOpen]);
-  
+
   // Check for PWA install prompt
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setShowInstallPrompt(true);
     };
-    
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
-  
+
   // Close menu on route change
   useEffect(() => {
     setIsOpen(false);
   }, [location.pathname]);
-  
+
   const handleInstallClick = async () => {
     // @ts-expect-error - deferredPrompt is added by the browser
     const deferredPrompt = window.deferredPrompt;
-    
+
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      
+
       if (outcome === 'accepted') {
         setShowInstallPrompt(false);
       }
     }
   };
-  
+
   return (
     <>
       {/* Mobile Header */}
@@ -106,7 +106,7 @@ export function MobileNav() {
               SpecterDefence
             </span>
           </NavLink>
-          
+
           {/* Right Actions */}
           <div className="flex items-center gap-2">
             {/* Install Prompt Button */}
@@ -118,7 +118,7 @@ export function MobileNav() {
                 Install
               </button>
             )}
-            
+
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -131,7 +131,7 @@ export function MobileNav() {
                 <Sun className="w-5 h-5" />
               )}
             </button>
-            
+
             {/* Menu Toggle */}
             <button
               onClick={() => setIsOpen(true)}
@@ -143,10 +143,10 @@ export function MobileNav() {
           </div>
         </div>
       </header>
-      
+
       {/* Spacer for fixed header */}
       <div className="lg:hidden h-14" />
-      
+
       {/* Full-screen Navigation Menu */}
       <div
         className={cn(
@@ -155,11 +155,11 @@ export function MobileNav() {
         )}
       >
         {/* Backdrop */}
-        <div 
+        <div
           className="absolute inset-0 bg-black/50 backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
-        
+
         {/* Menu Panel */}
         <div
           className={cn(
@@ -178,7 +178,7 @@ export function MobileNav() {
               <X className="w-5 h-5" />
             </button>
           </div>
-          
+
           {/* Navigation Links */}
           <nav className="p-4 space-y-1">
             {navItems.map((item) => (
@@ -205,10 +205,10 @@ export function MobileNav() {
               </NavLink>
             ))}
           </nav>
-          
+
           {/* Divider */}
           <div className="border-t border-gray-200 dark:border-gray-800 mx-4" />
-          
+
           {/* Secondary Actions */}
           <div className="p-4 space-y-1">
             <button
@@ -224,7 +224,7 @@ export function MobileNav() {
               <span className="font-medium">Profile</span>
             </button>
           </div>
-          
+
           {/* App Info */}
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-800 safe-area-bottom">
             <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
@@ -233,14 +233,14 @@ export function MobileNav() {
           </div>
         </div>
       </div>
-      
+
       {/* Bottom Navigation Bar */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 safe-area-bottom">
         <div className="flex items-center justify-around h-16 pb-safe">
           {bottomNavItems.map((item) => {
-            const isActive = location.pathname === item.path || 
+            const isActive = location.pathname === item.path ||
               (item.path === '/more' && isOpen);
-            
+
             if (item.path === '/more') {
               return (
                 <button
@@ -258,7 +258,7 @@ export function MobileNav() {
                 </button>
               );
             }
-            
+
             return (
               <NavLink
                 key={item.path}
@@ -287,7 +287,7 @@ export function MobileNav() {
           })}
         </div>
       </nav>
-      
+
       {/* Bottom Spacer for fixed bottom nav */}
       <div className="lg:hidden h-16" />
     </>

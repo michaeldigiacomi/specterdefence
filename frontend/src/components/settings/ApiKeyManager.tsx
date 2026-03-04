@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { 
+import {
   Plus, Copy, Trash2, X, Key,
   Clock, Shield, CheckCircle, Save
 } from 'lucide-react';
-import { 
-  useApiKeys, 
-  useCreateApiKey, 
+import {
+  useApiKeys,
+  useCreateApiKey,
   useRevokeApiKey,
 } from '@/hooks/useSettings';
 import { useTenants } from '@/hooks/useApi';
@@ -34,7 +34,7 @@ export default function ApiKeyManager() {
   const { data: tenantsData } = useTenants();
   const createApiKey = useCreateApiKey();
   const revokeApiKey = useRevokeApiKey();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showNewKey, setShowNewKey] = useState<{ id: string; key: string; name: string } | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
@@ -60,7 +60,7 @@ export default function ApiKeyManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || formData.scopes?.length === 0) {
       toast.error('Please fill in all required fields');
       return;
@@ -77,7 +77,7 @@ export default function ApiKeyManager() {
 
   const handleRevoke = async (keyId: string) => {
     if (!confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) return;
-    
+
     try {
       await revokeApiKey.mutateAsync(keyId);
       toast.success('API key revoked');
@@ -143,7 +143,7 @@ export default function ApiKeyManager() {
         <div>
           <h4 className="font-medium text-amber-900 dark:text-amber-400">Security Notice</h4>
           <p className="text-sm text-amber-700 dark:text-amber-500">
-            API keys provide full access to your SpecterDefence data. Store them securely and never commit them to version control. 
+            API keys provide full access to your SpecterDefence data. Store them securely and never commit them to version control.
             Keys are only shown once upon creation.
           </p>
         </div>
@@ -168,8 +168,8 @@ export default function ApiKeyManager() {
               key={key.id}
               className={cn(
                 "bg-white dark:bg-gray-800 rounded-lg border p-4 transition-all",
-                key.is_active 
-                  ? "border-gray-200 dark:border-gray-700" 
+                key.is_active
+                  ? "border-gray-200 dark:border-gray-700"
                   : "border-gray-200 dark:border-gray-700 opacity-60"
               )}
             >
@@ -181,7 +181,7 @@ export default function ApiKeyManager() {
                   )}>
                     <Key className="w-5 h-5 text-primary-500" />
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="font-semibold text-gray-900 dark:text-white">{key.name}</h4>
@@ -197,7 +197,7 @@ export default function ApiKeyManager() {
                         </span>
                       )}
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-1 mt-2">
                       {key.scopes.map((scope) => (
                         <span
@@ -208,7 +208,7 @@ export default function ApiKeyManager() {
                         </span>
                       ))}
                     </div>
-                    
+
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
@@ -223,7 +223,7 @@ export default function ApiKeyManager() {
                     </div>
                   </div>
                 </div>
-                
+
                 {key.is_active && (
                   <button
                     onClick={() => handleRevoke(key.id)}
@@ -310,9 +310,9 @@ export default function ApiKeyManager() {
                   min={1}
                   max={365}
                   value={formData.expires_days || ''}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    expires_days: e.target.value ? parseInt(e.target.value) : undefined 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    expires_days: e.target.value ? parseInt(e.target.value) : undefined
                   }))}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                   placeholder="Never expires"

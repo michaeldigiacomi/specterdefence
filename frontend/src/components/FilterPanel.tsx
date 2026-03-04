@@ -11,12 +11,12 @@ interface FilterPanelProps {
   compact?: boolean;
 }
 
-export default function FilterPanel({ 
-  filters, 
-  onChange, 
+export default function FilterPanel({
+  filters,
+  onChange,
   onExport,
   showExport = false,
-  compact = false 
+  compact = false
 }: FilterPanelProps) {
   const { data: tenantsData } = useTenants();
   const [isExpanded, setIsExpanded] = useState(!compact);

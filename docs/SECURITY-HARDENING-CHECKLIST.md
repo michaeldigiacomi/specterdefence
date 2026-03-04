@@ -7,7 +7,7 @@ This checklist provides actionable security hardening steps for the SpecterDefen
 ## 🔴 Immediate Actions (Before Production)
 
 ### 1. Fix Default Secret Keys
-**Priority:** CRITICAL  
+**Priority:** CRITICAL
 **File:** `src/config.py`
 
 ```python
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
         min_length=32,
         description="JWT signing key"
     )
-    
+
     @field_validator('SECRET_KEY', 'JWT_SECRET_KEY')
     @classmethod
     def validate_not_default(cls, v: str) -> str:
@@ -47,7 +47,7 @@ python -c "from src.config import settings; print('Key length:', len(settings.SE
 ---
 
 ### 2. Remove Default Admin Password
-**Priority:** CRITICAL  
+**Priority:** CRITICAL
 **File:** `src/config.py`
 
 ```python
@@ -78,7 +78,7 @@ python -c "from src.api.auth_local import get_password_hash; print(get_password_
 ---
 
 ### 3. Enable HTTPS/TLS
-**Priority:** CRITICAL  
+**Priority:** CRITICAL
 **File:** `k8s-deployment.yaml`
 
 Update the Ingress to use HTTPS:
@@ -95,7 +95,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.tls: "true"
     traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
     traefik.ingress.kubernetes.io/router.middlewares: default-security-headers@kubernetescrd
-    
+
     # Security headers
     traefik.ingress.kubernetes.io/response-headers: |
       Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -124,7 +124,7 @@ spec:
 ---
 
 ### 4. Implement Rate Limiting
-**Priority:** HIGH  
+**Priority:** HIGH
 **File:** `src/main.py`, `src/api/auth_local.py`
 
 ```bash
@@ -165,7 +165,7 @@ async def login(request: Request, login_request: LoginRequest):
 ---
 
 ### 5. Restrict CORS Origins
-**Priority:** HIGH  
+**Priority:** HIGH
 **File:** `src/config.py`
 
 ```python
@@ -177,7 +177,7 @@ class Settings(BaseSettings):
         default_factory=lambda: ["https://specterdefence.digitaladrenalin.net"],
         description="Allowed CORS origins"
     )
-    
+
     @field_validator('CORS_ORIGINS')
     @classmethod
     def validate_cors_origins(cls, v: List[str]) -> List[str]:
@@ -194,7 +194,7 @@ class Settings(BaseSettings):
 ## 🟡 Short-term Improvements (1-2 Weeks)
 
 ### 6. Fix Encryption Salt
-**Priority:** HIGH  
+**Priority:** HIGH
 **File:** `src/services/encryption.py`
 
 ```python
@@ -209,11 +209,11 @@ class EncryptionService:
     def __init__(self) -> None:
         """Initialize encryption service with key derived from ENCRYPTION_KEY."""
         encryption_key = getattr(settings, 'ENCRYPTION_KEY', settings.SECRET_KEY)
-        
+
         # Use a dedicated encryption salt from environment
         salt_base = getattr(settings, 'ENCRYPTION_SALT', 'specterdefence-salt')
         salt = hashlib.sha256(salt_base.encode()).digest()[:16]
-        
+
         # OWASP 2023 recommended iterations
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
@@ -234,7 +234,7 @@ ENCRYPTION_SALT=$(openssl rand -hex 16)
 ---
 
 ### 7. Add Security Headers Middleware
-**Priority:** MEDIUM  
+**Priority:** MEDIUM
 **File:** `src/main.py` or new `src/middleware/security.py`
 
 ```python
@@ -244,20 +244,20 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
-        
+
         # Prevent MIME type sniffing
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        
+
         # Prevent clickjacking
         response.headers['X-Frame-Options'] = 'DENY'
-        
+
         # XSS Protection
         response.headers['X-XSS-Protection'] = '1; mode=block'
-        
+
         # HSTS (only if using HTTPS)
         if not settings.DEBUG:
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
-        
+
         # Content Security Policy
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
@@ -270,10 +270,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "base-uri 'self'; "
             "form-action 'self';"
         )
-        
+
         # Referrer Policy
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-        
+
         # Permissions Policy
         response.headers['Permissions-Policy'] = (
             'geolocation=(), '
@@ -285,13 +285,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             'gyroscope=(), '
             'speaker=()'
         )
-        
+
         return response
 
 # Add to app
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
-    TrustedHostMiddleware, 
+    TrustedHostMiddleware,
     allowed_hosts=["specterdefence.digitaladrenalin.net", "*.digitaladrenalin.net"]
 )
 ```
@@ -299,7 +299,7 @@ app.add_middleware(
 ---
 
 ### 8. Implement Audit Logging
-**Priority:** MEDIUM  
+**Priority:** MEDIUM
 **File:** `src/services/tenant.py`, new `src/audit/logger.py`
 
 ```python
@@ -311,22 +311,22 @@ from typing import Any, Dict, Optional
 
 class AuditLogger:
     """Structured audit logging for security events."""
-    
+
     def __init__(self):
         self.logger = logging.getLogger('specterdefence.audit')
         self.logger.setLevel(logging.INFO)
-        
+
         # Create file handler for audit logs
         handler = logging.FileHandler('/var/log/specterdefence/audit.log')
         handler.setLevel(logging.INFO)
-        
+
         # JSON formatter
         formatter = logging.Formatter('%(message)s')
         handler.setFormatter(formatter)
-        
+
         self.logger.addHandler(handler)
-    
-    def log(self, event_type: str, user: str, resource: str, 
+
+    def log(self, event_type: str, user: str, resource: str,
             action: str, details: Optional[Dict[str, Any]] = None,
             result: str = "success"):
         """Log an audit event."""
@@ -340,7 +340,7 @@ class AuditLogger:
             "details": details or {}
         }
         self.logger.info(json.dumps(event))
-    
+
     def credential_access(self, tenant_id: str, user: str):
         """Log credential access."""
         self.log(
@@ -356,7 +356,7 @@ audit_logger = AuditLogger()
 ---
 
 ### 9. Implement Token Refresh
-**Priority:** MEDIUM  
+**Priority:** MEDIUM
 **File:** `src/api/auth_local.py`
 
 ```python
@@ -387,18 +387,18 @@ async def refresh_token(refresh_token: str):
         payload = jwt.decode(refresh_token, settings.JWT_SECRET_KEY, algorithms=["HS256"])
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Invalid token type")
-        
+
         username = payload.get("sub")
         if username != settings.ADMIN_USERNAME:
             raise HTTPException(status_code=401, detail="User not found")
-        
+
         # Issue new tokens
         access_token = create_access_token(
             data={"sub": username},
             expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         )
         new_refresh_token = create_refresh_token(data={"sub": username})
-        
+
         return TokenResponse(
             access_token=access_token,
             refresh_token=new_refresh_token,

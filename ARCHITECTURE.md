@@ -292,7 +292,7 @@ async def lifespan(app: FastAPI):
 ```python
 class TenantModel(Base):
     __tablename__ = "tenants"
-    
+
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)  # Azure AD tenant ID
@@ -391,7 +391,7 @@ STRENGTH_PRIORITY = {
 ```python
 def calculate_security_score(analysis: dict) -> int:
     score = 50  # Base score
-    
+
     if analysis["is_mfa_required"]:
         score += 20
     if analysis["applies_to_all_users"]:
@@ -402,7 +402,7 @@ def calculate_security_score(analysis: dict) -> int:
         score += 5
     if analysis["has_location_conditions"]:
         score += 5
-        
+
     return min(100, score)
 ```
 
@@ -469,19 +469,19 @@ SUSPICIOUS_PATTERNS = {
 def detect_impossible_travel(prev_loc, prev_time, curr_loc, curr_time):
     # Haversine formula for distance
     distance_km = haversine_distance(prev_loc, curr_loc)
-    
+
     # Minimum travel time at 900 km/h (flight speed)
     min_travel_time_min = (distance_km / 900) * 60
-    
+
     # Actual time difference
     actual_time_min = (curr_time - prev_time).total_seconds() / 60
-    
+
     # Detection
     is_impossible = actual_time_min < min_travel_time_min
-    
+
     # Risk score: 100 - (actual_time / min_time * 100)
     risk_score = 100 - (actual_time_min / min_travel_time_min * 100)
-    
+
     return is_impossible, risk_score
 ```
 
@@ -587,18 +587,18 @@ def generate_dedup_hash(event_type, user_email, tenant_id, metadata):
         user_email or "",
         tenant_id or "",
     ]
-    
+
     # Include location for travel alerts
     if "previous_location" in metadata and "current_location" in metadata:
         key_parts.extend([
             str(metadata["previous_location"].get("country", "")),
             str(metadata["current_location"].get("country", "")),
         ])
-    
+
     # Include IP for IP-related alerts
     if "ip_address" in metadata:
         key_parts.append(str(metadata["ip_address"]))
-    
+
     return hashlib.sha256("|".join(key_parts).encode()).hexdigest()
 
 # Check for duplicate within cooldown period
@@ -668,11 +668,11 @@ class EncryptionService:
         )
         key = base64.urlsafe_b64encode(kdf.derive(secret_key))
         self.fernet = Fernet(key)
-    
+
     def encrypt(self, plaintext: str) -> str:
         encrypted = self.fernet.encrypt(plaintext.encode())
         return base64.urlsafe_b64encode(encrypted).decode()
-    
+
     def decrypt(self, ciphertext: str) -> str:
         encrypted = base64.urlsafe_b64decode(ciphertext.encode())
         return self.fernet.decrypt(encrypted).decode()
@@ -714,24 +714,24 @@ class UserResponse(BaseModel):
 ```python
 class TenantModel(Base):
     __tablename__ = "tenants"
-    
+
     # Primary Key
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    
+
     # Display Info
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    
+
     # Azure AD Credentials (ENCRYPTED client_secret)
     tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     client_id: Mapped[str] = mapped_column(String(255), nullable=False)
     client_secret: Mapped[str] = mapped_column(String(500), nullable=False)
-    
+
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     connection_status: Mapped[str] = mapped_column(String(20), default="unknown")
     connection_error: Mapped[str] = mapped_column(String(500), nullable=True)
     last_health_check: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
@@ -788,32 +788,32 @@ class AlertHistoryModel(Base):
 class OAuthAppModel(Base):
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id"), index=True)
-    
+
     # App Info
     app_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     display_name: Mapped[str] = mapped_column(String(500), nullable=False)
-    
+
     # Publisher
     publisher_name: Mapped[str | None] = mapped_column(String(500))
     publisher_type: Mapped[PublisherType] = mapped_column(SQLEnum(PublisherType), default=PublisherType.UNKNOWN)
     is_microsoft_publisher: Mapped[bool] = mapped_column(Boolean, default=False)
     is_verified_publisher: Mapped[bool] = mapped_column(Boolean, default=False)
-    
+
     # Risk Analysis
     risk_level: Mapped[RiskLevel] = mapped_column(SQLEnum(RiskLevel), default=RiskLevel.LOW)
     status: Mapped[AppStatus] = mapped_column(SQLEnum(AppStatus), default=AppStatus.PENDING_REVIEW)
     risk_score: Mapped[int] = mapped_column(Integer, default=0)  # 0-100
-    
+
     # Permissions
     permission_count: Mapped[int] = mapped_column(Integer, default=0)
     high_risk_permissions: Mapped[list[str]] = mapped_column(ARRAY(String(255)))
     has_mail_permissions: Mapped[bool] = mapped_column(Boolean, default=False)
     has_user_read_all: Mapped[bool] = mapped_column(Boolean, default=False)
-    
+
     # Consent
     consent_count: Mapped[int] = mapped_column(Integer, default=0)
     admin_consented: Mapped[bool] = mapped_column(Boolean, default=False)
-    
+
     # Timestamps
     first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     last_scan_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
@@ -825,33 +825,33 @@ class OAuthAppModel(Base):
 class AuditLogModel(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id"), index=True)
-    
+
     # Event Info
     activity_display_name: Mapped[str] = mapped_column(String(255))
     activity_datetime: Mapped[datetime] = mapped_column(DateTime, index=True)
     activity_type: Mapped[str] = mapped_column(String(100))
-    
+
     # Actor
     actor_type: Mapped[str] = mapped_column(String(50))
     actor_name: Mapped[str] = mapped_column(String(255))
     actor_id: Mapped[str] = mapped_column(String(255))
-    
+
     # Target
     target_name: Mapped[str | None] = mapped_column(String(255))
     target_id: Mapped[str | None] = mapped_column(String(255))
     target_type: Mapped[str | None] = mapped_column(String(100))
-    
+
     # Result
     result: Mapped[str] = mapped_column(String(50))
     result_reason: Mapped[str | None] = mapped_column(String(500))
-    
+
     # Location
     ip_address: Mapped[str | None] = mapped_column(String(50))
     location_city: Mapped[str | None] = mapped_column(String(100))
     location_country: Mapped[str | None] = mapped_column(String(2))
     location_latitude: Mapped[float | None] = mapped_column(Float)
     location_longitude: Mapped[float | None] = mapped_column(Float)
-    
+
     # Raw Data
     raw_data: Mapped[dict] = mapped_column(JSONB)
 ```
@@ -1039,11 +1039,11 @@ frontend/
 // ProtectedRoute.tsx
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAppStore((state) => state.isAuthenticated);
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return <>{children}</>;
 }
 
@@ -1051,7 +1051,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 async function handleLogin(username: string, password: string) {
   const response = await api.post('/auth/local/login', { username, password });
   const { access_token } = response.data;
-  
+
   localStorage.setItem('token', access_token);
   useAppStore.getState().setAuthenticated(true);
 }
@@ -1064,10 +1064,10 @@ async function handleLogin(username: string, password: string) {
 export function useWebSocket(filters?: AlertFilters) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [connected, setConnected] = useState(false);
-  
+
   useEffect(() => {
     const ws = new WebSocket(`wss://api.specterdefence/ws/alerts?severity=${filters?.severity}`);
-    
+
     ws.onopen = () => setConnected(true);
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -1075,10 +1075,10 @@ export function useWebSocket(filters?: AlertFilters) {
         setAlerts(prev => [data, ...prev]);
       }
     };
-    
+
     return () => ws.close();
   }, [filters]);
-  
+
   return { alerts, connected };
 }
 ```
@@ -1285,7 +1285,7 @@ spec:
    - Known-bad OAuth app signatures
    - Domain reputation checking
 
-4. **Audit Log Storage**: 
+4. **Audit Log Storage**:
    - Long-term storage in S3/object storage
    - Athena/ClickHouse for query analytics
 

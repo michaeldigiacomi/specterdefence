@@ -101,7 +101,7 @@ export function TopRiskUsers({
               {totalUsers} users with anomalies
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500">
-              Avg risk: {avgRiskScore.toFixed(1)}
+              Avg risk: {avgRiskScore?.toFixed(1) ?? '0.0'}
             </p>
           </div>
         </div>

@@ -37,15 +37,15 @@ export default function Anomalies() {
   const { data: tenantsData } = useTenants();
 
   const toggleType = (type: EventType) => {
-    setSelectedTypes(prev => 
-      prev.includes(type) 
+    setSelectedTypes(prev =>
+      prev.includes(type)
         ? prev.filter(t => t !== type)
         : [...prev, type]
     );
   };
 
   const toggleSeverity = (severity: SeverityLevel) => {
-    setSelectedSeverities(prev => 
+    setSelectedSeverities(prev =>
       prev.includes(severity)
         ? prev.filter(s => s !== severity)
         : [...prev, severity]
@@ -54,7 +54,7 @@ export default function Anomalies() {
 
   // Filter anomalies client-side
   const filteredAnomalies = anomalies?.filter(anomaly => {
-    const matchesType = selectedTypes.length === 0 || selectedTypes.some(t => 
+    const matchesType = selectedTypes.length === 0 || selectedTypes.some(t =>
       anomaly.type.toLowerCase().includes(t.toLowerCase())
     );
     const matchesSeverity = selectedSeverities.length === 0 || selectedSeverities.some(s => {
@@ -188,8 +188,8 @@ export default function Anomalies() {
         <div className="space-y-4">
           {isLoading ? (
             [1, 2, 3, 4].map((i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 animate-pulse"
               >
                 <div className="flex items-center gap-4">

@@ -134,7 +134,7 @@ export function AlertVolumeChart({
         {Object.entries(severityConfig).map(([severity, config]) => {
           const count = totalBySeverity[severity.toUpperCase()] || 0;
           const percentage = totalAlerts > 0 ? (count / totalAlerts) * 100 : 0;
-          
+
           return (
             <button
               key={severity}
@@ -235,7 +235,7 @@ export function AlertVolumeChart({
                   return null;
                 }}
               />
-              
+
               {Object.entries(severityConfig).map(([severity, config]) => (
                 !hiddenSeverities.has(severity) && (
                   <Area

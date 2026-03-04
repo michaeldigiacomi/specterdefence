@@ -103,7 +103,7 @@ export default function SettingsPage() {
                 {tabs.find(t => t.id === activeTab)?.label}
               </h2>
             </div>
-            
+
             {renderActiveComponent(activeTab)}
           </div>
         </main>

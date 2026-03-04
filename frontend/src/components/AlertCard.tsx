@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { 
-  Check, 
-  X, 
-  AlertTriangle, 
-  Info, 
+import {
+  Check,
+  X,
+  AlertTriangle,
+  Info,
   AlertCircle,
   Flame,
   ChevronDown,
@@ -60,11 +60,11 @@ const severityConfig = {
   },
 };
 
-export function AlertCard({ 
-  alert, 
-  onAcknowledge, 
+export function AlertCard({
+  alert,
+  onAcknowledge,
   onDismiss,
-  compact = false 
+  compact = false
 }: AlertCardProps) {
   const [expanded, setExpanded] = useState(false);
   const config = severityConfig[alert.severity];
@@ -83,13 +83,13 @@ export function AlertCard({
   const toggleExpand = () => setExpanded(!expanded);
 
   // Format location data if available
-  const location = (alert.metadata?.current_location as { city?: string; country?: string } | undefined) 
+  const location = (alert.metadata?.current_location as { city?: string; country?: string } | undefined)
     || (alert.metadata?.location as { city?: string; country?: string } | undefined);
   const ipAddress = alert.metadata?.ip_address as string | undefined;
-  
+
   if (compact) {
     return (
-      <div 
+      <div
         className={cn(
           'flex items-center gap-3 p-3 border rounded-lg transition-all',
           'hover:shadow-md cursor-pointer',
@@ -126,7 +126,7 @@ export function AlertCard({
   }
 
   return (
-    <div 
+    <div
       className={cn(
         'border rounded-lg transition-all overflow-hidden',
         'hover:shadow-lg',
@@ -135,7 +135,7 @@ export function AlertCard({
       )}
     >
       {/* Header */}
-      <div 
+      <div
         className="p-4 cursor-pointer"
         onClick={toggleExpand}
       >
@@ -146,7 +146,7 @@ export function AlertCard({
           )}>
             <Icon className="w-5 h-5" />
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className={cn(
@@ -159,15 +159,15 @@ export function AlertCard({
                 {alert.event_type_name}
               </span>
             </div>
-            
+
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mt-2">
               {alert.title}
             </h3>
-            
+
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
               {alert.message}
             </p>
-            
+
             <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
               {alert.user_email && (
                 <span className="flex items-center gap-1">
@@ -189,7 +189,7 @@ export function AlertCard({
               </span>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-1">
             {alert.status !== 'acknowledged' && onAcknowledge && (
               <button
@@ -227,7 +227,7 @@ export function AlertCard({
           </div>
         </div>
       </div>
-      
+
       {/* Expanded Details */}
       {expanded && (
         <div className="px-4 pb-4 border-t border-gray-200 dark:border-gray-700 pt-3">
@@ -245,7 +245,7 @@ export function AlertCard({
                 </div>
               </div>
             )}
-            
+
             {/* Alert ID and timestamps */}
             <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
               <span className="font-mono">ID: {alert.id}</span>
@@ -259,7 +259,7 @@ export function AlertCard({
                 {alert.acknowledged_by && (
                   <span>
                     Acknowledged by {alert.acknowledged_by} at{' '}
-                    {alert.acknowledged_at && 
+                    {alert.acknowledged_at &&
                       formatDistanceToNow(new Date(alert.acknowledged_at), { addSuffix: true })
                     }
                   </span>

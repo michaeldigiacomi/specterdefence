@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { 
-  Download, 
-  RefreshCw, 
+import {
+  Download,
+  RefreshCw,
   TrendingDown,
   Shield,
   AlertTriangle,
@@ -31,7 +31,7 @@ export default function Dashboard() {
     try {
       const blob = await fetch(`/api/v1/dashboard/export/download/${format}?time_range=${timeRange}`)
         .then(res => res.blob());
-      
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -40,7 +40,7 @@ export default function Dashboard() {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       toast.success(`Dashboard exported as ${format.toUpperCase()}`);
     } catch (error) {
       toast.error('Failed to export dashboard');
@@ -104,7 +104,7 @@ export default function Dashboard() {
               <Download className="w-4 h-4" />
               Export
             </button>
-            
+
             <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
               <button
                 onClick={() => handleExport('csv')}

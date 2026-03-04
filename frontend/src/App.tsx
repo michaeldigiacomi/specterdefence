@@ -41,11 +41,11 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 // Public route that redirects to home if already authenticated
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAppStore((state) => state.isAuthenticated);
-  
+
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }
-  
+
   return <>{children}</>;
 }
 
@@ -56,18 +56,18 @@ function App() {
         <BrowserRouter>
           <Routes>
             {/* Public login route */}
-            <Route 
-              path="/login" 
+            <Route
+              path="/login"
               element={
                 <PublicRoute>
                   <Login />
                 </PublicRoute>
-              } 
+              }
             />
-            
+
             {/* Protected routes */}
-            <Route 
-              path="/" 
+            <Route
+              path="/"
               element={
                 <ProtectedRoute>
                   <Layout />
@@ -82,12 +82,12 @@ function App() {
               <Route path="alerts" element={<AlertFeed />} />
               <Route path="settings" element={<Settings />} />
             </Route>
-            
+
             {/* Catch all - redirect to login */}
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </BrowserRouter>
-        <Toaster 
+        <Toaster
           position="top-right"
           toastOptions={{
             duration: 4000,

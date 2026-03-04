@@ -260,7 +260,7 @@ export function AnomalyTrendChart({
                 }}
               />
               <Legend />
-              
+
               {/* Total line */}
               <Line
                 type="monotone"

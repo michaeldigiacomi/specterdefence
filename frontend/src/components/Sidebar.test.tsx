@@ -22,7 +22,7 @@ describe('Sidebar', () => {
 
   it('supports theme toggle', () => {
     const themes = ['light', 'dark'];
-    
+
     expect(themes).toContain('light');
     expect(themes).toContain('dark');
   });
