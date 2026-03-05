@@ -24,6 +24,10 @@ export function useLogin() {
       // Store token in app state
       login(data.access_token);
 
+      // Wait for Zustand persist to write to localStorage
+      // The persist middleware uses a 0ms timeout, so we need to wait
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Fetch current user info
       try {
         const user = await apiService.getCurrentUser();
