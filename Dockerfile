@@ -18,7 +18,7 @@ RUN npm install --legacy-peer-deps
 COPY frontend/ ./
 
 # Build the frontend for production
-RUN npx vite build
+RUN npm run build:docker
 
 # ============================================
 # Stage 2: Production image
