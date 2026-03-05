@@ -12,7 +12,7 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 
 # Install dependencies
-RUN npm ci
+RUN npm build:ci
 
 # Copy frontend source code
 COPY frontend/ ./
