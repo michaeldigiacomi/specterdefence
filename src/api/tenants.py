@@ -94,6 +94,50 @@ async def create_tenant(
         )
 
 
+@router.post(
+    "/validate",
+    summary="Validate tenant credentials before creation",
+    description="Pre-validate Office 365 tenant credentials against Microsoft Graph without creating a tenant.",
+)
+async def validate_tenant_before_create(
+    tenant: TenantCreate,
+    service: TenantService = Depends(get_tenant_service),
+):
+    """Validate tenant credentials before creating the tenant.
+
+    Args:
+        tenant: Tenant credentials to validate
+        service: Tenant service instance
+
+    Returns:
+        Validation result with success status and message
+    """
+    try:
+        validation = await service.validate_tenant(
+            tenant_id=tenant.tenant_id,
+            client_id=tenant.client_id,
+            client_secret=tenant.client_secret,
+        )
+
+        return {
+            "valid": validation.get("success", False),
+            "message": validation.get("message", "Validation completed"),
+            "details": validation,
+        }
+    except TenantValidationError as e:
+        return {
+            "valid": False,
+            "message": str(e),
+            "details": {"success": False, "error": str(e)},
+        }
+    except Exception as e:
+        return {
+            "valid": False,
+            "message": f"Validation failed: {str(e)}",
+            "details": {"success": False, "error": str(e)},
+        }
+
+
 @router.get(
     "/{tenant_id}",
     response_model=TenantResponse,
