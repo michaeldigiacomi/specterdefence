@@ -12,13 +12,13 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 
 # Install dependencies
-RUN npm build:ci
+RUN npm install --legacy-peer-deps
 
 # Copy frontend source code
 COPY frontend/ ./
 
 # Build the frontend for production
-RUN npm run build
+RUN npx vite build
 
 # ============================================
 # Stage 2: Production image
