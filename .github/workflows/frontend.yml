@@ -115,14 +115,12 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          IMAGE_TAG=${{ needs.build.outputs.image-tag }}
-          
           # Apply secrets (you may need to update these)
           # kubectl apply -f k8s/prod/ -n specterdefence
           
           # Update image in deployment
           kubectl set image deployment/specterdefence-frontend \
-            specterdefence-frontend=$IMAGE_TAG \
+            specterdefence-frontend=ghcr.io/digiacomi-shared/specterdefence-frontend:latest \
             -n specterdefence
 
       - name: Verify deployment
