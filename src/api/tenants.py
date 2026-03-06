@@ -120,21 +120,21 @@ async def validate_tenant_before_create(
         )
 
         return {
-            "valid": validation.get("success", False),
-            "message": validation.get("message", "Validation completed"),
-            "details": validation,
+            "valid": validation.valid,
+            "message": "Validation completed" if validation.valid else validation.error,
+            "details": validation.model_dump(),
         }
     except TenantValidationError as e:
         return {
             "valid": False,
             "message": str(e),
-            "details": {"success": False, "error": str(e)},
+            "details": {"valid": False, "error": str(e)},
         }
     except Exception as e:
         return {
             "valid": False,
             "message": f"Validation failed: {str(e)}",
-            "details": {"success": False, "error": str(e)},
+            "details": {"valid": False, "error": str(e)},
         }
 
 
