@@ -3,11 +3,10 @@ name: Frontend CI/CD
 on:
   push:
     branches: [ main ]
-  push:
-    branches-ignore: [ main ]
-    tags-ignore: [ 'v*' ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -97,12 +96,12 @@ jobs:
           platforms: linux/amd64
 
   # ============================================
-  # Deploy
+  # Deploy (main branch only)
   # ============================================
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
     steps:
@@ -114,35 +113,20 @@ jobs:
         with:
           kubeconfig: ${{ secrets.KUBE_CONFIG }}
 
-      - name: Determine environment
-        id: env
-        run: |
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
-            echo "env=prod" >> $GITHUB_OUTPUT
-            echo "namespace=specterdefence" >> $GITHUB_OUTPUT
-          else
-            echo "env=dev" >> $GITHUB_OUTPUT
-            echo "namespace=specterdefence-dev" >> $GITHUB_OUTPUT
-          fi
-
       - name: Deploy to Kubernetes
         run: |
-          NAMESPACE=${{ steps.env.outputs.namespace }}
           IMAGE_TAG=${{ needs.build.outputs.image-tag }}
           
-          # Create namespace if it doesn't exist
-          kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-          
           # Apply secrets (you may need to update these)
-          # kubectl apply -f k8s/${{ steps.env.outputs.env }}/ -n $NAMESPACE
+          # kubectl apply -f k8s/prod/ -n specterdefence
           
           # Update image in deployment
           kubectl set image deployment/specterdefence-frontend \
             specterdefence-frontend=$IMAGE_TAG \
-            -n $NAMESPACE
+            -n specterdefence
 
       - name: Verify deployment
         run: |
           kubectl rollout status deployment/specterdefence-frontend \
-            -n ${{ steps.env.outputs.namespace }} \
+            -n specterdefence \
             --timeout=5m
