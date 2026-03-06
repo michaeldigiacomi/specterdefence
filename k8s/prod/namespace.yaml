@@ -4,5 +4,32 @@ metadata:
   name: specterdefence
   labels:
     app.kubernetes.io/name: specterdefence
-    app.kubernetes.io/part-of: specterdefence
+    app.kubernetes.io/component: backend
     environment: production
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: specterdefence-secrets
+  namespace: specterdefence
+  labels:
+    app.kubernetes.io/name: specterdefence
+    app.kubernetes.io/part-of: specterdefence
+type: Opaque
+stringData:
+  SECRET_KEY: "REPLACE_WITH_ACTUAL_SECRET_KEY"
+  DATABASE_URL: "REPLACE_WITH_ACTUAL_DATABASE_URL"
+  ENCRYPTION_KEY: "REPLACE_WITH_ACTUAL_ENCRYPTION_KEY"
+  KIMI_API_KEY: ""
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ghcr-registry-secret
+  namespace: specterdefence
+  labels:
+    app.kubernetes.io/name: specterdefence
+    app.kubernetes.io/part-of: specterdefence
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: REPLACE_WITH_GHCR_CONFIG
