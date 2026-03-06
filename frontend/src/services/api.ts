@@ -155,7 +155,7 @@ class ApiService {
   }
 
   async createTenant(data: TenantCreate): Promise<Tenant> {
-    const response = await this.client.post('/tenants', data);
+    const response = await this.client.post('/tenants/', data);
     return response.data;
   }
 
