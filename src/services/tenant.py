@@ -504,7 +504,7 @@ async def validate_tenant_credentials(
         await client.get_access_token()
 
         # Try to get organization info
-        org_info = await client.get_organization()
+        org_info = await client.get_tenant_info()
 
         return {
             "valid": True,
