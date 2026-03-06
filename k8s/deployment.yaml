@@ -68,6 +68,9 @@ spec:
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
           resources:
             requests:
               memory: "512Mi"
@@ -75,3 +78,6 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1000m"
+      volumes:
+        - name: data
+          emptyDir: {}
