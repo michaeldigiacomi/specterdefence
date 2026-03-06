@@ -112,7 +112,7 @@ async def update_admin_password(new_password_hash: str) -> None:
 
         if user:
             user.password_hash = new_password_hash
-            user.updated_at = datetime.now(UTC)
+            user.updated_at = datetime.now()
         else:
             # Create new admin user with the password
             user = UserModel(
@@ -133,7 +133,7 @@ async def update_last_login(username: str) -> None:
         user = result.scalar_one_or_none()
 
         if user:
-            user.last_login = datetime.now(UTC)
+            user.last_login = datetime.now()
             await session.commit()
 
 
@@ -181,9 +181,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     """Create a JWT access token."""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
+        expire = datetime.now() + expires_delta
     else:
-        expire = datetime.now(UTC) + timedelta(hours=24)
+        expire = datetime.now() + timedelta(hours=24)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm="HS256")
     return encoded_jwt
