@@ -145,7 +145,7 @@ class ApiService {
   // ============== Tenants ==============
 
   async getTenants(): Promise<TenantListResponse> {
-    const response = await this.client.get('/tenants');
+    const response = await this.client.get('/tenants/');
     return response.data;
   }
 
