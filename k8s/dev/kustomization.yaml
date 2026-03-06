@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: specterdefence-dev
+
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+images:
+  - name: ghcr.io/digiacomi-shared/specterdefence
+    newTag: IMAGE_TAG  # Replace with actual tag during deployment
+
+commonLabels:
+  app.kubernetes.io/name: specterdefence
+  app.kubernetes.io/part-of: specterdefence
+  environment: development

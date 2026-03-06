@@ -1,0 +1,52 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: specterdefence-dev
+  namespace: specterdefence-dev
+  labels:
+    app.kubernetes.io/name: specterdefence
+    app.kubernetes.io/component: api
+    environment: development
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - dev.specterdefence.digitaladrenalin.net
+      secretName: specterdefence-dev-tls
+  rules:
+    - host: dev.specterdefence.digitaladrenalin.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: specterdefence-dev
+                port:
+                  number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: specterdefence-dev-http
+  namespace: specterdefence-dev
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.middlewares: specterdefence-dev-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: dev.specterdefence.digitaladrenalin.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: specterdefence-dev
+                port:
+                  number: 80
