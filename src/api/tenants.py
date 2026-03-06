@@ -5,6 +5,7 @@ from datetime import UTC
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.auth_local import get_current_user
 from src.database import get_db
 from src.models.tenant import (
     TenantCreate,
@@ -35,7 +36,9 @@ async def get_tenant_service(db: AsyncSession = Depends(get_db)) -> TenantServic
     description="Retrieve a list of all registered tenants. Optionally include inactive tenants.",
 )
 async def list_tenants(
-    include_inactive: bool = False, service: TenantService = Depends(get_tenant_service)
+    include_inactive: bool = False, 
+    service: TenantService = Depends(get_tenant_service),
+    user: dict = Depends(get_current_user)
 ) -> list[TenantResponse]:
     """List all registered tenants.
 
@@ -60,6 +63,7 @@ async def create_tenant(
     tenant: TenantCreate,
     validate: bool = True,
     service: TenantService = Depends(get_tenant_service),
+    user: dict = Depends(get_current_user)
 ) -> TenantCreateResponse:
     """Create a new tenant registration.
 
@@ -102,6 +106,7 @@ async def create_tenant(
 async def validate_tenant_before_create(
     tenant: TenantCreate,
     service: TenantService = Depends(get_tenant_service),
+    user: dict = Depends(get_current_user)
 ):
     """Validate tenant credentials before creating the tenant.
 
@@ -145,7 +150,9 @@ async def validate_tenant_before_create(
     description="Retrieve details of a specific tenant by its internal ID.",
 )
 async def get_tenant(
-    tenant_id: str, service: TenantService = Depends(get_tenant_service)
+    tenant_id: str, 
+    service: TenantService = Depends(get_tenant_service),
+    user: dict = Depends(get_current_user)
 ) -> TenantResponse:
     """Get a specific tenant by ID.
 
@@ -174,7 +181,10 @@ async def get_tenant(
     description="Update tenant information (name, active status).",
 )
 async def update_tenant(
-    tenant_id: str, update: TenantUpdate, service: TenantService = Depends(get_tenant_service)
+    tenant_id: str, 
+    update: TenantUpdate, 
+    service: TenantService = Depends(get_tenant_service),
+    user: dict = Depends(get_current_user)
 ) -> TenantResponse:
     """Update a tenant.
 
@@ -204,7 +214,10 @@ async def update_tenant(
     description="Soft-delete a tenant (sets is_active to False). Use hard delete for permanent removal.",
 )
 async def delete_tenant(
-    tenant_id: str, hard: bool = False, service: TenantService = Depends(get_tenant_service)
+    tenant_id: str, 
+    hard: bool = False, 
+    service: TenantService = Depends(get_tenant_service),
+    user: dict = Depends(get_current_user)
 ) -> None:
     """Delete a tenant registration.
 
@@ -233,7 +246,9 @@ async def delete_tenant(
     description="Re-validate tenant credentials against Microsoft Graph.",
 )
 async def validate_tenant_credentials(
-    tenant_id: str, service: TenantService = Depends(get_tenant_service)
+    tenant_id: str, 
+    service: TenantService = Depends(get_tenant_service),
+    user: dict = Depends(get_current_user)
 ):
     """Validate tenant credentials.
 
@@ -293,6 +308,7 @@ async def health_check_tenant(
         True, description="Whether to update the tenant's connection status in database"
     ),
     service: TenantService = Depends(get_tenant_service),
+    user: dict = Depends(get_current_user)
 ) -> TenantHealthCheckResponse:
     """Perform health check on a tenant connection.
 
@@ -343,6 +359,7 @@ async def health_check_all_tenants(
         30.0, ge=5.0, le=120.0, description="Request timeout in seconds (5-120)"
     ),
     service: TenantService = Depends(get_tenant_service),
+    user: dict = Depends(get_current_user)
 ) -> list[TenantHealthCheckResponse]:
     """Perform health checks on all active tenants.
 
