@@ -92,6 +92,7 @@ export interface TenantCreate {
 export interface TenantUpdate {
   name?: string;
   is_active?: boolean;
+  client_secret?: string;
 }
 
 /** Tenant list response */

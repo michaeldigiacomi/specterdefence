@@ -52,10 +52,15 @@ export default function Tenants() {
 
     try {
       if (editingTenant) {
-        await updateTenant.mutateAsync({
+        const updateData: TenantUpdate = {
           name: formData.name,
           is_active: formData.is_active,
-        });
+        };
+        // Only include client_secret if user entered a new one
+        if (formData.client_secret && formData.client_secret.trim()) {
+          updateData.client_secret = formData.client_secret;
+        }
+        await updateTenant.mutateAsync(updateData);
         toast.success('Tenant updated successfully');
       } else {
         // Validate first
@@ -298,17 +303,34 @@ export default function Tenants() {
               )}
 
               {editingTenant && (
-                <div>
-                  <label className="flex items-center gap-2">
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Rotate Client Secret
+                    </label>
                     <input
-                      type="checkbox"
-                      checked={formData.is_active !== false}
-                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                      className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
+                      type="password"
+                      value={formData.client_secret || ''}
+                      onChange={(e) => setFormData({ ...formData, client_secret: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
+                      placeholder="Leave blank to keep current secret"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
-                  </label>
-                </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Only fill this in if you need to update the Azure AD client secret
+                    </p>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_active !== false}
+                        onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                        className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
+                    </label>
+                  </div>
+                </>
               )}
 
               {validationError && (

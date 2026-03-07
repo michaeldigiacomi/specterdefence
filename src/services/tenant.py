@@ -368,6 +368,13 @@ class TenantService:
             tenant.name = update_data.name
         if update_data.is_active is not None:
             tenant.is_active = update_data.is_active
+        if update_data.client_secret is not None:
+            # Encrypt and store the new client secret
+            encrypted_secret = encryption_service.encrypt(update_data.client_secret)
+            tenant.client_secret = encrypted_secret
+            # Reset connection status since the secret changed
+            tenant.connection_status = "unknown"
+            tenant.connection_error = None
 
         await self.db.commit()
         await self.db.refresh(tenant)

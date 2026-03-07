@@ -53,6 +53,9 @@ class TenantUpdate(BaseModel):
 
     name: str | None = Field(None, min_length=1, max_length=255)
     is_active: bool | None = None
+    client_secret: str | None = Field(
+        None, min_length=1, max_length=500, description="New Azure AD client secret (optional)"
+    )
 
 
 class TenantResponse(BaseModel):
