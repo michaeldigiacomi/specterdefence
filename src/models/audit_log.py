@@ -17,8 +17,11 @@ from src.models.types import JSONB, UUID
 
 
 def utc_now() -> datetime:
-    """Return current UTC datetime with timezone info."""
-    return datetime.now(timezone.utc)
+    """Return current UTC datetime without timezone info (naive).
+    
+    This is preferred for PostgreSQL TIMESTAMP WITHOUT TIME ZONE columns.
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class LogType(StrEnum):

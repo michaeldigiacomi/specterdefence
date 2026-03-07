@@ -24,7 +24,7 @@ spec:
         - name: ghcr-registry-secret
       containers:
         - name: specterdefence-frontend
-          image: ghcr.io/digiacomi-shared/specterdefence-frontend:IMAGE_TAG
+          image: ghcr.io/digiacomi-shared/specterdefence-frontend:latest
           imagePullPolicy: Always
           ports:
             - name: http
