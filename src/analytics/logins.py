@@ -25,6 +25,7 @@ class LoginAnalyticsService:
         db: AsyncSession,
         geo_ip_client: GeoIPClient | None = None,
         anomaly_detector: AnomalyDetector | None = None,
+        threat_intel_client: ThreatIntelClient | None = None,
     ):
         """
         Initialize the login analytics service.
