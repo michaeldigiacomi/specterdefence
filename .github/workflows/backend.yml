@@ -4,8 +4,22 @@ on:
   push:
     branches: [ main ]
     tags: [ 'v*' ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - 'Dockerfile.backend'
+      - 'Dockerfile'
+      - '.github/workflows/backend.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - 'Dockerfile.backend'
+      - 'Dockerfile'
+      - '.github/workflows/backend.yml'
   workflow_dispatch:
 
 env:

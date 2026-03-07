@@ -4,8 +4,16 @@ on:
   push:
     branches: [ main ]
     tags: [ 'v*' ]
+    paths:
+      - 'frontend/**'
+      - 'Dockerfile.frontend'
+      - '.github/workflows/frontend.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - 'Dockerfile.frontend'
+      - '.github/workflows/frontend.yml'
   workflow_dispatch:
 
 env:
