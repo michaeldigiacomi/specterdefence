@@ -103,7 +103,7 @@ class AlertWebhookModel(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, comment="Whether this webhook is active"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     # Relationships
     alert_history: Mapped[list["AlertHistoryModel"]] = relationship(
@@ -145,9 +145,9 @@ class AlertRuleModel(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, comment="Whether this rule is active"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Relationships
@@ -203,7 +203,7 @@ class AlertHistoryModel(Base):
         JSONB, default=dict, nullable=False, comment="Additional alert metadata"
     )
     sent_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, nullable=False, index=True, comment="When the alert was sent"
+        DateTime(timezone=True), default=utc_now, nullable=False, index=True, comment="When the alert was sent"
     )
     dedup_hash: Mapped[str] = mapped_column(
         String(64), nullable=False, index=True, comment="Hash for deduplication (SHA-256)"

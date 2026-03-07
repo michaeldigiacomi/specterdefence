@@ -57,7 +57,7 @@ class LoginAnalyticsModel(Base):
         Float, nullable=True, comment="Longitude coordinate"
     )
     login_time: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, index=True, comment="Timestamp of the login attempt"
+        DateTime(timezone=True), nullable=False, index=True, comment="Timestamp of the login attempt"
     )
     is_success: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, comment="Whether login was successful"
@@ -71,7 +71,7 @@ class LoginAnalyticsModel(Base):
     risk_score: Mapped[int] = mapped_column(
         default=0, nullable=False, comment="Calculated risk score (0-100)"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     # Relationships
     audit_log: Mapped[Optional["AuditLogModel"]] = relationship(
@@ -109,7 +109,7 @@ class UserLoginHistoryModel(Base):
         JSONB, default=list, nullable=False, comment="List of previously seen IP addresses"
     )
     last_login_time: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="Timestamp of last successful login"
+        DateTime(timezone=True), nullable=True, comment="Timestamp of last successful login"
     )
     last_login_country: Mapped[str | None] = mapped_column(
         String(2), nullable=True, comment="Country code of last login"
@@ -130,7 +130,7 @@ class UserLoginHistoryModel(Base):
         default=0, nullable=False, comment="Failed login attempts in last 24 hours"
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
     __table_args__ = (Index("ix_user_login_history_tenant", "tenant_id"),)
@@ -168,9 +168,9 @@ class AnomalyDetectionConfig(Base):
     risk_score_threshold: Mapped[int] = mapped_column(
         default=70, nullable=False, comment="Risk score threshold for alerting"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
     def __repr__(self) -> str:

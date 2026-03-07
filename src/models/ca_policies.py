@@ -199,23 +199,23 @@ class CAPolicyModel(Base):
 
     # Change tracking
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, nullable=False, comment="When policy was first detected"
+        DateTime(timezone=True), default=utc_now, nullable=False, comment="When policy was first detected"
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         default=utc_now,
         onupdate=utc_now,
         nullable=False,
         comment="When policy was last updated",
     )
     last_scan_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, nullable=False, comment="When policy was last scanned"
+        DateTime(timezone=True), default=utc_now, nullable=False, comment="When policy was last scanned"
     )
     policy_created_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="When policy was created in Azure AD"
+        DateTime(timezone=True), nullable=True, comment="When policy was created in Azure AD"
     )
     policy_modified_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="When policy was last modified in Azure AD"
+        DateTime(timezone=True), nullable=True, comment="When policy was last modified in Azure AD"
     )
 
     # Raw data
@@ -349,9 +349,9 @@ class CAPolicyChangeModel(Base):
 
     # Timestamps
     detected_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, nullable=False, comment="When the change was detected"
+        DateTime(timezone=True), default=utc_now, nullable=False, comment="When the change was detected"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     __table_args__ = (
         # Index for policy change history
@@ -407,12 +407,12 @@ class CAPolicyAlertModel(Base):
     # Alert state
     is_acknowledged: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     acknowledged_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Metadata
     alert_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     __table_args__ = (
         Index("ix_ca_alerts_unack", "tenant_id", "is_acknowledged", "created_at"),
@@ -467,9 +467,9 @@ class CABaselineConfigModel(Base):
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
     created_by: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="User who created the baseline"

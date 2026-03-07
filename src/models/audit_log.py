@@ -50,10 +50,10 @@ class AuditLogModel(Base):
         Boolean, default=False, nullable=False, comment="Whether the log has been processed"
     )
     o365_created_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, index=True, comment="Timestamp from O365 (CreationTime field)"
+        DateTime(timezone=True), nullable=True, index=True, comment="Timestamp from O365 (CreationTime field)"
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         default=utc_now,
         nullable=False,
         comment="When this record was created in our database",
@@ -88,25 +88,25 @@ class CollectionStateModel(Base):
         comment="Internal tenant UUID (PK and FK to tenants)",
     )
     last_collection_time: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="Last successful collection timestamp"
+        DateTime(timezone=True), nullable=True, comment="Last successful collection timestamp"
     )
     next_page_token: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Pagination token for resuming interrupted collection"
     )
     last_success_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="Timestamp of last successful collection run"
+        DateTime(timezone=True), nullable=True, comment="Timestamp of last successful collection run"
     )
     last_error: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Last error message if collection failed"
     )
     last_error_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="When the last error occurred"
+        DateTime(timezone=True), nullable=True, comment="When the last error occurred"
     )
     total_logs_collected: Mapped[int] = mapped_column(
         default=0, nullable=False, comment="Cumulative count of logs collected for this tenant"
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
     def __repr__(self) -> str:
@@ -130,12 +130,12 @@ class ContentSubscriptionModel(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, comment="Whether subscription is active"
     )
-    subscribed_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    subscribed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     webhook_url: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Webhook URL if using push notifications"
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
     __table_args__ = (

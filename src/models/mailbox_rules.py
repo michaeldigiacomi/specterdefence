@@ -140,17 +140,17 @@ class MailboxRuleModel(Base):
 
     # Timestamps
     rule_created_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="When the rule was created in Exchange"
+        DateTime(timezone=True), nullable=True, comment="When the rule was created in Exchange"
     )
     rule_modified_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="When the rule was last modified"
+        DateTime(timezone=True), nullable=True, comment="When the rule was last modified"
     )
     last_scan_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, nullable=False, comment="When rule was last scanned"
+        DateTime(timezone=True), default=utc_now, nullable=False, comment="When rule was last scanned"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Raw data
@@ -226,9 +226,9 @@ class MailboxRuleAlertModel(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     is_acknowledged: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     acknowledged_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     alert_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     __table_args__ = (
         Index("ix_mailbox_rule_alerts_unack", "tenant_id", "is_acknowledged", "created_at"),

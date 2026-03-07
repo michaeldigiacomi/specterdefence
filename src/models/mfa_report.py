@@ -131,15 +131,15 @@ class MFAUserModel(Base):
         Text, nullable=True, comment="Reason for MFA exemption"
     )
     exemption_expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="When exemption expires"
+        DateTime(timezone=True), nullable=True, comment="When exemption expires"
     )
 
     # Enrollment tracking
     first_mfa_registration: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="When user first registered MFA"
+        DateTime(timezone=True), nullable=True, comment="When user first registered MFA"
     )
     last_mfa_update: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="When MFA settings were last updated"
+        DateTime(timezone=True), nullable=True, comment="When MFA settings were last updated"
     )
 
     # User metadata
@@ -147,7 +147,7 @@ class MFAUserModel(Base):
         Boolean, default=True, nullable=False, comment="Whether account is enabled"
     )
     sign_in_activity: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="Last sign-in activity"
+        DateTime(timezone=True), nullable=True, comment="Last sign-in activity"
     )
     user_type: Mapped[str] = mapped_column(
         String(50), default="Member", nullable=False, comment="User type (Member, Guest, etc.)"
@@ -155,17 +155,17 @@ class MFAUserModel(Base):
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, nullable=False, comment="When record was first created"
+        DateTime(timezone=True), default=utc_now, nullable=False, comment="When record was first created"
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         default=utc_now,
         onupdate=utc_now,
         nullable=False,
         comment="When record was last updated",
     )
     last_scan_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, nullable=False, comment="When user was last scanned"
+        DateTime(timezone=True), default=utc_now, nullable=False, comment="When user was last scanned"
     )
 
     # Raw data
@@ -229,7 +229,7 @@ class MFAEnrollmentHistoryModel(Base):
 
     # Snapshot data
     snapshot_date: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, index=True, comment="Date of this snapshot"
+        DateTime(timezone=True), nullable=False, index=True, comment="Date of this snapshot"
     )
 
     # Enrollment counts
@@ -260,7 +260,7 @@ class MFAEnrollmentHistoryModel(Base):
     mfa_coverage_percentage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     admin_mfa_coverage_percentage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     __table_args__ = (
         # Unique constraint for one snapshot per tenant per day
@@ -298,13 +298,13 @@ class MFAComplianceAlertModel(Base):
 
     # Alert state
     is_resolved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     resolved_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Metadata
     alert_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     __table_args__ = (
         Index("ix_mfa_alerts_unresolved", "tenant_id", "is_resolved", "created_at"),

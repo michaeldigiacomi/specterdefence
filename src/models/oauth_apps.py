@@ -161,20 +161,20 @@ class OAuthAppModel(Base):
 
     # Timestamps
     app_created_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="When the app was registered in Azure AD"
+        DateTime(timezone=True), nullable=True, comment="When the app was registered in Azure AD"
     )
     first_seen_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         default=utc_now,
         nullable=False,
         comment="When the app was first detected by SpecterDefence",
     )
     last_scan_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, nullable=False, comment="When app was last scanned"
+        DateTime(timezone=True), default=utc_now, nullable=False, comment="When app was last scanned"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Raw data
@@ -271,14 +271,14 @@ class OAuthAppConsentModel(Base):
         comment="Consent state (Consented, Revoked)",
     )
     consented_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="When the user consented"
+        DateTime(timezone=True), nullable=True, comment="When the user consented"
     )
     expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, comment="When the consent expires"
+        DateTime(timezone=True), nullable=True, comment="When the consent expires"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Raw data
@@ -322,9 +322,9 @@ class OAuthAppAlertModel(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     is_acknowledged: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     acknowledged_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     alert_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     __table_args__ = (
         Index("ix_oauth_app_alerts_unack", "tenant_id", "is_acknowledged", "created_at"),
@@ -377,9 +377,9 @@ class OAuthAppPermissionModel(Base):
     consent_state: Mapped[str] = mapped_column(
         String(50), default="NotConsented", nullable=False, comment="Consent state"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
     __table_args__ = (

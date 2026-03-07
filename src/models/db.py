@@ -41,11 +41,11 @@ class TenantModel(Base):
         String(500), nullable=True, comment="Last connection error message"
     )
     last_health_check: Mapped[datetime] = mapped_column(
-        DateTime, nullable=True, comment="Timestamp of last health check"
+        DateTime(timezone=True), nullable=True, comment="Timestamp of last health check"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
     def __repr__(self) -> str:
