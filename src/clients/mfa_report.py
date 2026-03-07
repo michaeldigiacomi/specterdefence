@@ -107,28 +107,25 @@ class MFAReportClient:
             List of MFA methods registered for the user
         """
         token = await self.graph_client.get_access_token()
-        methods = []
+        client = await self.graph_client.get_http_client()
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            # Query all authentication methods
-            url = f"https://graph.microsoft.com/beta/users/{user_id}/authentication/methods"
+        # Query all authentication methods using v1.0 endpoint instead of beta
+        url = f"{self.graph_client.graph_url}/users/{user_id}/authentication/methods"
 
-            response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
+        response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
 
-            if response.status_code == 200:
-                data = response.json()
-                methods = data.get("value", [])
-            elif response.status_code == 404:
-                # User not found or no methods
-                logger.debug(f"No MFA methods found for user {user_id}")
-                return []
-            else:
-                logger.warning(
-                    f"Failed to get MFA methods for user {user_id}: {response.status_code}"
-                )
-                return []
-
-        return methods
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("value", [])
+        elif response.status_code == 404:
+            # User not found or no methods
+            logger.debug(f"No MFA methods found for user {user_id}")
+            return []
+        else:
+            logger.warning(
+                f"Failed to get MFA methods for user {user_id}: {response.status_code}"
+            )
+            return []
 
     async def get_user_directory_roles(self, user_id: str) -> list[dict[str, Any]]:
         """Get directory roles assigned to a user.
@@ -140,28 +137,28 @@ class MFAReportClient:
             List of directory roles assigned to the user
         """
         token = await self.graph_client.get_access_token()
+        client = await self.graph_client.get_http_client()
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            url = f"https://graph.microsoft.com/v1.0/users/{user_id}/memberOf"
+        url = f"{self.graph_client.graph_url}/users/{user_id}/memberOf"
 
-            response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
+        response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
 
-            if response.status_code == 200:
-                data = response.json()
-                # Filter for directory roles only
-                roles = [
-                    item
-                    for item in data.get("value", [])
-                    if item.get("@odata.type") == "#microsoft.graph.directoryRole"
-                ]
-                return roles
-            elif response.status_code == 404:
-                return []
-            else:
-                logger.warning(
-                    f"Failed to get directory roles for user {user_id}: {response.status_code}"
-                )
-                return []
+        if response.status_code == 200:
+            data = response.json()
+            # Filter for directory roles only
+            roles = [
+                item
+                for item in data.get("value", [])
+                if item.get("@odata.type") == "#microsoft.graph.directoryRole"
+            ]
+            return roles
+        elif response.status_code == 404:
+            return []
+        else:
+            logger.warning(
+                f"Failed to get directory roles for user {user_id}: {response.status_code}"
+            )
+            return []
 
     async def get_user_app_role_assignments(self, user_id: str) -> list[dict[str, Any]]:
         """Get app role assignments for a user (indicates admin roles).
@@ -173,20 +170,22 @@ class MFAReportClient:
             List of app role assignments
         """
         token = await self.graph_client.get_access_token()
+        client = await self.graph_client.get_http_client()
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            url = f"https://graph.microsoft.com/v1.0/users/{user_id}/appRoleAssignments"
+        url = f"{self.graph_client.graph_url}/users/{user_id}/appRoleAssignments"
 
-            response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
+        response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
 
-            if response.status_code == 200:
-                data = response.json()
-                return data.get("value", [])
-            else:
-                logger.warning(
-                    f"Failed to get app roles for user {user_id}: {response.status_code}"
-                )
-                return []
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("value", [])
+        elif response.status_code == 404:
+            return []
+        else:
+            logger.warning(
+                f"Failed to get app roles for user {user_id}: {response.status_code}"
+            )
+            return []
 
     def analyze_mfa_methods(self, methods: list[dict[str, Any]]) -> dict[str, Any]:
         """Analyze MFA methods to determine registration status and strength.
@@ -352,25 +351,44 @@ class MFAReportClient:
         """
         # Get all users
         users = await self.get_all_users()
-        results = []
-
         total = len(users)
-        for i, user in enumerate(users):
+        
+        # Use a semaphore to limit concurrent API requests
+        # MFA scan requires 3 sub-requests per user
+        semaphore = asyncio.Semaphore(5)
+        
+        # Variables for tracking progress
+        processed_count = 0
+        
+        async def scan_user(user: dict[str, Any]) -> dict[str, Any] | None:
+            nonlocal processed_count
+            user_id = user.get("id")
+            if not user_id:
+                return None
+                
             try:
-                user_id = user.get("id")
-                if not user_id:
-                    continue
-
-                mfa_data = await self.get_full_user_mfa_data(user_id, user)
-                results.append(mfa_data)
-
-                # Report progress
-                if progress_callback:
-                    progress_callback(i + 1, total)
-
+                async with semaphore:
+                    mfa_data = await self.get_full_user_mfa_data(user_id, user)
+                    
+                    # Report progress
+                    processed_count += 1
+                    if progress_callback:
+                        progress_callback(processed_count, total)
+                        
+                    return mfa_data
             except Exception as e:
                 logger.error(f"Error processing user {user.get('userPrincipalName')}: {e}")
-                continue
+                return None
 
-        logger.info(f"Completed MFA scan for {len(results)} users")
-        return results
+        # Execute concurrent scans
+        tasks = [scan_user(user) for user in users]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Filter out Nones and Exceptions
+        valid_results: list[dict[str, Any]] = [
+            r for r in results 
+            if r is not None and not isinstance(r, Exception)
+        ]
+
+        logger.info(f"Completed MFA scan for {len(valid_results)} users")
+        return valid_results

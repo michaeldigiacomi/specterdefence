@@ -105,32 +105,32 @@ class MailboxRuleClient:
             List of mailbox rule objects
         """
         token = await self.graph_client.get_access_token()
+        client = await self.graph_client.get_http_client()
 
-        # Use beta endpoint for more complete rule data
-        url = f"https://graph.microsoft.com/beta/users/{user_id}/mailFolders/inbox/messageRules"
+        # Use stable v1.0 endpoint instead of beta
+        url = f"{self.graph_client.graph_url}/users/{user_id}/mailFolders/inbox/messageRules"
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
+        response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
 
-            if response.status_code == 404:
-                # User might not have a mailbox
-                return []
+        if response.status_code == 404:
+            # User might not have a mailbox
+            return []
 
-            if response.status_code != 200:
-                error_text = response.text
-                logger.warning(
-                    f"Failed to fetch rules for {user_id}: {response.status_code} - {error_text}"
-                )
-                return []
+        if response.status_code != 200:
+            error_text = response.text
+            logger.warning(
+                f"Failed to fetch rules for {user_id}: {response.status_code} - {error_text}"
+            )
+            return []
 
-            data = response.json()
-            rules = data.get("value", [])
+        data = response.json()
+        rules = data.get("value", [])
 
-            # Add user context to each rule
-            for rule in rules:
-                rule["_user_id"] = user_id
+        # Add user context to each rule
+        for rule in rules:
+            rule["_user_id"] = user_id
 
-            return rules
+        return rules
 
     async def get_mailbox_rules_for_tenant(self) -> list[dict[str, Any]]:
         """Get mailbox rules for all users in the tenant.
@@ -196,14 +196,18 @@ class MailboxRuleClient:
                 analysis["forward_to"] = (
                     forward_recipients[0].get("emailAddress", {}).get("address", "")
                 )
+                
+                # Check against tenant domains (can be passed in future)
                 analysis["forward_to_external"] = self._is_external_address(analysis["forward_to"])
+                
                 if analysis["forward_to_external"]:
-                    analysis["external_domain"] = (
-                        analysis["forward_to"].split("@")[-1]
-                        if "@" in analysis["forward_to"]
-                        else None
-                    )
-                    analysis["detection_reasons"].append("Forwarding to external email address")
+                    forward_to = analysis.get("forward_to")
+                    if isinstance(forward_to, str) and "@" in forward_to:
+                        analysis["external_domain"] = forward_to.split("@")[-1]
+                        
+                    reasons = analysis.get("detection_reasons")
+                    if isinstance(reasons, list):
+                        reasons.append("Forwarding to external email address")
 
         # Check for redirect
         if actions.get("redirect"):
@@ -214,7 +218,9 @@ class MailboxRuleClient:
                 analysis["redirect_to"] = (
                     redirect_recipients[0].get("emailAddress", {}).get("address", "")
                 )
-                analysis["detection_reasons"].append("Email redirect rule detected")
+                reasons = analysis.get("detection_reasons")
+                if isinstance(reasons, list):
+                    reasons.append("Email redirect rule detected")
 
         # Check for auto-reply
         if actions.get("reply"):
@@ -223,9 +229,12 @@ class MailboxRuleClient:
             analysis["auto_reply_content"] = actions.get("reply", "")
 
             # Check for suspicious keywords in auto-reply
-            if self._contains_suspicious_keywords(analysis["auto_reply_content"]):
+            auto_reply_content = analysis.get("auto_reply_content")
+            if isinstance(auto_reply_content, str) and self._contains_suspicious_keywords(auto_reply_content):
                 analysis["has_suspicious_patterns"] = True
-                analysis["detection_reasons"].append("Auto-reply contains suspicious keywords")
+                reasons = analysis.get("detection_reasons")
+                if isinstance(reasons, list):
+                    reasons.append("Auto-reply contains suspicious keywords")
 
         # Check for move to hidden folder (delete, junk, etc.)
         if actions.get("moveToFolder"):
@@ -236,22 +245,28 @@ class MailboxRuleClient:
                 x in folder_id or x in folder_name for x in ["deleted", "junk", "spam", "archive"]
             ):
                 analysis["is_hidden_folder_redirect"] = True
-                analysis["detection_reasons"].append("Moves emails to hidden/deleted folder")
+                reasons = analysis.get("detection_reasons")
+                if isinstance(reasons, list):
+                    reasons.append("Moves emails to hidden/deleted folder")
 
         # Check for delete action
         if actions.get("delete"):
-            analysis["detection_reasons"].append("Rule deletes emails")
+            reasons = analysis.get("detection_reasons")
+            if isinstance(reasons, list):
+                reasons.append("Rule deletes emails")
 
         # Analyze creation time if available
         created_date_time = rule.get("createdDateTime")
-        if created_date_time:
+        if isinstance(created_date_time, str):
             try:
                 created_dt = datetime.fromisoformat(created_date_time.replace("Z", "+00:00"))
                 analysis["created_outside_business_hours"] = self._is_outside_business_hours(
                     created_dt
                 )
                 if analysis["created_outside_business_hours"]:
-                    analysis["detection_reasons"].append("Rule created outside business hours")
+                    reasons = analysis.get("detection_reasons")
+                    if isinstance(reasons, list):
+                        reasons.append("Rule created outside business hours")
             except (ValueError, AttributeError):
                 pass
 
@@ -261,17 +276,24 @@ class MailboxRuleClient:
 
         return analysis
 
-    def _is_external_address(self, email: str) -> bool:
+    def _is_external_address(self, email: Any, tenant_domains: list[str] | None = None) -> bool:
         """Check if an email address is external (non-corporate).
 
         Args:
             email: Email address to check
+            tenant_domains: Optional list of verified tenant domains to check against
 
         Returns:
             True if external
         """
-        if not email or "@" not in email:
+        if not email or not isinstance(email, str) or "@" not in email:
             return False
+
+        domain = email.split("@")[-1].lower()
+        
+        # If tenant domains are provided, trust them over the consumer list
+        if tenant_domains:
+            return domain not in [d.lower() for d in tenant_domains]
 
         domain = email.split("@")[-1].lower()
 
@@ -386,17 +408,16 @@ class MailboxRuleClient:
             True if successful
         """
         token = await self.graph_client.get_access_token()
+        client = await self.graph_client.get_http_client()
 
-        url = f"https://graph.microsoft.com/beta/users/{user_id}/mailFolders/inbox/messageRules/{rule_id}"
+        url = f"{self.graph_client.graph_url}/users/{user_id}/mailFolders/inbox/messageRules/{rule_id}"
+        response = await client.patch(
+            url,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            json={"isEnabled": False},
+        )
 
-        async with httpx.AsyncClient() as client:
-            response = await client.patch(
-                url,
-                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-                json={"isEnabled": False},
-            )
-
-            return response.status_code == 200
+        return response.status_code == 200
 
     async def delete_rule(self, user_id: str, rule_id: str) -> bool:
         """Delete a mailbox rule.
@@ -409,10 +430,9 @@ class MailboxRuleClient:
             True if successful
         """
         token = await self.graph_client.get_access_token()
+        client = await self.graph_client.get_http_client()
 
-        url = f"https://graph.microsoft.com/beta/users/{user_id}/mailFolders/inbox/messageRules/{rule_id}"
+        url = f"{self.graph_client.graph_url}/users/{user_id}/mailFolders/inbox/messageRules/{rule_id}"
+        response = await client.delete(url, headers={"Authorization": f"Bearer {token}"})
 
-        async with httpx.AsyncClient() as client:
-            response = await client.delete(url, headers={"Authorization": f"Bearer {token}"})
-
-            return response.status_code == 204
+        return response.status_code == 204

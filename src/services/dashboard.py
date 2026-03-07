@@ -32,7 +32,7 @@ class DashboardService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    def _get_time_range(self, time_range: TimeRange) -> tuple[datetime, datetime]:
+    def _get_time_range(self, time_range: TimeRange) -> tuple[datetime, datetime, datetime]:
         """Calculate start and end dates for a time range."""
         end_date = datetime.utcnow()
 
@@ -616,7 +616,8 @@ class DashboardService:
             anomaly_query = anomaly_query.where(LoginAnalyticsModel.tenant_id == tenant_id)
 
         anomaly_result = await self.db.execute(anomaly_query)
-        anomalies_today = len(anomaly_result.scalars().all())
+        anomaly_logins = anomaly_result.scalars().all()
+        anomalies_today = len(anomaly_logins)
 
         # Alerts today
         alert_query = select(AlertHistoryModel).where(AlertHistoryModel.sent_at >= today_start)
@@ -650,7 +651,7 @@ class DashboardService:
 
         # Top threats (anomaly types today)
         threat_types: dict[str, int] = defaultdict(int)
-        for login in anomaly_result.scalars().all():
+        for login in anomaly_logins:
             for flag in login.anomaly_flags:
                 threat_types[flag] += 1
 

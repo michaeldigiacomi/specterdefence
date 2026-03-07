@@ -188,35 +188,15 @@ class ApiService {
     return response.data;
   }
 
-  // ============== Dashboard Stats (Legacy) ==============
+  // ============== Dashboard Stats (via summary endpoint) ==============
 
   async getDashboardStats(): Promise<DashboardStats> {
-    // Aggregate data from multiple endpoints
-    const [loginsResponse, tenantsResponse, alertsResponse] = await Promise.all([
-      this.getLoginAnalytics({ page_size: 1, start_time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() }),
-      this.getTenants(),
-      this.getAlertHistory({ hours: 24, limit: 1000 }),
-    ]);
-
-    const activeTenants = tenantsResponse.items.filter(t => t.is_active).length;
-    const anomaliesToday = alertsResponse.items.filter(a => {
-      const sentAt = new Date(a.sent_at);
-      const today = new Date();
-      return sentAt.toDateString() === today.toDateString();
-    }).length;
-
-    // Get failed logins from the last 24h
-    const failedLoginsResponse = await this.getLoginAnalytics({
-      status: 'failed',
-      page_size: 1,
-      start_time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    });
-
+    const summary = await this.getDashboardSummary();
     return {
-      total_logins: loginsResponse.total,
-      failed_logins: failedLoginsResponse.total,
-      anomalies_today: anomaliesToday,
-      active_tenants: activeTenants,
+      total_logins: summary.total_logins_24h,
+      failed_logins: summary.failed_logins_24h,
+      anomalies_today: summary.anomalies_today,
+      active_tenants: summary.active_tenants,
     };
   }
 

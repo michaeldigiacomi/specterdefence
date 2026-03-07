@@ -53,10 +53,33 @@ export interface UseWebSocketReturn {
   };
 }
 
-// @ts-ignore - import.meta is not fully typed
-const WS_URL = (import.meta as any).env?.VITE_WS_URL || 'ws://localhost:8000/ws/alerts';
+// Derive WebSocket URL from current page origin so it works in production
+function getWsBaseUrl(): string {
+  // Allow override via env var for development
+  // @ts-ignore - import.meta is not fully typed
+  const envUrl = (import.meta as any).env?.VITE_WS_URL;
+  if (envUrl) return envUrl;
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}/api/v1/ws/alerts`;
+}
+
 const RECONNECT_INTERVAL = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
+
+// Helper to get JWT token from Zustand persisted state
+function getAuthToken(): string | null {
+  try {
+    const stored = localStorage.getItem('specterdefence-storage');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed.state?.token || null;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+}
 
 export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketReturn {
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -72,7 +95,14 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
   const pendingAlerts = useRef<Alert[]>([]);
 
   const buildWsUrl = useCallback((): string => {
+    const baseUrl = getWsBaseUrl();
     const params = new URLSearchParams();
+
+    // Include auth token
+    const token = getAuthToken();
+    if (token) {
+      params.append('token', token);
+    }
 
     if (filters.current.severity?.length) {
       params.append('severity', filters.current.severity.join(','));
@@ -85,7 +115,7 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
     }
 
     const queryString = params.toString();
-    return queryString ? `${WS_URL}?${queryString}` : WS_URL;
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   }, []);
 
   const connect = useCallback(() => {
@@ -177,7 +207,7 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
         break;
       }
 
-      case 'alert_acknowledged': {
+      case 'acknowledged': {
         const ackId = data.alert_id as string;
         setAlerts(prev =>
           prev.map(a =>
@@ -189,7 +219,7 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
         break;
       }
 
-      case 'alert_dismissed': {
+      case 'dismissed': {
         const dismissId = data.alert_id as string;
         setAlerts(prev => prev.filter(a => a.id !== dismissId));
         break;

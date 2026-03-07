@@ -55,35 +55,34 @@ class CAPoliciesClient:
             List of Conditional Access policy objects
         """
         token = await self.graph_client.get_access_token()
+        client = await self.graph_client.get_http_client()
 
         policies = []
-        url = "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies"
+        base_url = f"{self.graph_client.graph_url}/identity/conditionalAccess/policies"
+        url = base_url
         params = {
             "$top": "999",
         }
 
-        async with httpx.AsyncClient() as client:
-            while url:
-                response = await client.get(
-                    url,
-                    headers={"Authorization": f"Bearer {token}"},
-                    params=params
-                    if url == "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies"
-                    else None,
+        while url:
+            request_params = params if url == base_url else None
+            response = await client.get(
+                url,
+                headers={"Authorization": f"Bearer {token}"},
+                params=request_params,
+            )
+
+            if response.status_code != 200:
+                raise MSGraphAPIError(
+                    f"Failed to fetch CA policies: {response.status_code}",
+                    status_code=response.status_code,
                 )
 
-                if response.status_code != 200:
-                    raise MSGraphAPIError(
-                        f"Failed to fetch CA policies: {response.status_code}",
-                        status_code=response.status_code,
-                    )
+            data = response.json()
+            policies.extend(data.get("value", []))
 
-                data = response.json()
-                policies.extend(data.get("value", []))
-
-                # Handle pagination
-                url = data.get("@odata.nextLink")
-                params = None
+            # Handle pagination
+            url = data.get("@odata.nextLink")
 
         logger.info(f"Retrieved {len(policies)} Conditional Access policies")
         return policies
@@ -98,22 +97,21 @@ class CAPoliciesClient:
             Policy object or None if not found
         """
         token = await self.graph_client.get_access_token()
+        client = await self.graph_client.get_http_client()
 
-        url = f"https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies/{policy_id}"
+        url = f"{self.graph_client.graph_url}/identity/conditionalAccess/policies/{policy_id}"
+        response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
+        if response.status_code == 404:
+            return None
 
-            if response.status_code == 404:
-                return None
+        if response.status_code != 200:
+            raise MSGraphAPIError(
+                f"Failed to fetch CA policy {policy_id}: {response.status_code}",
+                status_code=response.status_code,
+            )
 
-            if response.status_code != 200:
-                raise MSGraphAPIError(
-                    f"Failed to fetch CA policy {policy_id}: {response.status_code}",
-                    status_code=response.status_code,
-                )
-
-            return response.json()
+        return response.json()
 
     async def get_named_locations(self) -> list[dict[str, Any]]:
         """Get all named locations (trusted locations) configured in the tenant.
@@ -122,33 +120,36 @@ class CAPoliciesClient:
             List of named location objects
         """
         token = await self.graph_client.get_access_token()
+        client = await self.graph_client.get_http_client()
 
         locations = []
-        url = "https://graph.microsoft.com/v1.0/identity/conditionalAccess/namedLocations"
+        base_url = f"{self.graph_client.graph_url}/identity/conditionalAccess/namedLocations"
+        url = base_url
         params = {
             "$top": "999",
         }
 
-        async with httpx.AsyncClient() as client:
-            while url:
-                response = await client.get(
-                    url,
-                    headers={"Authorization": f"Bearer {token}"},
-                    params=params
-                    if url
-                    == "https://graph.microsoft.com/v1.0/identity/conditionalAccess/namedLocations"
-                    else None,
+        while url:
+            request_params = params if url == base_url else None
+            response = await client.get(
+                url,
+                headers={"Authorization": f"Bearer {token}"},
+                params=request_params,
+            )
+
+            if response.status_code == 404:
+                return []
+
+            if response.status_code != 200:
+                raise MSGraphAPIError(
+                    f"Failed to fetch named locations: {response.status_code}",
+                    status_code=response.status_code,
                 )
 
-                if response.status_code != 200:
-                    logger.warning(f"Failed to fetch named locations: {response.status_code}")
-                    return []
+            data = response.json()
+            locations.extend(data.get("value", []))
 
-                data = response.json()
-                locations.extend(data.get("value", []))
-
-                url = data.get("@odata.nextLink")
-                params = None
+            url = data.get("@odata.nextLink")
 
         return locations
 

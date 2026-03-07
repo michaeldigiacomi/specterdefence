@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.auth_local import verify_token
 from src.database import get_db
 from src.services.alert_stream import AlertStreamManager, AlertStreamService
 
@@ -141,9 +142,10 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-@router.websocket("/ws/alerts")
+@router.websocket("/alerts")
 async def alert_websocket(
     websocket: WebSocket,
+    token: str | None = Query(None, description="JWT authentication token"),
     severity: str | None = Query(None, description="Filter by severity (comma-separated)"),
     event_types: str | None = Query(None, description="Filter by event types (comma-separated)"),
     tenant_id: str | None = Query(None, description="Filter by tenant ID"),
@@ -151,16 +153,29 @@ async def alert_websocket(
 ) -> None:
     """WebSocket endpoint for real-time alert streaming.
 
+    Requires JWT authentication via the 'token' query parameter.
+
     Supports filtering by:
     - severity: LOW,MEDIUM,HIGH,CRITICAL
     - event_types: impossible_travel,new_country,brute_force,etc
     - tenant_id: specific tenant UUID
 
     Query Parameters:
+        token: JWT authentication token (required)
         severity: Comma-separated severity levels
         event_types: Comma-separated event types
         tenant_id: Tenant UUID to filter by
     """
+    # Verify JWT token before accepting connection
+    if not token:
+        await websocket.close(code=1008, reason="Authentication required")
+        return
+
+    payload = verify_token(token)
+    if payload is None:
+        await websocket.close(code=1008, reason="Invalid or expired token")
+        return
+
     # Generate client ID
     client_id = f"{websocket.client.host}:{websocket.client.port}"
 

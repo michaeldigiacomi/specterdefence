@@ -154,14 +154,13 @@ class TenantService:
 
         # Perform health check
         try:
-            client = MSGraphClient(
+            async with MSGraphClient(
                 tenant_id=tenant.tenant_id,
                 client_id=tenant.client_id,
                 client_secret=client_secret,
                 timeout=timeout,
-            )
-
-            health_result = await client.health_check(required_permissions=required_permissions)
+            ) as client:
+                health_result = await client.health_check(required_permissions=required_permissions)
 
             # Build response
             response = TenantHealthCheckResponse(
@@ -331,7 +330,7 @@ class TenantService:
             is_active=True,
             connection_status=initial_status,
             connection_error=connection_error,
-            last_health_check=datetime.utcnow() if validate else None,
+            last_health_check=datetime.now(UTC) if validate else None,
         )
 
         self.db.add(tenant)

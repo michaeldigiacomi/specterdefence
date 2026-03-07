@@ -10,7 +10,8 @@ const STATIC_ASSETS = [
 
 // API routes to cache with network-first strategy
 const API_ROUTES = [
-  '/api/v1/dashboard/stats',
+  '/api/v1/dashboard/full',
+  '/api/v1/dashboard/summary',
   '/api/v1/alerts',
   '/api/v1/tenants',
 ];
@@ -157,8 +158,10 @@ async function staleWhileRevalidateStrategy(request) {
 
   const networkFetch = fetch(request).then((networkResponse) => {
     if (networkResponse.ok) {
+      // Clone before caching so we can still return the original if needed
+      const responseToCache = networkResponse.clone();
       caches.open(CACHE_NAME).then((cache) => {
-        cache.put(request, networkResponse.clone());
+        cache.put(request, responseToCache);
       });
     }
     return networkResponse;
