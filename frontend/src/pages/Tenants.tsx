@@ -167,7 +167,7 @@ export default function Tenants() {
                   </td>
                 </tr>
               ) : (
-                tenantsData?.items.map((tenant) => (
+                                tenantsData?.items?.map((tenant) => (
                   <tr key={tenant.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4">
                       <div>

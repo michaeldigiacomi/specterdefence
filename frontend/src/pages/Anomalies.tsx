@@ -98,7 +98,7 @@ export default function Anomalies() {
             className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 dark:text-white"
           >
             <option value="">All Tenants</option>
-            {tenantsData?.items.map((tenant) => (
+                        {tenantsData?.items?.map((tenant) => (
               <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
             ))}
           </select>

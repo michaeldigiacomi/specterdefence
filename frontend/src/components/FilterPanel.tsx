@@ -52,7 +52,7 @@ export default function FilterPanel({
             className="px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 dark:text-white"
           >
             <option value="">All Tenants</option>
-            {tenantsData?.items.map((tenant) => (
+                        {tenantsData?.items?.map((tenant) => (
               <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
             ))}
           </select>
@@ -204,7 +204,7 @@ export default function FilterPanel({
             className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 dark:text-white"
           >
             <option value="">All Tenants</option>
-            {tenantsData?.items.map((tenant) => (
+                        {tenantsData?.items?.map((tenant) => (
               <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
             ))}
           </select>

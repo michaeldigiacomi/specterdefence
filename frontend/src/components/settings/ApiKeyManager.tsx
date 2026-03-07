@@ -330,7 +330,7 @@ export default function ApiKeyManager() {
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                 >
                   <option value="">All Tenants</option>
-                  {tenantsData?.items.map((tenant) => (
+                                    {tenantsData?.items?.map((tenant) => (
                     <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
                   ))}
                 </select>
