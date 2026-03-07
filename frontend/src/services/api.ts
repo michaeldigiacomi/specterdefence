@@ -146,7 +146,12 @@ class ApiService {
 
   async getTenants(): Promise<TenantListResponse> {
     const response = await this.client.get('/tenants/');
-    return response.data;
+    const data = response.data;
+    // Backend returns a plain array; wrap it into the shape the frontend expects
+    if (Array.isArray(data)) {
+      return { items: data, total: data.length };
+    }
+    return data;
   }
 
   async getTenant(id: string): Promise<Tenant> {

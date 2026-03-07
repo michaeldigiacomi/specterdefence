@@ -293,9 +293,14 @@ class LoginAnalyticsService:
             filters.append(LoginAnalyticsModel.user_email == user_email)
 
         if start_time:
+            # Strip timezone info — the DB column is TIMESTAMP WITHOUT TIME ZONE
+            if start_time.tzinfo is not None:
+                start_time = start_time.replace(tzinfo=None)
             filters.append(LoginAnalyticsModel.login_time >= start_time)
 
         if end_time:
+            if end_time.tzinfo is not None:
+                end_time = end_time.replace(tzinfo=None)
             filters.append(LoginAnalyticsModel.login_time <= end_time)
 
         if ip_address:
