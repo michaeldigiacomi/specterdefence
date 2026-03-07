@@ -61,8 +61,12 @@ function getWsBaseUrl(): string {
   if (envUrl) return envUrl;
 
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}/api/v1/ws/alerts`;
+  
+  // If we are in dev mode using a proxy, we still want to use the current host
+  // and the proxy routing rule in vite.config.ts will handle it.
+  return `${protocol}//${window.location.host}/ws/alerts`;
 }
+
 
 const RECONNECT_INTERVAL = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;

@@ -393,13 +393,19 @@ class DashboardService:
         for row in rows:
             # Get top anomaly types for this user
             types_query = (
-                select(func.unnest(LoginAnalyticsModel.anomaly_flags).label("flag"))
+                select(LoginAnalyticsModel.anomaly_flags)
                 .where(LoginAnalyticsModel.user_email == row.user_email)
-                .distinct()
             )
 
             types_result = await self.db.execute(types_query)
-            anomaly_types = [r[0] for r in types_result.all()]
+            
+            unique_types = set()
+            for (flags,) in types_result:
+                if flags:
+                    unique_types.update(flags)
+            
+            # Convert set to list for JSON serialization
+            anomaly_types = list(unique_types)
 
             # Get unique country count
             country_query = select(
