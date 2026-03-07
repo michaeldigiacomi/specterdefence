@@ -16,6 +16,7 @@ const eventTypeFilters: { value: EventType; label: string; icon: React.ElementTy
   { value: 'brute_force', label: 'Brute Force', icon: Shield },
   { value: 'multiple_failures', label: 'Multiple Failures', icon: Clock },
   { value: 'suspicious_location', label: 'Suspicious Location', icon: AlertTriangle },
+  { value: 'malicious_ip', label: 'Malicious IP', icon: Flame },
 ];
 
 const severityFilters: { value: SeverityLevel; label: string; color: string }[] = [

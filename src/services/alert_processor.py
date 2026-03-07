@@ -173,6 +173,7 @@ class AlertProcessor:
             "multiple_failures": EventType.MULTIPLE_FAILURES,
             "failed_login": EventType.BRUTE_FORCE,
             "suspicious_location": EventType.SUSPICIOUS_LOCATION,
+            "malicious_ip": EventType.MALICIOUS_IP,
         }
         return mapping.get(anomaly_flag)
 
@@ -234,6 +235,10 @@ class AlertProcessor:
         elif event_type == EventType.SUSPICIOUS_LOCATION:
             title = "Suspicious Location"
             description = f"User {user} logged in from a suspicious location."
+
+        elif event_type == EventType.MALICIOUS_IP:
+            title = "Malicious IP Detected"
+            description = f"User {user} logged in from a known malicious IP address: {login_data.ip_address}."
 
         elif event_type == EventType.ADMIN_ACTION:
             title = "Admin Action Detected"

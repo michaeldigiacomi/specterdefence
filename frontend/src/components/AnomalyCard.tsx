@@ -1,4 +1,4 @@
-import { AlertTriangle, MapPin, Clock, Shield } from 'lucide-react';
+import { AlertTriangle, MapPin, Clock, Shield, Flame } from 'lucide-react';
 import { AnomalyDetail, SeverityLevel } from '@/types';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -48,6 +48,7 @@ const typeLabels: Record<string, string> = {
   multiple_failures: 'Multiple Failed Logins',
   suspicious_location: 'Suspicious Location',
   failed_login: 'Failed Login',
+  malicious_ip: 'Malicious IP',
 };
 
 const typeIcons: Record<string, React.ElementType> = {
@@ -59,6 +60,7 @@ const typeIcons: Record<string, React.ElementType> = {
   multiple_failures: AlertTriangle,
   suspicious_location: MapPin,
   failed_login: AlertTriangle,
+  malicious_ip: Flame,
 };
 
 function getSeverityFromRiskScore(score: number): SeverityLevel {

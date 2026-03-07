@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.analytics.anomalies import AnomalyDetector, AnomalyResult, AnomalyType
 from src.analytics.geo_ip import GeoIPClient, get_geo_ip_client
+from src.analytics.threat_intel import ThreatIntelClient, get_threat_intel_client
 from src.models.analytics import AnomalyDetectionConfig, LoginAnalyticsModel, UserLoginHistoryModel
 from src.models.audit_log import AuditLogModel, LogType
 
@@ -32,10 +33,12 @@ class LoginAnalyticsService:
             db: Database session
             geo_ip_client: Geo-IP client (creates default if not provided)
             anomaly_detector: Anomaly detector (creates default if not provided)
+            threat_intel_client: CTI client (creates default if not provided)
         """
         self.db = db
         self.geo_ip = geo_ip_client or get_geo_ip_client()
         self.detector = anomaly_detector or AnomalyDetector()
+        self.threat_intel = threat_intel_client or get_threat_intel_client()
 
     async def process_login_event(
         self,
@@ -100,11 +103,15 @@ class LoginAnalyticsService:
             "failed_attempts_24h": user_history.failed_attempts_24h,
         }
 
+        # Look up IP reputation
+        cti_data = await self.threat_intel.lookup_ip(ip_address)
+
         # Perform anomaly detection
         anomaly_results = self.detector.analyze_login(
             current_login=current_login,
             previous_login=prev_login_data,
             user_history=user_history_data,
+            cti_data=cti_data,
         )
 
         # Extract anomaly flags and calculate max risk score

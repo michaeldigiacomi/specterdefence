@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import and_, desc, func, select
+from sqlalchemy import String, and_, cast, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.alerts import AlertHistoryModel
@@ -260,7 +260,7 @@ class DashboardService:
             and_(
                 LoginAnalyticsModel.login_time >= start_date,
                 LoginAnalyticsModel.login_time <= end_date,
-                LoginAnalyticsModel.anomaly_flags != [],
+                cast(LoginAnalyticsModel.anomaly_flags, String) != "[]",
             )
         )
 
@@ -311,7 +311,7 @@ class DashboardService:
             and_(
                 LoginAnalyticsModel.login_time >= prev_start,
                 LoginAnalyticsModel.login_time < start_date,
-                LoginAnalyticsModel.anomaly_flags != [],
+                cast(LoginAnalyticsModel.anomaly_flags, String) != "[]",
             )
         )
         if tenant_id:
@@ -373,7 +373,7 @@ class DashboardService:
             func.max(LoginAnalyticsModel.risk_score).label("max_risk"),
             func.count(LoginAnalyticsModel.id).label("anomaly_count"),
             func.max(LoginAnalyticsModel.login_time).label("last_anomaly"),
-        ).where(LoginAnalyticsModel.anomaly_flags != [])
+        ).where(cast(LoginAnalyticsModel.anomaly_flags, String) != "[]")
 
         if tenant_id:
             query = query.where(LoginAnalyticsModel.tenant_id == tenant_id)
@@ -548,7 +548,7 @@ class DashboardService:
             and_(
                 LoginAnalyticsModel.login_time >= start_date,
                 LoginAnalyticsModel.login_time <= end_date,
-                LoginAnalyticsModel.anomaly_flags != [],
+                cast(LoginAnalyticsModel.anomaly_flags, String) != "[]",
             )
         )
 
@@ -609,7 +609,7 @@ class DashboardService:
         anomaly_query = select(LoginAnalyticsModel).where(
             and_(
                 LoginAnalyticsModel.login_time >= today_start,
-                LoginAnalyticsModel.anomaly_flags != [],
+                cast(LoginAnalyticsModel.anomaly_flags, String) != "[]",
             )
         )
         if tenant_id:

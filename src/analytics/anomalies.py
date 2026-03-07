@@ -19,6 +19,7 @@ class AnomalyType(StrEnum):
     FAILED_LOGIN = "failed_login"
     MULTIPLE_FAILURES = "multiple_failures"
     SUSPICIOUS_LOCATION = "suspicious_location"
+    MALICIOUS_IP = "malicious_ip"
 
 
 @dataclass
@@ -380,11 +381,47 @@ class AnomalyDetector:
             message=message,
         )
 
+    def detect_malicious_ip(self, ip_address: str, cti_data: dict[str, Any]) -> AnomalyResult:
+        """
+        Detect if an IP address is malicious based on Threat Intel data.
+
+        Args:
+            ip_address: Current IP address
+            cti_data: Dict from ThreatIntelClient containing 'is_malicious', 'threat_score', etc.
+
+        Returns:
+            AnomalyResult with detection status
+        """
+        is_malicious = cti_data.get("is_malicious", False)
+
+        details = {
+            "ip_address": ip_address,
+            "threat_score": cti_data.get("threat_score", 0),
+            "threat_tags": cti_data.get("tags", []),
+            "cti_source": cti_data.get("source", "Unknown"),
+        }
+
+        if is_malicious:
+            score = cti_data.get("threat_score", 90)
+            message = f"Malicious IP detected: {ip_address} (Score: {score}). Source: {details['cti_source']}"
+        else:
+            score = 0
+            message = "IP not found in Threat Intelligence databases."
+
+        return AnomalyResult(
+            type=AnomalyType.MALICIOUS_IP,
+            detected=is_malicious,
+            risk_score=score,
+            details=details,
+            message=message,
+        )
+
     def analyze_login(
         self,
         current_login: dict[str, Any],
         previous_login: dict[str, Any] | None = None,
         user_history: dict[str, Any] | None = None,
+        cti_data: dict[str, Any] | None = None,
     ) -> list[AnomalyResult]:
         """
         Perform complete anomaly analysis on a login attempt.
@@ -393,6 +430,7 @@ class AnomalyDetector:
             current_login: Current login data
             previous_login: Previous login data (for travel analysis)
             user_history: User's login history
+            cti_data: External Threat Intelligence data for the current IP
 
         Returns:
             List of anomaly detection results
@@ -443,6 +481,11 @@ class AnomalyDetector:
             known_ips = user_history.get("known_ips", [])
             ip_result = self.detect_new_ip(curr_ip, known_ips)
             results.append(ip_result)
+
+        # Detect malicious IP via CTI
+        if curr_ip and cti_data:
+            malicious_result = self.detect_malicious_ip(curr_ip, cti_data)
+            results.append(malicious_result)
 
         # Detect impossible travel
         if previous_login:

@@ -45,6 +45,7 @@ class EventType(StrEnum):
     NEW_IP = "new_ip"
     MULTIPLE_FAILURES = "multiple_failures"
     SUSPICIOUS_LOCATION = "suspicious_location"
+    MALICIOUS_IP = "malicious_ip"
 
 
 # Severity colors for Discord embeds
@@ -72,6 +73,7 @@ EVENT_TYPE_NAMES = {
     EventType.NEW_IP: "New IP Address",
     EventType.MULTIPLE_FAILURES: "Multiple Failed Logins",
     EventType.SUSPICIOUS_LOCATION: "Suspicious Location",
+    EventType.MALICIOUS_IP: "Malicious IP Detected",
 }
 
 

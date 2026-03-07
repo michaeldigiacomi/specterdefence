@@ -111,7 +111,8 @@ export type EventType =
   | 'admin_action'
   | 'new_ip'
   | 'multiple_failures'
-  | 'suspicious_location';
+  | 'suspicious_location'
+  | 'malicious_ip';
 
 /** Alert history item */
 export interface AlertHistory {
