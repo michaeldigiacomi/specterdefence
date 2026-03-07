@@ -1,5 +1,6 @@
 """Dashboard API endpoints for security visualizations."""
 
+import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -22,6 +23,7 @@ from src.models.dashboard import (
 from src.services.dashboard import DashboardService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 # ============== Dependencies ==============
@@ -49,6 +51,7 @@ async def get_dashboard_summary(
     try:
         return await service.get_summary_stats(tenant_id=tenant_id)
     except Exception as e:
+        logger.exception("Error fetching dashboard summary")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching dashboard summary: {str(e)}",
@@ -70,6 +73,7 @@ async def get_login_timeline(
     try:
         return await service.get_login_activity_timeline(time_range=time_range, tenant_id=tenant_id)
     except Exception as e:
+        logger.exception("Error fetching login timeline")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching login timeline: {str(e)}",
@@ -91,6 +95,7 @@ async def get_geo_heatmap(
     try:
         return await service.get_geo_heatmap_data(time_range=time_range, tenant_id=tenant_id)
     except Exception as e:
+        logger.exception("Error fetching geo heatmap")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching geo heatmap: {str(e)}",
@@ -112,6 +117,7 @@ async def get_anomaly_trend(
     try:
         return await service.get_anomaly_trend(time_range=time_range, tenant_id=tenant_id)
     except Exception as e:
+        logger.exception("Error fetching anomaly trend")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching anomaly trend: {str(e)}",
@@ -133,6 +139,7 @@ async def get_top_risk_users(
     try:
         return await service.get_top_risk_users(limit=limit, tenant_id=tenant_id)
     except Exception as e:
+        logger.exception("Error fetching top risk users")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching top risk users: {str(e)}",
@@ -154,6 +161,7 @@ async def get_alert_volume(
     try:
         return await service.get_alert_volume(time_range=time_range, tenant_id=tenant_id)
     except Exception as e:
+        logger.exception("Error fetching alert volume")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching alert volume: {str(e)}",
@@ -175,6 +183,7 @@ async def get_anomaly_breakdown(
     try:
         return await service.get_anomaly_breakdown(time_range=time_range, tenant_id=tenant_id)
     except Exception as e:
+        logger.exception("Error fetching anomaly breakdown")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching anomaly breakdown: {str(e)}",
@@ -219,6 +228,7 @@ async def get_full_dashboard(
             time_range=time_range,
         )
     except Exception as e:
+        logger.exception("Error fetching full dashboard data")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching dashboard data: {str(e)}",
@@ -249,6 +259,7 @@ async def export_dashboard(
             expires_at=datetime.utcnow() + timedelta(hours=24),
         )
     except Exception as e:
+        logger.exception("Error exporting dashboard")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error exporting dashboard: {str(e)}",
@@ -319,6 +330,7 @@ async def download_export(
     except HTTPException:
         raise
     except Exception as e:
+        logger.exception("Error downloading export")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error downloading export: {str(e)}",

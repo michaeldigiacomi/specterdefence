@@ -1,16 +1,43 @@
+import logging
 import os
+import sys
+import time
+import traceback
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.api import router
 from src.config import settings
 from src.database import init_db
+
+# ============== Logging Configuration ==============
+
+LOG_LEVEL = logging.DEBUG if settings.DEBUG else logging.INFO
+
+# Configure root logger
+logging.basicConfig(
+    level=LOG_LEVEL,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    stream=sys.stdout,
+    force=True,
+)
+
+# Quiet down noisy libraries
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.engine").setLevel(
+    logging.INFO if settings.DEBUG else logging.WARNING
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+logger = logging.getLogger("specterdefence")
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -69,10 +96,56 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown events."""
+    logger.info("SpecterDefence API starting up...")
     # Startup - initialize database
     await init_db()
+    logger.info("Database initialized. Application ready.")
     yield
+    logger.info("SpecterDefence API shutting down...")
     # Shutdown
+
+
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    """Log all requests with method, path, status, and duration."""
+
+    async def dispatch(self, request: Request, call_next):
+        start_time = time.time()
+        method = request.method
+        path = request.url.path
+        query = str(request.url.query)
+
+        # Skip noisy health/ready checks
+        if path in ("/health", "/ready"):
+            return await call_next(request)
+
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(
+                "%s %s%s -> UNHANDLED EXCEPTION (%.1fms): %s",
+                method, path, f"?{query}" if query else "",
+                duration_ms, exc,
+                exc_info=True,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"detail": f"Internal server error: {exc}"},
+            )
+
+        duration_ms = (time.time() - start_time) * 1000
+        status_code = response.status_code
+        log_msg = "%s %s%s -> %d (%.1fms)"
+        log_args = (method, path, f"?{query}" if query else "", status_code, duration_ms)
+
+        if status_code >= 500:
+            logger.error(log_msg, *log_args)
+        elif status_code >= 400:
+            logger.warning(log_msg, *log_args)
+        else:
+            logger.debug(log_msg, *log_args)
+
+        return response
 
 
 app = FastAPI(
@@ -81,6 +154,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Add request logging middleware (outermost - runs first)
+app.add_middleware(RequestLoggingMiddleware)
 
 # Add security headers middleware
 app.add_middleware(SecurityHeadersMiddleware)
