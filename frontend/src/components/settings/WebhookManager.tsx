@@ -243,7 +243,7 @@ export default function WebhookManager() {
 
                       {webhook.tenant_id && (
                         <p className="text-xs text-gray-500 mt-1">
-                          Tenant: {tenantsData?.items.find(t => t.id === webhook.tenant_id)?.name || webhook.tenant_id}
+                          Tenant: {tenantsData?.items?.find(t => t.id === webhook.tenant_id)?.name || webhook.tenant_id}
                         </p>
                       )}
                     </div>

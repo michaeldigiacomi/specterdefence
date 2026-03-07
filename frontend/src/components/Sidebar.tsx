@@ -45,8 +45,11 @@ export default function Sidebar() {
   const [backendSha, setBackendSha] = useState<string>('...');
 
   useEffect(() => {
-    fetch('/health')
-      .then((res) => res.json())
+    fetch('/api/v1/version')
+      .then((res) => {
+        if (!res.ok) throw new Error('not ok');
+        return res.json();
+      })
       .then((data) => setBackendSha(data.git_sha || 'unknown'))
       .catch(() => setBackendSha('unknown'));
   }, []);

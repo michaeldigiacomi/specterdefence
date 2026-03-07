@@ -118,13 +118,13 @@ export default function Tenants() {
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">Active</p>
           <p className="text-2xl font-bold text-green-600">
-            {tenantsData?.items.filter(t => t.is_active).length || 0}
+            {tenantsData?.items?.filter(t => t.is_active).length || 0}
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">Inactive</p>
           <p className="text-2xl font-bold text-gray-600">
-            {tenantsData?.items.filter(t => !t.is_active).length || 0}
+            {tenantsData?.items?.filter(t => !t.is_active).length || 0}
           </p>
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function Tenants() {
                     <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 ml-auto"></div></td>
                   </tr>
                 ))
-              ) : tenantsData?.items.length === 0 ? (
+              ) : tenantsData?.items?.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <Building2 className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />

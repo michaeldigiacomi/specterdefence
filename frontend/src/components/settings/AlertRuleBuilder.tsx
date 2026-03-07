@@ -268,7 +268,7 @@ export default function AlertRuleBuilder() {
                       </span>
                       {rule.tenant_id && (
                         <span>
-                          Tenant: {tenantsData?.items.find(t => t.id === rule.tenant_id)?.name || rule.tenant_id}
+                          Tenant: {tenantsData?.items?.find(t => t.id === rule.tenant_id)?.name || rule.tenant_id}
                         </span>
                       )}
                     </div>

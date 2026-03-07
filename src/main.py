@@ -198,6 +198,14 @@ async def health_check():
     }
 
 
+@app.get("/api/v1/version")
+async def version_info():
+    """Return version and build info for the frontend."""
+    return {
+        "version": "0.1.0",
+        "git_sha": os.getenv("GIT_SHA", "dev"),
+    }
+
 @app.get("/ready")
 async def ready_check():
     """Readiness check endpoint."""
