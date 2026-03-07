@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, desc, func, or_, select
+from sqlalchemy import String, and_, cast, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.analytics.anomalies import AnomalyDetector, AnomalyResult, AnomalyType
@@ -311,11 +311,11 @@ class LoginAnalyticsService:
 
         if has_anomaly is not None:
             if has_anomaly:
-                filters.append(LoginAnalyticsModel.anomaly_flags != [])
+                filters.append(cast(LoginAnalyticsModel.anomaly_flags, String) != '[]')
             else:
                 filters.append(
                     or_(
-                        LoginAnalyticsModel.anomaly_flags == [],
+                        cast(LoginAnalyticsModel.anomaly_flags, String) == '[]',
                         LoginAnalyticsModel.anomaly_flags.is_(None),
                     )
                 )
@@ -373,7 +373,7 @@ class LoginAnalyticsService:
                 and_(
                     LoginAnalyticsModel.user_email == user_email,
                     LoginAnalyticsModel.tenant_id == tenant_id,
-                    LoginAnalyticsModel.anomaly_flags != [],
+                    cast(LoginAnalyticsModel.anomaly_flags, String) != '[]',
                 )
             )
             .order_by(desc(LoginAnalyticsModel.login_time))
