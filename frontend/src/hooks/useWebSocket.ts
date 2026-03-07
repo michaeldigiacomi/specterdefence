@@ -55,16 +55,11 @@ export interface UseWebSocketReturn {
 
 // Derive WebSocket URL from current page origin so it works in production
 function getWsBaseUrl(): string {
-  // Allow override via env var for development
-  // @ts-ignore - import.meta is not fully typed
-  const envUrl = (import.meta as any).env?.VITE_WS_URL;
-  if (envUrl) return envUrl;
-
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   
-  // If we are in dev mode using a proxy, we still want to use the current host
-  // and the proxy routing rule in vite.config.ts will handle it.
-  return `${protocol}//${window.location.host}/ws/alerts`;
+  // Connect directly to the unified API entrypoint instead of falling back to a build environment config.
+  // In development, the vite.config.ts proxy will handle routing /api to the backend.
+  return `${protocol}//${window.location.host}/api/v1/ws/alerts`;
 }
 
 
