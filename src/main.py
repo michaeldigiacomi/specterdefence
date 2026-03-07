@@ -191,7 +191,11 @@ app.include_router(router, prefix="/api/v1")
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "version": "0.1.0"}
+    return {
+        "status": "healthy",
+        "version": "0.1.0",
+        "git_sha": os.getenv("GIT_SHA", "dev"),
+    }
 
 
 @app.get("/ready")

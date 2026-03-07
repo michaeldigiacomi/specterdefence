@@ -3,6 +3,9 @@
 
 FROM node:20-slim AS builder
 
+ARG GIT_SHA=dev
+ENV VITE_GIT_SHA=${GIT_SHA}
+
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install --legacy-peer-deps

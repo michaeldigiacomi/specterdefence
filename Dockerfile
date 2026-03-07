@@ -6,6 +6,9 @@
 # ============================================
 FROM node:20-slim AS frontend-builder
 
+ARG GIT_SHA=dev
+ENV VITE_GIT_SHA=${GIT_SHA}
+
 WORKDIR /app/frontend
 
 # Copy package files first for better layer caching
@@ -24,6 +27,8 @@ RUN npm run build:docker
 # Stage 2: Production image
 # ============================================
 FROM python:3.12-slim AS production
+
+ARG GIT_SHA=dev
 
 WORKDIR /app
 
@@ -48,7 +53,8 @@ COPY --from=frontend-builder --chown=app:app /app/frontend/dist ./frontend/dist/
 # Set environment
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    GIT_SHA=${GIT_SHA}
 
 USER app
 

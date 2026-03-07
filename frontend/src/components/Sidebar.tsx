@@ -18,13 +18,15 @@ import {
 import { useAppStore } from '@/store/appStore';
 import { useLogout } from '@/hooks/useAuth';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+const FRONTEND_SHA = import.meta.env.VITE_GIT_SHA || 'dev';
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -40,10 +42,20 @@ export default function Sidebar() {
   const { sidebarOpen, toggleSidebar, theme, toggleTheme, user } = useAppStore();
   const logoutMutation = useLogout();
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [backendSha, setBackendSha] = useState<string>('...');
+
+  useEffect(() => {
+    fetch('/health')
+      .then((res) => res.json())
+      .then((data) => setBackendSha(data.git_sha || 'unknown'))
+      .catch(() => setBackendSha('unknown'));
+  }, []);
 
   const handleLogout = () => {
     logoutMutation.mutate();
   };
+
+  const shortSha = (sha: string) => sha.length > 7 ? sha.substring(0, 7) : sha;
 
   return (
     <aside
@@ -53,19 +65,27 @@ export default function Sidebar() {
       )}
     >
       {/* Logo Section */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700" style={{ minHeight: sidebarOpen ? '4.5rem' : '4rem' }}>
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="flex-shrink-0 w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
             <Shield className="w-5 h-5 text-white" />
           </div>
-          <span
+          <div
             className={cn(
-              'font-semibold text-lg text-gray-900 dark:text-white whitespace-nowrap transition-opacity duration-300',
+              'whitespace-nowrap transition-opacity duration-300',
               sidebarOpen ? 'opacity-100' : 'opacity-0'
             )}
           >
-            SpecterDefence
-          </span>
+            <span className="font-semibold text-lg text-gray-900 dark:text-white block leading-tight">
+              SpecterDefence
+            </span>
+            {sidebarOpen && (
+              <div className="flex gap-3 text-[10px] font-mono text-gray-400 dark:text-gray-500 mt-0.5">
+                <span title={`Frontend: ${FRONTEND_SHA}`}>FE: {shortSha(FRONTEND_SHA)}</span>
+                <span title={`Backend: ${backendSha}`}>BE: {shortSha(backendSha)}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
