@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: specterdefence-dev
-  labels:
-    app.kubernetes.io/name: specterdefence
-    app.kubernetes.io/part-of: specterdefence
-    environment: development

@@ -8,6 +8,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+  - collector-cronjob.yaml
 
 images:
   - name: ghcr.io/digiacomi-shared/specterdefence

@@ -19,6 +19,7 @@ sys.path.insert(0, "/app")
 
 import contextlib
 
+from src.analytics.logins import LoginAnalyticsService
 from src.collector.o365_feed import (
     CONTENT_TYPES,
     O365ManagementClient,
@@ -397,6 +398,18 @@ async def collect_logs() -> dict[str, Any]:
                             f"Successfully collected {collection_result['total_events']} "
                             f"events for tenant {tenant.name}"
                         )
+                        
+                        # Auto-process the collected logs right away
+                        try:
+                            logger.info(f"Processing collected logs for tenant {tenant.name}...")
+                            analytics_service = LoginAnalyticsService(session)
+                            processed_count = await analytics_service.process_audit_log_signins(
+                                tenant_id=tenant.id, 
+                                limit=1000  # Process up to 1000 at a time
+                            )
+                            logger.info(f"Successfully processed {processed_count} logs into analytics for tenant {tenant.name}")
+                        except Exception as process_err:
+                            logger.error(f"Failed to process logs for tenant {tenant.name}: {process_err}")
 
                 except Exception as e:
                     logger.error(f"Failed to collect for tenant {tenant.name}: {e}")
