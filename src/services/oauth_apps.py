@@ -650,9 +650,9 @@ class OAuthAppsService:
             query = query.where(OAuthAppModel.is_microsoft_publisher == False)
 
         # Get total count
-        count_query = select(OAuthAppModel.id).select_from(query.subquery())
+        count_query = select(func.count()).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
-        total = len(count_result.scalars().all())
+        total = count_result.scalar_one()
 
         # Apply pagination and ordering
         query = query.order_by(desc(OAuthAppModel.risk_score), desc(OAuthAppModel.created_at))
@@ -878,9 +878,9 @@ class OAuthAppsService:
             query = query.where(OAuthAppAlertModel.severity == severity)
 
         # Get total count
-        count_query = select(OAuthAppAlertModel.id).select_from(query.subquery())
+        count_query = select(func.count()).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
-        total = len(count_result.scalars().all())
+        total = count_result.scalar_one()
 
         # Apply pagination and ordering
         query = query.order_by(desc(OAuthAppAlertModel.created_at))
