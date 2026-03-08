@@ -34,6 +34,7 @@ class WebhookResponse(BaseModel):
     name: str
     webhook_type: str
     is_active: bool
+    tenant_id: str | None = None
     created_at: str
 
     class Config:
@@ -163,6 +164,7 @@ async def create_webhook(
             name=created.name,
             webhook_type=created.webhook_type,
             is_active=created.is_active,
+            tenant_id=created.tenant_id,
             created_at=created.created_at.isoformat(),
         )
     except Exception as e:
@@ -204,6 +206,7 @@ async def list_webhooks(
             name=w.name,
             webhook_type=w.webhook_type,
             is_active=w.is_active,
+            tenant_id=w.tenant_id,
             created_at=w.created_at.isoformat(),
         )
         for w in webhooks
