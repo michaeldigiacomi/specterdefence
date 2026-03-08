@@ -160,6 +160,9 @@ class CAPolicyModel(Base):
     trusted_locations_only: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, comment="Whether policy requires trusted locations"
     )
+    has_device_conditions: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, comment="Whether policy has device conditions"
+    )
 
     # Device conditions
     requires_compliant_device: Mapped[bool] = mapped_column(
