@@ -95,7 +95,7 @@ class AlertWebhookModel(Base):
     )
     webhook_url: Mapped[str] = mapped_column(Text, nullable=False, comment="Encrypted webhook URL")
     webhook_type: Mapped[WebhookType] = mapped_column(
-        SQLEnum(WebhookType, name="webhook_type_enum"),
+        SQLEnum(WebhookType, name="webhook_type_enum", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=WebhookType.DISCORD,
         comment="Type of webhook (discord, slack)",
@@ -134,7 +134,7 @@ class AlertRuleModel(Base):
         ARRAY(String(50)), nullable=False, comment="List of event types this rule matches"
     )
     min_severity: Mapped[SeverityLevel] = mapped_column(
-        SQLEnum(SeverityLevel, name="severity_level_enum"),
+        SQLEnum(SeverityLevel, name="severity_level_enum", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=SeverityLevel.MEDIUM,
         comment="Minimum severity level to trigger this rule",
@@ -187,7 +187,7 @@ class AlertHistoryModel(Base):
         comment="Internal tenant UUID",
     )
     severity: Mapped[SeverityLevel] = mapped_column(
-        SQLEnum(SeverityLevel, name="severity_level_enum"),
+        SQLEnum(SeverityLevel, name="severity_level_enum", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         comment="Severity level of the alert",
     )

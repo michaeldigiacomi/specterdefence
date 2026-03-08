@@ -947,8 +947,8 @@ class OAuthAppsService:
             select(func.count(OAuthAppModel.id)).where(
                 and_(
                     OAuthAppModel.tenant_id == tenant_id,
-                    OAuthAppModel.has_mail_permissions,
-                    not OAuthAppModel.is_microsoft_publisher,
+                    OAuthAppModel.is_microsoft_publisher == False,
+                    OAuthAppModel.publisher_type != PublisherType.VERIFIED,
                 )
             )
         )
@@ -978,7 +978,7 @@ class OAuthAppsService:
             select(func.count(OAuthAppAlertModel.id)).where(
                 and_(
                     OAuthAppAlertModel.tenant_id == tenant_id,
-                    not OAuthAppAlertModel.is_acknowledged,
+                    OAuthAppAlertModel.is_acknowledged == False,
                 )
             )
         )

@@ -41,7 +41,7 @@ class AuditLogModel(Base):
         String(36), index=True, nullable=False, comment="Internal tenant UUID (FK to tenants)"
     )
     log_type: Mapped[LogType] = mapped_column(
-        SQLEnum(LogType, name="log_type_enum"), nullable=False, comment="Type of audit log"
+        SQLEnum(LogType, name="log_type_enum", values_callable=lambda x: [e.value for e in x]), nullable=False, comment="Type of audit log"
     )
     raw_data: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, comment="Full O365 response as JSONB"

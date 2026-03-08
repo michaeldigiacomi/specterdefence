@@ -72,19 +72,19 @@ class MailboxRuleModel(Base):
         String(500), nullable=False, comment="Display name of the rule"
     )
     rule_type: Mapped[RuleType] = mapped_column(
-        SQLEnum(RuleType, name="rule_type_enum"), nullable=False, comment="Type of mailbox rule"
+        SQLEnum(RuleType, name="rule_type_enum", values_callable=lambda x: [e.value for e in x]), nullable=False, comment="Type of mailbox rule"
     )
     is_enabled: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, comment="Whether the rule is enabled in Exchange"
     )
     status: Mapped[RuleStatus] = mapped_column(
-        SQLEnum(RuleStatus, name="rule_status_enum"),
+        SQLEnum(RuleStatus, name="rule_status_enum", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=RuleStatus.ACTIVE,
         comment="Analysis status of the rule",
     )
     severity: Mapped[RuleSeverity] = mapped_column(
-        SQLEnum(RuleSeverity, name="rule_severity_enum"),
+        SQLEnum(RuleSeverity, name="rule_severity_enum", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=RuleSeverity.LOW,
         comment="Severity level based on analysis",
@@ -220,7 +220,7 @@ class MailboxRuleAlertModel(Base):
         String(50), nullable=False, comment="Type of alert (forwarding, redirect, etc.)"
     )
     severity: Mapped[RuleSeverity] = mapped_column(
-        SQLEnum(RuleSeverity, name="rule_alert_severity_enum"), nullable=False
+        SQLEnum(RuleSeverity, name="rule_alert_severity_enum", values_callable=lambda x: [e.value for e in x]), nullable=False
     )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
