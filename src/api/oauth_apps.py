@@ -336,139 +336,6 @@ async def list_oauth_apps(
     )
 
 
-@router.get(
-    "/{app_id}",
-    response_model=OAuthAppResponse,
-    summary="Get OAuth application",
-    description="Get a specific OAuth application by ID.",
-)
-async def get_oauth_app(
-    app_id: str, service: OAuthAppsService = Depends(get_oauth_apps_service)
-) -> OAuthAppResponse:
-    """Get a specific OAuth application.
-
-    Args:
-        app_id: App UUID
-        service: OAuth apps service
-
-    Returns:
-        OAuth app details
-
-    Raises:
-        HTTPException: If app not found
-    """
-    app = await service.get_app_by_id(app_id)
-    if not app:
-        raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"OAuth app with ID {app_id} not found",
-        )
-
-    return _format_app_response(app)
-
-
-@router.get(
-    "/{app_id}/permissions",
-    response_model=AppPermissionsResponse,
-    summary="Get app permissions",
-    description="Get detailed permissions and consents for an OAuth application.",
-)
-async def get_app_permissions(
-    app_id: str, service: OAuthAppsService = Depends(get_oauth_apps_service)
-) -> AppPermissionsResponse:
-    """Get permissions and consents for an OAuth app.
-
-    Args:
-        app_id: App UUID
-        service: OAuth apps service
-
-    Returns:
-        App with permissions and consents
-
-    Raises:
-        HTTPException: If app not found
-    """
-    app = await service.get_app_by_id(app_id)
-    if not app:
-        raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"OAuth app with ID {app_id} not found",
-        )
-
-    permissions = await service.get_app_permissions_detail(app_id)
-    consents = await service.get_app_consents(app_id)
-
-    return AppPermissionsResponse(
-        app=_format_app_response(app),
-        permissions=[
-            OAuthAppPermissionResponse(
-                id=str(p.id),
-                permission_id=p.permission_id,
-                permission_type=p.permission_type,
-                permission_value=p.permission_value,
-                display_name=p.display_name,
-                description=p.description,
-                is_high_risk=p.is_high_risk,
-                risk_category=p.risk_category,
-                is_admin_consent_required=p.is_admin_consent_required,
-                consent_state=p.consent_state,
-                created_at=p.created_at.isoformat(),
-                updated_at=p.updated_at.isoformat(),
-            )
-            for p in permissions
-        ],
-        consents=[
-            OAuthAppConsentResponse(
-                id=str(c.id),
-                user_id=c.user_id,
-                user_email=c.user_email,
-                user_display_name=c.user_display_name,
-                consent_type=c.consent_type,
-                scope=c.scope,
-                consent_state=c.consent_state,
-                consented_at=c.consented_at.isoformat() if c.consented_at else None,
-                expires_at=c.expires_at.isoformat() if c.expires_at else None,
-                created_at=c.created_at.isoformat(),
-                updated_at=c.updated_at.isoformat(),
-            )
-            for c in consents
-        ],
-    )
-
-
-@router.post(
-    "/{app_id}/revoke",
-    response_model=RevokeAppResponse,
-    summary="Revoke OAuth application",
-    description="Revoke/suspend a suspicious OAuth application.",
-)
-async def revoke_oauth_app(
-    app_id: str,
-    request: RevokeAppRequest,
-    service: OAuthAppsService = Depends(get_oauth_apps_service),
-) -> RevokeAppResponse:
-    """Revoke/suspend an OAuth application.
-
-    Args:
-        app_id: App UUID
-        request: Revoke request
-        service: OAuth apps service
-
-    Returns:
-        Revoke result
-    """
-    result = await service.revoke_app(app_id, request.revoke_type)
-
-    if result["success"]:
-        return RevokeAppResponse(
-            success=True, message=result.get("message", "App revoked successfully")
-        )
-    else:
-        raise HTTPException(
-            status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail=result.get("error", "Failed to revoke app"),
-        )
-
 
 # =============================================================================
 # Tenant-Specific Endpoints
@@ -792,3 +659,142 @@ async def acknowledge_alert(
         ),
         message="Alert acknowledged successfully",
     )
+
+
+# =============================================================================
+# ID-based Endpoints (Must be at the end to avoid routing conflicts)
+# =============================================================================
+
+@router.get(
+    "/{app_id}",
+    response_model=OAuthAppResponse,
+    summary="Get OAuth application",
+    description="Get a specific OAuth application by ID.",
+)
+async def get_oauth_app(
+    app_id: str, service: OAuthAppsService = Depends(get_oauth_apps_service)
+) -> OAuthAppResponse:
+    """Get a specific OAuth application.
+
+    Args:
+        app_id: App UUID
+        service: OAuth apps service
+
+    Returns:
+        OAuth app details
+
+    Raises:
+        HTTPException: If app not found
+    """
+    app = await service.get_app_by_id(app_id)
+    if not app:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=f"OAuth app with ID {app_id} not found",
+        )
+
+    return _format_app_response(app)
+
+
+@router.get(
+    "/{app_id}/permissions",
+    response_model=AppPermissionsResponse,
+    summary="Get app permissions",
+    description="Get detailed permissions and consents for an OAuth application.",
+)
+async def get_app_permissions(
+    app_id: str, service: OAuthAppsService = Depends(get_oauth_apps_service)
+) -> AppPermissionsResponse:
+    """Get permissions and consents for an OAuth app.
+
+    Args:
+        app_id: App UUID
+        service: OAuth apps service
+
+    Returns:
+        App with permissions and consents
+
+    Raises:
+        HTTPException: If app not found
+    """
+    app = await service.get_app_by_id(app_id)
+    if not app:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=f"OAuth app with ID {app_id} not found",
+        )
+
+    permissions = await service.get_app_permissions_detail(app_id)
+    consents = await service.get_app_consents(app_id)
+
+    return AppPermissionsResponse(
+        app=_format_app_response(app),
+        permissions=[
+            OAuthAppPermissionResponse(
+                id=str(p.id),
+                permission_id=p.permission_id,
+                permission_type=p.permission_type,
+                permission_value=p.permission_value,
+                display_name=p.display_name,
+                description=p.description,
+                is_high_risk=p.is_high_risk,
+                risk_category=p.risk_category,
+                is_admin_consent_required=p.is_admin_consent_required,
+                consent_state=p.consent_state,
+                created_at=p.created_at.isoformat(),
+                updated_at=p.updated_at.isoformat(),
+            )
+            for p in permissions
+        ],
+        consents=[
+            OAuthAppConsentResponse(
+                id=str(c.id),
+                user_id=c.user_id,
+                user_email=c.user_email,
+                user_display_name=c.user_display_name,
+                consent_type=c.consent_type,
+                scope=c.scope,
+                consent_state=c.consent_state,
+                consented_at=c.consented_at.isoformat() if c.consented_at else None,
+                expires_at=c.expires_at.isoformat() if c.expires_at else None,
+                created_at=c.created_at.isoformat(),
+                updated_at=c.updated_at.isoformat(),
+            )
+            for c in consents
+        ],
+    )
+
+
+@router.post(
+    "/{app_id}/revoke",
+    response_model=RevokeAppResponse,
+    summary="Revoke OAuth application",
+    description="Revoke/suspend a suspicious OAuth application.",
+)
+async def revoke_oauth_app(
+    app_id: str,
+    request: RevokeAppRequest,
+    service: OAuthAppsService = Depends(get_oauth_apps_service),
+) -> RevokeAppResponse:
+    """Revoke/suspend an OAuth application.
+
+    Args:
+        app_id: App UUID
+        request: Revoke request
+        service: OAuth apps service
+
+    Returns:
+        Revoke result
+    """
+    result = await service.revoke_app(app_id, request.revoke_type)
+
+    if result["success"]:
+        return RevokeAppResponse(
+            success=True, message=result.get("message", "App revoked successfully")
+        )
+    else:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail=result.get("error", "Failed to revoke app"),
+        )
+

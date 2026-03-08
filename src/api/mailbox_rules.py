@@ -258,61 +258,6 @@ async def list_mailbox_rules(
     )
 
 
-@router.get(
-    "/{rule_id}",
-    response_model=MailboxRuleResponse,
-    summary="Get mailbox rule",
-    description="Get a specific mailbox rule by ID.",
-)
-async def get_mailbox_rule(
-    rule_id: str, service: MailboxRuleService = Depends(get_mailbox_rule_service)
-) -> MailboxRuleResponse:
-    """Get a specific mailbox rule.
-
-    Args:
-        rule_id: Rule UUID
-        service: Mailbox rule service
-
-    Returns:
-        Mailbox rule details
-
-    Raises:
-        HTTPException: If rule not found
-    """
-    rule = await service.get_rule_by_id(rule_id)
-    if not rule:
-        raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"Mailbox rule with ID {rule_id} not found",
-        )
-
-    return MailboxRuleResponse(
-        id=str(rule.id),
-        tenant_id=rule.tenant_id,
-        user_email=rule.user_email,
-        rule_id=rule.rule_id,
-        rule_name=rule.rule_name,
-        rule_type=rule.rule_type.value,
-        is_enabled=rule.is_enabled,
-        status=rule.status.value,
-        severity=rule.severity.value,
-        forward_to=rule.forward_to,
-        forward_to_external=rule.forward_to_external,
-        external_domain=rule.external_domain,
-        redirect_to=rule.redirect_to,
-        is_hidden_folder_redirect=rule.is_hidden_folder_redirect,
-        has_suspicious_patterns=rule.has_suspicious_patterns,
-        created_outside_business_hours=rule.created_outside_business_hours,
-        created_by_non_owner=rule.created_by_non_owner,
-        created_by=rule.created_by,
-        detection_reasons=rule.detection_reasons,
-        rule_created_at=rule.rule_created_at.isoformat() if rule.rule_created_at else None,
-        rule_modified_at=rule.rule_modified_at.isoformat() if rule.rule_modified_at else None,
-        last_scan_at=rule.last_scan_at.isoformat(),
-        created_at=rule.created_at.isoformat(),
-        updated_at=rule.updated_at.isoformat(),
-    )
-
 
 @router.get(
     "/tenants/{tenant_id}/rules",
@@ -687,3 +632,64 @@ async def get_rules_summary(
         by_type=by_type,
         recent_alerts=recent_alerts,
     )
+
+
+# =============================================================================
+# ID-based Endpoints (Must be at the end to avoid routing conflicts)
+# =============================================================================
+
+@router.get(
+    "/{rule_id}",
+    response_model=MailboxRuleResponse,
+    summary="Get mailbox rule",
+    description="Get a specific mailbox rule by ID.",
+)
+async def get_mailbox_rule(
+    rule_id: str, service: MailboxRuleService = Depends(get_mailbox_rule_service)
+) -> MailboxRuleResponse:
+    """Get a specific mailbox rule.
+
+    Args:
+        rule_id: Rule UUID
+        service: Mailbox rule service
+
+    Returns:
+        Mailbox rule details
+
+    Raises:
+        HTTPException: If rule not found
+    """
+    rule = await service.get_rule_by_id(rule_id)
+    if not rule:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=f"Mailbox rule with ID {rule_id} not found",
+        )
+
+    return MailboxRuleResponse(
+        id=str(rule.id),
+        tenant_id=rule.tenant_id,
+        user_email=rule.user_email,
+        rule_id=rule.rule_id,
+        rule_name=rule.rule_name,
+        rule_type=rule.rule_type.value,
+        is_enabled=rule.is_enabled,
+        status=rule.status.value,
+        severity=rule.severity.value,
+        forward_to=rule.forward_to,
+        forward_to_external=rule.forward_to_external,
+        external_domain=rule.external_domain,
+        redirect_to=rule.redirect_to,
+        is_hidden_folder_redirect=rule.is_hidden_folder_redirect,
+        has_suspicious_patterns=rule.has_suspicious_patterns,
+        created_outside_business_hours=rule.created_outside_business_hours,
+        created_by_non_owner=rule.created_by_non_owner,
+        created_by=rule.created_by,
+        detection_reasons=rule.detection_reasons,
+        rule_created_at=rule.rule_created_at.isoformat() if rule.rule_created_at else None,
+        rule_modified_at=rule.rule_modified_at.isoformat() if rule.rule_modified_at else None,
+        last_scan_at=rule.last_scan_at.isoformat(),
+        created_at=rule.created_at.isoformat(),
+        updated_at=rule.updated_at.isoformat(),
+    )
+

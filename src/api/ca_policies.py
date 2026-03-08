@@ -211,77 +211,6 @@ async def list_ca_policies(
     )
 
 
-@router.get(
-    "/{policy_id}",
-    response_model=CAPolicyResponse,
-    summary="Get Conditional Access policy",
-    description="Get a specific Conditional Access policy by ID.",
-)
-async def get_ca_policy(
-    policy_id: str, service: CAPoliciesService = Depends(get_ca_policies_service)
-) -> CAPolicyResponse:
-    """Get a specific Conditional Access policy.
-
-    Args:
-        policy_id: Policy UUID
-        service: CA policies service
-
-    Returns:
-        CA policy details
-
-    Raises:
-        HTTPException: If policy not found
-    """
-    policy = await service.get_policy_by_id(policy_id)
-    if not policy:
-        raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"CA policy with ID {policy_id} not found",
-        )
-
-    return _format_policy_response(policy)
-
-
-@router.get(
-    "/{policy_id}/changes",
-    response_model=CAPolicyChangeListResponse,
-    summary="Get policy change history",
-    description="Get the change history for a specific Conditional Access policy.",
-)
-async def get_policy_changes(
-    policy_id: str,
-    limit: int = Query(default=100, ge=1, le=1000),
-    offset: int = Query(default=0, ge=0),
-    service: CAPoliciesService = Depends(get_ca_policies_service),
-) -> CAPolicyChangeListResponse:
-    """Get change history for a CA policy.
-
-    Args:
-        policy_id: Policy UUID
-        limit: Maximum results
-        offset: Offset for pagination
-        service: CA policies service
-
-    Returns:
-        Paginated list of policy changes
-    """
-    # Verify policy exists
-    policy = await service.get_policy_by_id(policy_id)
-    if not policy:
-        raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"CA policy with ID {policy_id} not found",
-        )
-
-    result = await service.get_policy_changes(policy_id=policy.id, limit=limit, offset=offset)
-
-    return CAPolicyChangeListResponse(
-        items=[_format_change_response(change) for change in result["items"]],
-        total=result["total"],
-        limit=result["limit"],
-        offset=result["offset"],
-    )
-
 
 # =============================================================================
 # Tenant-Specific Endpoints
@@ -714,3 +643,80 @@ async def set_baseline_config(
         updated_at=baseline.updated_at.isoformat(),
         created_by=baseline.created_by,
     )
+
+
+# =============================================================================
+# ID-based Endpoints (Must be at the end to avoid routing conflicts)
+# =============================================================================
+
+@router.get(
+    "/{policy_id}",
+    response_model=CAPolicyResponse,
+    summary="Get Conditional Access policy",
+    description="Get a specific Conditional Access policy by ID.",
+)
+async def get_ca_policy(
+    policy_id: str, service: CAPoliciesService = Depends(get_ca_policies_service)
+) -> CAPolicyResponse:
+    """Get a specific Conditional Access policy.
+
+    Args:
+        policy_id: Policy UUID
+        service: CA policies service
+
+    Returns:
+        CA policy details
+
+    Raises:
+        HTTPException: If policy not found
+    """
+    policy = await service.get_policy_by_id(policy_id)
+    if not policy:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=f"CA policy with ID {policy_id} not found",
+        )
+
+    return _format_policy_response(policy)
+
+
+@router.get(
+    "/{policy_id}/changes",
+    response_model=CAPolicyChangeListResponse,
+    summary="Get policy change history",
+    description="Get the change history for a specific Conditional Access policy.",
+)
+async def get_policy_changes(
+    policy_id: str,
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+    service: CAPoliciesService = Depends(get_ca_policies_service),
+) -> CAPolicyChangeListResponse:
+    """Get change history for a CA policy.
+
+    Args:
+        policy_id: Policy UUID
+        limit: Maximum results
+        offset: Offset for pagination
+        service: CA policies service
+
+    Returns:
+        Paginated list of policy changes
+    """
+    # Verify policy exists
+    policy = await service.get_policy_by_id(policy_id)
+    if not policy:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=f"CA policy with ID {policy_id} not found",
+        )
+
+    result = await service.get_policy_changes(policy_id=policy.id, limit=limit, offset=offset)
+
+    return CAPolicyChangeListResponse(
+        items=[_format_change_response(change) for change in result["items"]],
+        total=result["total"],
+        limit=result["limit"],
+        offset=result["offset"],
+    )
+
