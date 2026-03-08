@@ -34,8 +34,11 @@ class JSONB(TypeDecorator):
         return value
 
     def process_result_value(self, value: Any, dialect) -> Any:
-        if dialect.name != "postgresql" and value is not None and isinstance(value, str):
-            return json.loads(value)
+        if value is not None and isinstance(value, str):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                return value
         return value
 
 
@@ -101,6 +104,9 @@ class ARRAY(TypeDecorator):
         return value
 
     def process_result_value(self, value: Any, dialect) -> Any:
-        if dialect.name != "postgresql" and value is not None and isinstance(value, str):
-            return json.loads(value)
+        if value is not None and isinstance(value, str):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                return value
         return value
