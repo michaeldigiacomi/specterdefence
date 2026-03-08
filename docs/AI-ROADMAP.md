@@ -8,7 +8,7 @@
 - Generates natural language summary of the threat
 - Suggests severity adjustment with reasoning
 - Provides remediation steps tailored to the specific incident
-- **Kimi Integration:** Called via webhook when alerts fire
+- **LLM Integration:** Called via webhook when alerts fire
 
 **Example Output:**
 ```
@@ -33,7 +33,7 @@ and session revocation. Check for credential stuffing attack.
 - Learns organization-specific patterns (e.g., "CEO travels a lot")
 - Auto-adjusts thresholds per user/tenant
 - Suggests alert rule modifications
-- **Kimi Integration:** Periodic analysis of alert outcomes
+- **LLM Integration:** Periodic analysis of alert outcomes
 
 **Evolution Example:**
 - Week 1: Flags all impossible travel (100 alerts/day)
@@ -46,7 +46,7 @@ and session revocation. Check for credential stuffing attack.
 - "Which admins don't have MFA enabled?"
 - "Compare failed login attempts between this week and last"
 - "What's my biggest security risk right now?"
-- **Kimi Integration:** NL → SQL/query generation
+- **LLM Integration:** NL → SQL/query generation
 
 ### 4. 📊 Smart Alert Clustering & Summarization
 **What it does:** Groups related alerts and provides executive summaries
@@ -89,7 +89,7 @@ Recommendation: Enhanced monitoring + proactive password reset
 
 ### 7. 🌐 Threat Intelligence Auto-Enrichment
 **What it does:** AI researches IOCs in real-time
-- IPs → Geolocation + threat intel feeds + Kimi analysis
+- IPs → Geolocation + threat intel feeds + LLM analysis
 - Domains → Domain age, reputation, similarity to typosquats
 - File hashes → Sandbox analysis, known malware signatures
 - User agents → Device fingerprinting, suspicious patterns
@@ -155,11 +155,11 @@ Time to Fix: 15 minutes
 ├─────────────────────────────────────────────────────────┤
 │  AI Layer (New)                                         │
 │  ├── Alert Enrichment Service                           │
-│  │   └── Calls Kimi API for context/analysis            │
+│  │   └── Calls LLM API for context/analysis            │
 │  ├── Behavior Analysis Engine                           │
 │  │   └── ML models (local or OpenAI)                    │
 │  ├── Query NLP Engine                                   │
-│  │   └── Kimi: NL → SQL/JSON queries                    │
+│  │   └── LLM: NL → SQL/JSON queries                    │
 │  ├── Adaptive Threshold Engine                          │
 │  │   └── Analyzes feedback, adjusts rules               │
 │  └── Auto-Response Engine                               │
@@ -177,7 +177,7 @@ Time to Fix: 15 minutes
 
 ## Technical Implementation
 
-### Kimi Integration Points:
+### LLM Integration Points:
 
 1. **Alert Enrichment Webhook**
    ```python
@@ -191,7 +191,7 @@ Time to Fix: 15 minutes
 
    Provide: risk assessment, recommended severity, remediation steps
    """
-   analysis = kimi.generate(prompt)
+   analysis = llm_client.generate(prompt)
    ```
 
 2. **Natural Language Query**
@@ -203,7 +203,7 @@ Time to Fix: 15 minutes
 
    Question: {user_question}
    """
-   sql = kimi.generate(prompt)
+   sql = llm_client.generate(prompt)
    ```
 
 3. **Threat Intelligence**
@@ -216,7 +216,7 @@ Time to Fix: 15 minutes
    - VPN/proxy detection indicators
    - Recommendation: block/monitor/allow
    """
-   intel = kimi.generate(prompt)
+   intel = llm_client.generate(prompt)
    ```
 
 ### Data Storage:
@@ -230,7 +230,7 @@ Time to Fix: 15 minutes
 
 **Start with #1 (AI Security Analyst)** - highest impact, lowest risk:
 1. Add webhook to alert pipeline
-2. Send alert data to Kimi
+2. Send alert data to LLM
 3. Store AI analysis in database
 4. Display in UI alongside alerts
 5. Track if analysts agree/disagree with AI severity
