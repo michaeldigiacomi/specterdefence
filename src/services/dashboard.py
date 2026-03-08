@@ -1,7 +1,7 @@
 """Dashboard data aggregation service."""
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import String, and_, cast, desc, func, select
@@ -38,7 +38,7 @@ class DashboardService:
 
     def _get_time_range(self, time_range: TimeRange) -> tuple[datetime, datetime, datetime]:
         """Calculate start and end dates for a time range."""
-        end_date = datetime.utcnow()
+        end_date = datetime.now(timezone.utc)
 
         if time_range == TimeRange.DAY_7:
             start_date = end_date - timedelta(days=7)
@@ -599,7 +599,7 @@ class DashboardService:
 
     async def get_summary_stats(self, tenant_id: str | None = None) -> DashboardSummary:
         """Get dashboard summary statistics."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         day_ago = now - timedelta(days=1)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
