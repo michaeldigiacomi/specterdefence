@@ -27,6 +27,10 @@ from src.collector.o365_feed import (
     map_content_type_to_log_type,
 )
 from src.database import async_session_maker, init_db
+from src.services.ca_policies import CAPoliciesService
+from src.services.mailbox_rules import MailboxRuleService
+from src.services.mfa_report import MFAReportService
+from src.services.oauth_apps import OAuthAppsService
 from src.models.audit_log import (
     AuditLogModel,
     CollectionStateModel,
@@ -410,6 +414,34 @@ async def collect_logs() -> dict[str, Any]:
                             logger.info(f"Successfully processed {processed_count} logs into analytics for tenant {tenant.name}")
                         except Exception as process_err:
                             logger.error(f"Failed to process logs for tenant {tenant.name}: {process_err}")
+
+                        # Trigger full scans for all security data types
+                        try:
+                            logger.info(f"Triggering security scans for tenant {tenant.name}...")
+                            
+                            # MFA Scan
+                            mfa_service = MFAReportService(session)
+                            await mfa_service.scan_tenant_mfa(tenant.id)
+                            logger.info(f"✓ MFA scan completed for {tenant.name}")
+                            
+                            # CA Policies Scan
+                            ca_service = CAPoliciesService(session)
+                            await ca_service.scan_tenant_policies(tenant.id)
+                            logger.info(f"✓ CA policies scan completed for {tenant.name}")
+                            
+                            # OAuth Apps Scan
+                            oauth_service = OAuthAppsService(session)
+                            await oauth_service.scan_tenant_oauth_apps(tenant.id)
+                            logger.info(f"✓ OAuth apps scan completed for {tenant.name}")
+                            
+                            # Mailbox Rules Scan
+                            mailbox_service = MailboxRuleService(session)
+                            await mailbox_service.scan_tenant_mailbox_rules(tenant.id)
+                            logger.info(f"✓ Mailbox rules scan completed for {tenant.name}")
+                            
+                        except Exception as scan_err:
+                            logger.error(f"Failed to run security scans for tenant {tenant.name}: {scan_err}")
+                            # Don't fail the whole collection if scans fail
 
                 except Exception as e:
                     logger.error(f"Failed to collect for tenant {tenant.name}: {e}")
