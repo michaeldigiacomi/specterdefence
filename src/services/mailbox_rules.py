@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import and_, desc, select
+from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.alerts.engine import AlertEngine
@@ -436,9 +436,9 @@ class MailboxRuleService:
             query = query.where(MailboxRuleModel.rule_type == rule_type)
 
         # Get total count
-        count_query = select(MailboxRuleModel.id).select_from(query.subquery())
+        count_query = select(func.count()).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
-        total = len(count_result.scalars().all())
+        total = count_result.scalar_one()
 
         # Apply pagination and ordering
         query = query.order_by(desc(MailboxRuleModel.created_at))

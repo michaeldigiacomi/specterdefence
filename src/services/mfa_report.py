@@ -1056,10 +1056,9 @@ class MFAReportService:
             query = query.where(MFAComplianceAlertModel.severity == severity)
 
         # Get total count
-        count_result = await self.db.execute(
-            select(func.count(MFAComplianceAlertModel.id)).select_from(query.subquery())
-        )
-        total = count_result.scalar()
+        count_query = select(func.count()).select_from(query.subquery())
+        count_result = await self.db.execute(count_query)
+        total = count_result.scalar_one()
 
         # Apply pagination and ordering
         query = query.order_by(desc(MFAComplianceAlertModel.created_at))

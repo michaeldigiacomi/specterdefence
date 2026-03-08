@@ -724,10 +724,9 @@ class CAPoliciesService:
             query = query.where(CAPolicyModel.is_baseline_policy == is_baseline_policy)
 
         # Get total count
-        count_result = await self.db.execute(
-            select(func.count(CAPolicyModel.id)).select_from(query.subquery())
-        )
-        total = count_result.scalar()
+        count_query = select(func.count()).select_from(query.subquery())
+        count_result = await self.db.execute(count_query)
+        total = count_result.scalar_one()
 
         # Apply pagination and ordering
         query = query.order_by(desc(CAPolicyModel.security_score), desc(CAPolicyModel.created_at))
@@ -785,10 +784,9 @@ class CAPoliciesService:
             query = query.where(CAPolicyChangeModel.change_type == change_type)
 
         # Get total count
-        count_result = await self.db.execute(
-            select(func.count(CAPolicyChangeModel.id)).select_from(query.subquery())
-        )
-        total = count_result.scalar()
+        count_query = select(func.count()).select_from(query.subquery())
+        count_result = await self.db.execute(count_query)
+        total = count_result.scalar_one()
 
         # Apply pagination and ordering
         query = query.order_by(desc(CAPolicyChangeModel.detected_at))
