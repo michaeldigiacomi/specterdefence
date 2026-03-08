@@ -19,6 +19,7 @@ import {
 import { useDashboardData, TimeRange } from '@/hooks/useDashboard';
 import StatsCard from '@/components/StatsCard';
 import clsx from 'clsx';
+import { apiService } from '@/services/api';
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
@@ -29,8 +30,7 @@ export default function Dashboard() {
   const handleExport = async (format: 'csv' | 'json' | 'pdf') => {
     setIsExporting(true);
     try {
-      const blob = await fetch(`/api/v1/dashboard/export/download/${format}?time_range=${timeRange}`)
-        .then(res => res.blob());
+      const blob = await apiService.exportDashboard(format, timeRange);
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');

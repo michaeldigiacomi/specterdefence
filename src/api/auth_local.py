@@ -290,7 +290,7 @@ async def login(request: LoginRequest, req: Request):
 
 
 @router.post("/logout", response_model=LogoutResponse)
-async def logout():
+async def logout(user: dict = Depends(get_current_user)):
     """Logout user (client should discard token)."""
     return LogoutResponse(message="Logged out successfully")
 

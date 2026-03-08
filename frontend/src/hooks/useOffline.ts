@@ -288,12 +288,8 @@ export function useOffline(): UseOfflineReturn {
 
       // Send subscription to server (endpoint may not be implemented yet)
       try {
-        const response = await fetch('/api/v1/push/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(subscription),
-        });
-        if (!response.ok) {
+        const response = await apiService.client.post('/push/subscribe', subscription);
+        if (response.status !== 200 && response.status !== 201) {
           console.warn('[useOffline] Push subscribe endpoint returned:', response.status, '- push notifications may not be fully configured on the server');
         }
       } catch (pushError) {

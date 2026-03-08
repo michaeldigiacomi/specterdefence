@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.auth_local import verify_token
+from src.api.auth_local import verify_token, get_current_user
 from src.database import get_db
 from src.services.alert_stream import AlertStreamManager, AlertStreamService
 
@@ -315,7 +315,7 @@ async def handle_client_message(
         )
 
 
-@router.get("/ws/stats")
+@router.get("/ws/stats", dependencies=[Depends(get_current_user)])
 async def get_websocket_stats() -> dict:
     """Get WebSocket connection statistics.
 
