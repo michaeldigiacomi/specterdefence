@@ -639,6 +639,8 @@ class ApiService {
     status?: string;
     risk_level?: string;
     publisher_type?: string;
+    is_internal?: boolean;
+    exclude_microsoft?: boolean;
     limit?: number;
     offset?: number;
   }): Promise<import('@/types/securityTypes').OAuthAppListResponse> {
@@ -647,6 +649,8 @@ class ApiService {
     if (params?.status) searchParams.append('status', params.status);
     if (params?.risk_level) searchParams.append('risk_level', params.risk_level);
     if (params?.publisher_type) searchParams.append('publisher_type', params.publisher_type);
+    if (params?.is_internal !== undefined) searchParams.append('is_internal', String(params.is_internal));
+    if (params?.exclude_microsoft !== undefined) searchParams.append('exclude_microsoft', String(params.exclude_microsoft));
     if (params?.limit) searchParams.append('limit', String(params.limit));
     if (params?.offset) searchParams.append('offset', String(params.offset));
     const response = await this.client.get(`/oauth-apps/?${searchParams.toString()}`);

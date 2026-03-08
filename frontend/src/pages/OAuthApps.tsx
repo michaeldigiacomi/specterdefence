@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { 
   AppWindow, 
   ShieldAlert, 
@@ -63,6 +63,8 @@ export default function OAuthApps() {
   const [searchQuery, setSearchQuery] = useState('');
   const [riskFilter, setRiskFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [audienceFilter, setAudienceFilter] = useState<'all' | 'internal' | 'external'>('all');
+  const [excludeMicrosoft, setExcludeMicrosoft] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedApp, setSelectedApp] = useState<OAuthApp | null>(null);
@@ -76,6 +78,8 @@ export default function OAuthApps() {
         apiService.getOAuthApps({
           risk_level: riskFilter || undefined,
           status: statusFilter || undefined,
+          is_internal: audienceFilter === 'all' ? undefined : audienceFilter === 'internal',
+          exclude_microsoft: excludeMicrosoft,
           limit: 100,
         }),
         apiService.getOAuthAppAlerts({ acknowledged: false, limit: 20 }),
@@ -91,7 +95,7 @@ export default function OAuthApps() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [riskFilter, statusFilter]);
+  useEffect(() => { fetchData(); }, [riskFilter, statusFilter, audienceFilter, excludeMicrosoft]);
 
   const filteredApps = apps.filter(app => 
     app.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -164,12 +168,12 @@ export default function OAuthApps() {
               type="text" 
               placeholder="Search by app name or publisher..." 
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all shadow-sm"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary-500 transition-all font-medium"
             />
           </div>
           <div className="flex gap-2">
-            <select value={riskFilter} onChange={e => setRiskFilter(e.target.value)}
+            <select value={riskFilter} onChange={(e: ChangeEvent<HTMLSelectElement>) => setRiskFilter(e.target.value)}
               className="px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-primary-500 shadow-sm">
               <option value="">All Risk Levels</option>
               <option value="CRITICAL">Critical</option>
@@ -177,7 +181,7 @@ export default function OAuthApps() {
               <option value="MEDIUM">Medium</option>
               <option value="LOW">Low</option>
             </select>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+            <select value={statusFilter} onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatusFilter(e.target.value)}
               className="px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-primary-500 shadow-sm">
               <option value="">All Statuses</option>
               <option value="suspicious">Suspicious</option>
@@ -186,6 +190,23 @@ export default function OAuthApps() {
               <option value="pending_review">Pending Review</option>
               <option value="revoked">Revoked</option>
             </select>
+            <select value={audienceFilter} onChange={(e: ChangeEvent<HTMLSelectElement>) => setAudienceFilter(e.target.value as any)}
+              className="px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-primary-500 shadow-sm">
+              <option value="all">All Audiences</option>
+              <option value="internal">Internal Only</option>
+              <option value="external">External Only</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-3 px-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm">
+            <label className="flex items-center gap-3 cursor-pointer whitespace-nowrap">
+              <input 
+                type="checkbox" 
+                checked={excludeMicrosoft} 
+                onChange={(e) => setExcludeMicrosoft(e.target.checked)}
+                className="w-5 h-5 rounded-lg border-gray-300 text-primary-600 focus:ring-primary-500 transition-all cursor-pointer"
+              />
+              <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Hide Microsoft Apps</span>
+            </label>
           </div>
         </div>
 

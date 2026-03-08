@@ -302,6 +302,8 @@ export interface OAuthApp {
   consent_count: number;
   admin_consented: boolean;
   is_new_app: boolean;
+  is_internal: boolean;
+  audience: string | null;
   detection_reasons: string[];
   app_created_at: string | null;
   first_seen_at: string;

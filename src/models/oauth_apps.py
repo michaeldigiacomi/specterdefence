@@ -93,6 +93,12 @@ class OAuthAppModel(Base):
     is_verified_publisher: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, comment="Whether publisher is verified"
     )
+    audience: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, comment="Sign-in audience (AzureADMyOrg, etc.)"
+    )
+    is_internal: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, comment="Whether the app is internal to the tenant"
+    )
 
     # Risk analysis
     risk_level: Mapped[RiskLevel] = mapped_column(

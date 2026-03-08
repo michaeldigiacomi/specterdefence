@@ -288,6 +288,8 @@ class OAuthAppsService:
             consent_count=consent_count,
             admin_consented=admin_consented,
             is_new_app=True,
+            audience=app_analysis.get("audience"),
+            is_internal=app_analysis.get("is_internal", False),
             detection_reasons=app_analysis.get("detection_reasons", []),
             app_created_at=app_created_at,
             app_data=app_data,
@@ -359,6 +361,8 @@ class OAuthAppsService:
         app.consent_count = consent_count
         app.admin_consented = admin_consented
         app.is_new_app = False
+        app.audience = app_analysis.get("audience") or app.audience
+        app.is_internal = app_analysis.get("is_internal", app.is_internal)
         app.detection_reasons = app_analysis.get("detection_reasons", app.detection_reasons)
         app.app_data = app_data
         app.permissions_data = {"permissions": permissions}
@@ -609,6 +613,8 @@ class OAuthAppsService:
         status: AppStatus | None = None,
         risk_level: RiskLevel | None = None,
         publisher_type: PublisherType | None = None,
+        is_internal: bool | None = None,
+        exclude_microsoft: bool = False,
         limit: int = 100,
         offset: int = 0,
     ) -> dict[str, Any]:
@@ -619,6 +625,8 @@ class OAuthAppsService:
             status: Filter by status
             risk_level: Filter by risk level
             publisher_type: Filter by publisher type
+            is_internal: Filter by internal status
+            exclude_microsoft: Whether to exclude Microsoft-owned apps
             limit: Maximum results
             offset: Pagination offset
 
@@ -636,6 +644,10 @@ class OAuthAppsService:
             query = query.where(OAuthAppModel.risk_level == risk_level)
         if publisher_type:
             query = query.where(OAuthAppModel.publisher_type == publisher_type)
+        if is_internal is not None:
+            query = query.where(OAuthAppModel.is_internal == is_internal)
+        if exclude_microsoft:
+            query = query.where(OAuthAppModel.is_microsoft_publisher == False)
 
         # Get total count
         count_query = select(OAuthAppModel.id).select_from(query.subquery())

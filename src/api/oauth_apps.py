@@ -51,6 +51,8 @@ class OAuthAppResponse(BaseModel):
     consent_count: int
     admin_consented: bool
     is_new_app: bool
+    is_internal: bool
+    audience: str | None
     detection_reasons: list[str]
     app_created_at: str | None
     first_seen_at: str
@@ -246,6 +248,8 @@ def _format_app_response(app: OAuthAppModel) -> OAuthAppResponse:
         consent_count=app.consent_count,
         admin_consented=app.admin_consented,
         is_new_app=app.is_new_app,
+        is_internal=app.is_internal,
+        audience=app.audience,
         detection_reasons=app.detection_reasons,
         app_created_at=app.app_created_at.isoformat() if app.app_created_at else None,
         first_seen_at=app.first_seen_at.isoformat(),
@@ -271,6 +275,8 @@ async def list_oauth_apps(
     status: str | None = None,
     risk_level: str | None = None,
     publisher_type: str | None = None,
+    is_internal: bool | None = None,
+    exclude_microsoft: bool = False,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     service: OAuthAppsService = Depends(get_oauth_apps_service),
@@ -325,6 +331,8 @@ async def list_oauth_apps(
         status=status_enum,
         risk_level=risk_enum,
         publisher_type=publisher_enum,
+        is_internal=is_internal,
+        exclude_microsoft=exclude_microsoft,
         limit=limit,
         offset=offset,
     )
@@ -353,6 +361,8 @@ async def get_tenant_oauth_apps(
     tenant_id: str,
     status: str | None = None,
     risk_level: str | None = None,
+    is_internal: bool | None = None,
+    exclude_microsoft: bool = False,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     service: OAuthAppsService = Depends(get_oauth_apps_service),
@@ -392,7 +402,13 @@ async def get_tenant_oauth_apps(
             )
 
     result = await service.get_apps(
-        tenant_id=tenant_id, status=status_enum, risk_level=risk_enum, limit=limit, offset=offset
+        tenant_id=tenant_id,
+        status=status_enum,
+        risk_level=risk_enum,
+        is_internal=is_internal,
+        exclude_microsoft=exclude_microsoft,
+        limit=limit,
+        offset=offset,
     )
 
     return OAuthAppListResponse(

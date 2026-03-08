@@ -416,6 +416,8 @@ class OAuthAppsClient:
             "publisher_type": "unknown",
             "is_microsoft_publisher": False,
             "is_verified_publisher": False,
+            "audience": app.get("signInAudience"),
+            "is_internal": app.get("signInAudience") == "AzureADMyOrg",
             "detection_reasons": permissions_analysis.get("detection_reasons", []).copy(),
         }
 
