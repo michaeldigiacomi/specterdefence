@@ -282,9 +282,11 @@ class O365ManagementClient:
         Returns:
             List of audit log events.
         """
-        # Content URIs are pre-authenticated, no need for bearer token
+        token = await self._get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
+
         async with httpx.AsyncClient() as client:
-            response = await client.get(content_uri, timeout=60.0)
+            response = await client.get(content_uri, headers=headers, timeout=60.0)
             response.raise_for_status()
 
             # Content is often newline-delimited JSON

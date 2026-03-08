@@ -100,6 +100,39 @@ SpecterDefence connects to your Office 365 tenant via the Microsoft Graph API to
 
 ---
 
+---
+
+### Audit & Security Logs (Management Activity API)
+
+| Permission | Type | Why It's Needed | Data Accessed |
+|------------|------|-----------------|---------------|
+| **ActivityFeed.Read** | Application | **Primary Collector Permission** - Fetches raw audit logs for Entra, Exchange, and SharePoint | Real-time stream of all user and admin activity logs |
+| **ActivityFeed.ReadDlp** | Application | Optional - Required for Data Loss Prevention (DLP) event monitoring | DLP policy matches and sensitive data alerts |
+
+**Justification:** The collector uses the high-performance Management Activity API instead of Graph for log ingestion. This permission is found under "Office 365 Management APIs" in Azure, not "Microsoft Graph".
+
+---
+
+### Mailbox Management (Microsoft Graph)
+
+| Permission | Type | Why It's Needed | Data Accessed |
+|------------|------|-----------------|---------------|
+| **Mail.Read.All** | Application | Scans inbox rules for suspicious forwarding, redirects, or hidden rules | Mailbox rules, forwarding settings, auto-reply configurations |
+
+**Justification:** Mailbox rules are frequently used by attackers to hide their activity (e.g., auto-deleting alerts) or exfiltrate data.
+
+---
+
+### Authentication & MFA
+
+| Permission | Type | Why It's Needed | Data Accessed |
+|------------|------|-----------------|---------------|
+| **UserAuthenticationMethod.Read.All** | Application | Tracks MFA enrollment status and identifies weak authentication methods | Registered MFA methods (SMS, App, FIDO2), enrollment dates |
+
+**Justification:** Essential for identifying users without MFA or those using insecure methods like SMS.
+
+---
+
 ### Reports
 
 | Permission | Type | Why It's Needed | Data Accessed |
@@ -123,10 +156,13 @@ SpecterDefence connects to your Office 365 tenant via the Microsoft Graph API to
 | SignInActivity.Read.All | Read | Medium | Anomaly detection |
 | Policy.Read.All | Read | Low | Security policy monitoring |
 | IdentityRiskEvent.Read.All | Read | Low | Risk event correlation |
+| Mail.Read.All | Read | High | Mailbox rule security monitoring |
+| UserAuthenticationMethod.Read.All | Read | Medium | MFA compliance tracking |
 | Reports.Read.All | Read | Low | Compliance and reporting |
+| **ActivityFeed.Read** | Read | Medium | **Required for Collector** (Office 365 Management API) |
 
-**Total Permissions:** 10 (all Read-Only)
-**Write Permissions:** None
+**Total Permissions:** 13 (all Read-Only)
+**Write Permissions:** None (Optional: Mail.ReadWrite.All for remediation)
 **Admin Consent Required:** Yes (all are Application permissions)
 
 ---
