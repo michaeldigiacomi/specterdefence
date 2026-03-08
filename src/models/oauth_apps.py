@@ -82,7 +82,7 @@ class OAuthAppModel(Base):
         String(255), nullable=True, comment="Publisher ID"
     )
     publisher_type: Mapped[PublisherType] = mapped_column(
-        SQLEnum(PublisherType, name="publisher_type_enum", values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(PublisherType, native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=PublisherType.UNKNOWN,
         comment="Type of publisher",
@@ -96,13 +96,13 @@ class OAuthAppModel(Base):
 
     # Risk analysis
     risk_level: Mapped[RiskLevel] = mapped_column(
-        SQLEnum(RiskLevel, name="risk_level_enum", values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(RiskLevel, native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=RiskLevel.LOW,
         comment="Risk level based on permissions and publisher",
     )
     status: Mapped[AppStatus] = mapped_column(
-        SQLEnum(AppStatus, name="app_status_enum", values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(AppStatus, native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=AppStatus.PENDING_REVIEW,
         comment="Analysis status of the app",
@@ -316,7 +316,7 @@ class OAuthAppAlertModel(Base):
         String(50), nullable=False, comment="Type of alert (new_app, high_risk_permissions, etc.)"
     )
     severity: Mapped[RiskLevel] = mapped_column(
-        SQLEnum(RiskLevel, name="oauth_alert_severity_enum", values_callable=lambda x: [e.value for e in x]), nullable=False
+        SQLEnum(RiskLevel, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False
     )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)

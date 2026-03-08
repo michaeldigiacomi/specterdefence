@@ -100,7 +100,7 @@ class MFAUserModel(Base):
         String(100), nullable=True, comment="Primary/default MFA method"
     )
     mfa_strength: Mapped[MFAStrengthLevel] = mapped_column(
-        SQLEnum(MFAStrengthLevel, name="mfa_strength_enum", values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(MFAStrengthLevel, native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=MFAStrengthLevel.NONE,
         comment="Calculated MFA strength level",
@@ -116,7 +116,7 @@ class MFAUserModel(Base):
 
     # Compliance tracking
     compliance_status: Mapped[ComplianceStatus] = mapped_column(
-        SQLEnum(ComplianceStatus, name="compliance_status_enum", values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(ComplianceStatus, native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=ComplianceStatus.NON_COMPLIANT,
         comment="Current compliance status",

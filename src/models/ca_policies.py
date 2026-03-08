@@ -88,7 +88,7 @@ class CAPolicyModel(Base):
 
     # Policy state
     state: Mapped[PolicyState] = mapped_column(
-        SQLEnum(PolicyState, name="policy_state_enum", values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(PolicyState, native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=PolicyState.ENABLED,
         comment="Current state of the policy",
@@ -306,7 +306,7 @@ class CAPolicyChangeModel(Base):
 
     # Change details
     change_type: Mapped[ChangeType] = mapped_column(
-        SQLEnum(ChangeType, name="ca_change_type_enum", values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(ChangeType, native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         comment="Type of change detected",
     )
@@ -391,10 +391,10 @@ class CAPolicyAlertModel(Base):
 
     # Alert details
     alert_type: Mapped[ChangeType] = mapped_column(
-        SQLEnum(ChangeType, name="ca_alert_type_enum", values_callable=lambda x: [e.value for e in x]), nullable=False
+        SQLEnum(ChangeType, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False
     )
     severity: Mapped[AlertSeverity] = mapped_column(
-        SQLEnum(AlertSeverity, name="ca_alert_severity_enum", values_callable=lambda x: [e.value for e in x]), nullable=False
+        SQLEnum(AlertSeverity, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False
     )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
