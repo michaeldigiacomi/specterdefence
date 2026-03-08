@@ -14,7 +14,11 @@ import {
   Shield,
   ChevronRight,
   Settings,
-  User
+  User,
+  ShieldCheck,
+  Mail,
+  KeyRound,
+  AppWindow,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { clsx, type ClassValue } from 'clsx';
@@ -30,6 +34,10 @@ const navItems = [
   { path: '/map', icon: Map, label: 'Map' },
   { path: '/alerts', icon: Bell, label: 'Alerts', badge: true },
   { path: '/anomalies', icon: AlertTriangle, label: 'Anomalies' },
+  { path: '/ca-policies', icon: ShieldCheck, label: 'CA Policies' },
+  { path: '/mailbox-rules', icon: Mail, label: 'Mailbox Rules' },
+  { path: '/mfa-report', icon: KeyRound, label: 'MFA Report' },
+  { path: '/oauth-apps', icon: AppWindow, label: 'OAuth Apps' },
   { path: '/tenants', icon: Building2, label: 'Tenants' },
 ];
 

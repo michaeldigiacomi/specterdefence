@@ -482,6 +482,198 @@ class ApiService {
     });
     return response.data;
   }
+
+  // ============== Conditional Access Policies ==============
+
+  async getCAPolicies(params?: {
+    tenant_id?: string;
+    state?: string;
+    is_baseline_policy?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<import('@/types/securityTypes').CAPolicyListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
+    if (params?.state) searchParams.append('state', params.state);
+    if (params?.is_baseline_policy !== undefined) searchParams.append('is_baseline_policy', String(params.is_baseline_policy));
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.offset) searchParams.append('offset', String(params.offset));
+    const response = await this.client.get(`/ca-policies/?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  async getCAPolicySummary(tenantId: string): Promise<import('@/types/securityTypes').CAPolicySummary> {
+    const response = await this.client.get(`/ca-policies/tenants/${tenantId}/summary`);
+    return response.data;
+  }
+
+  async getCAPolicyChanges(params?: {
+    tenant_id?: string;
+    change_type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<import('@/types/securityTypes').CAPolicyChangeListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
+    if (params?.change_type) searchParams.append('change_type', params.change_type);
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.offset) searchParams.append('offset', String(params.offset));
+    const response = await this.client.get(`/ca-policies/changes?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  async getCAPolicyAlerts(params?: {
+    tenant_id?: string;
+    acknowledged?: boolean;
+    severity?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<import('@/types/securityTypes').CAPolicyAlertListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
+    if (params?.acknowledged !== undefined) searchParams.append('acknowledged', String(params.acknowledged));
+    if (params?.severity) searchParams.append('severity', params.severity);
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.offset) searchParams.append('offset', String(params.offset));
+    const response = await this.client.get(`/ca-policies/alerts?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  // ============== Mailbox Rules ==============
+
+  async getMailboxRules(params?: {
+    tenant_id?: string;
+    user_email?: string;
+    status?: string;
+    severity?: string;
+    rule_type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<import('@/types/securityTypes').MailboxRuleListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
+    if (params?.user_email) searchParams.append('user_email', params.user_email);
+    if (params?.status) searchParams.append('status', params.status);
+    if (params?.severity) searchParams.append('severity', params.severity);
+    if (params?.rule_type) searchParams.append('rule_type', params.rule_type);
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.offset) searchParams.append('offset', String(params.offset));
+    const response = await this.client.get(`/mailbox-rules/?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  async getMailboxRuleSummary(tenantId: string): Promise<import('@/types/securityTypes').MailboxRuleSummary> {
+    const response = await this.client.get(`/mailbox-rules/tenants/${tenantId}/summary`);
+    return response.data;
+  }
+
+  async getMailboxRuleAlerts(params?: {
+    tenant_id?: string;
+    acknowledged?: boolean;
+    severity?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<import('@/types/securityTypes').MailboxRuleAlertListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
+    if (params?.acknowledged !== undefined) searchParams.append('acknowledged', String(params.acknowledged));
+    if (params?.severity) searchParams.append('severity', params.severity);
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.offset) searchParams.append('offset', String(params.offset));
+    const response = await this.client.get(`/mailbox-rules/alerts?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  // ============== MFA Report ==============
+
+  async getMFASummary(tenantId: string): Promise<import('@/types/securityTypes').MFAEnrollmentSummary> {
+    const response = await this.client.get(`/mfa-report/?tenant_id=${tenantId}`);
+    return response.data;
+  }
+
+  async getMFAUsers(params: {
+    tenant_id: string;
+    is_mfa_registered?: boolean;
+    is_admin?: boolean;
+    mfa_strength?: string;
+    needs_attention?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<import('@/types/securityTypes').MFAUserListResponse> {
+    const searchParams = new URLSearchParams();
+    searchParams.append('tenant_id', params.tenant_id);
+    if (params.is_mfa_registered !== undefined) searchParams.append('is_mfa_registered', String(params.is_mfa_registered));
+    if (params.is_admin !== undefined) searchParams.append('is_admin', String(params.is_admin));
+    if (params.mfa_strength) searchParams.append('mfa_strength', params.mfa_strength);
+    if (params.needs_attention !== undefined) searchParams.append('needs_attention', String(params.needs_attention));
+    if (params.limit) searchParams.append('limit', String(params.limit));
+    if (params.offset) searchParams.append('offset', String(params.offset));
+    const response = await this.client.get(`/mfa-report/users?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  async getMFATrends(tenantId: string, days: number = 30): Promise<import('@/types/securityTypes').MFAEnrollmentTrendsResponse> {
+    const response = await this.client.get(`/mfa-report/trends?tenant_id=${tenantId}&days=${days}`);
+    return response.data;
+  }
+
+  async getMFAMethodDistribution(tenantId: string): Promise<import('@/types/securityTypes').MFAMethodsDistributionResponse> {
+    const response = await this.client.get(`/mfa-report/method-distribution?tenant_id=${tenantId}`);
+    return response.data;
+  }
+
+  async getMFAStrengthDistribution(tenantId: string): Promise<import('@/types/securityTypes').MFAStrengthDistributionResponse> {
+    const response = await this.client.get(`/mfa-report/strength-distribution?tenant_id=${tenantId}`);
+    return response.data;
+  }
+
+  async getAdminsWithoutMFA(tenantId: string): Promise<import('@/types/securityTypes').AdminsWithoutMFAResponse> {
+    const response = await this.client.get(`/mfa-report/admins-without-mfa?tenant_id=${tenantId}`);
+    return response.data;
+  }
+
+  // ============== OAuth Applications ==============
+
+  async getOAuthApps(params?: {
+    tenant_id?: string;
+    status?: string;
+    risk_level?: string;
+    publisher_type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<import('@/types/securityTypes').OAuthAppListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
+    if (params?.status) searchParams.append('status', params.status);
+    if (params?.risk_level) searchParams.append('risk_level', params.risk_level);
+    if (params?.publisher_type) searchParams.append('publisher_type', params.publisher_type);
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.offset) searchParams.append('offset', String(params.offset));
+    const response = await this.client.get(`/oauth-apps/?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  async getOAuthAppSummary(tenantId: string): Promise<import('@/types/securityTypes').OAuthAppsSummary> {
+    const response = await this.client.get(`/oauth-apps/tenants/${tenantId}/summary`);
+    return response.data;
+  }
+
+  async getOAuthAppAlerts(params?: {
+    tenant_id?: string;
+    acknowledged?: boolean;
+    severity?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<import('@/types/securityTypes').OAuthAppAlertListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
+    if (params?.acknowledged !== undefined) searchParams.append('acknowledged', String(params.acknowledged));
+    if (params?.severity) searchParams.append('severity', params.severity);
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.offset) searchParams.append('offset', String(params.offset));
+    const response = await this.client.get(`/oauth-apps/alerts?${searchParams.toString()}`);
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();

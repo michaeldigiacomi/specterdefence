@@ -13,6 +13,10 @@ import Tenants from '@/pages/Tenants';
 import MapPage from '@/pages/MapPage';
 import AlertFeed from '@/pages/AlertFeed';
 import Settings from '@/pages/Settings';
+import CAPolicies from '@/pages/CAPolicies';
+import MailboxRules from '@/pages/MailboxRules';
+import MFAReport from '@/pages/MFAReport';
+import OAuthApps from '@/pages/OAuthApps';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -81,6 +85,10 @@ function App() {
               <Route path="tenants" element={<Tenants />} />
               <Route path="alerts" element={<AlertFeed />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="ca-policies" element={<CAPolicies />} />
+              <Route path="mailbox-rules" element={<MailboxRules />} />
+              <Route path="mfa-report" element={<MFAReport />} />
+              <Route path="oauth-apps" element={<OAuthApps />} />
             </Route>
 
             {/* Catch all - redirect to login */}

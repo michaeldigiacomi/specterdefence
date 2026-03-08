@@ -14,6 +14,9 @@ import {
   LogOut,
   User,
   KeyRound,
+  ShieldCheck,
+  Mail,
+  AppWindow,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -34,6 +37,10 @@ const navItems = [
   { path: '/map', icon: Map, label: 'Geographic Map' },
   { path: '/alerts', icon: Bell, label: 'Live Alerts' },
   { path: '/anomalies', icon: AlertTriangle, label: 'Anomalies' },
+  { path: '/ca-policies', icon: ShieldCheck, label: 'CA Policies' },
+  { path: '/mailbox-rules', icon: Mail, label: 'Mailbox Rules' },
+  { path: '/mfa-report', icon: KeyRound, label: 'MFA Report' },
+  { path: '/oauth-apps', icon: AppWindow, label: 'OAuth Apps' },
   { path: '/tenants', icon: Building2, label: 'Tenants' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
