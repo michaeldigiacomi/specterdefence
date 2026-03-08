@@ -146,6 +146,12 @@ jobs:
         run: |
           # Apply secrets (you may need to update these)
           # kubectl apply -f k8s/prod/ -n specterdefence
+
+          # Apply cronjobs
+          kubectl apply -f k8s/prod/collector-cronjob.yaml -n specterdefence
+
+          #Apply Security cronjob
+          kubectl apply -f k8s/prod/security-cronjob.yaml -n specterdefence
           
           # Update image in deployment
           kubectl set image deployment/specterdefence-backend \

@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: specterdefence-security-scans-prod
+  namespace: specterdefence
+  labels:
+    app.kubernetes.io/name: specterdefence
+    app.kubernetes.io/component: data-pipeline
+    environment: production
+spec:
+  schedule: "0 */4 * * *"  # Run every 4 hours
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: specterdefence
+            app.kubernetes.io/component: data-pipeline
+            environment: production
+        spec:
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-registry-secret
+          containers:
+            - name: security-scans
+              image: ghcr.io/digiacomi-shared/specterdefence-backend:latest
+              imagePullPolicy: Always
+              command: ["python", "-m", "src.collector.security_scans"]
+              env:
+                - name: DEBUG
+                  value: "false"
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+                - name: SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: specterdefence-secrets
+                      key: SECRET_KEY
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: specterdefence-secrets
+                      key: DATABASE_URL
+                - name: ENCRYPTION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: specterdefence-secrets
+                      key: ENCRYPTION_KEY
+                - name: KIMI_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: specterdefence-secrets
+                      key: KIMI_API_KEY
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "1000m"
