@@ -427,8 +427,9 @@ class LoginAnalyticsService:
             .where(
                 and_(
                     AuditLogModel.tenant_id == tenant_id,
+                    # Handle both signin and general audit types that are signin-related
                     AuditLogModel.log_type == LogType.SIGNIN,
-                    not AuditLogModel.processed,
+                    AuditLogModel.processed == False,
                 )
             )
             .order_by(AuditLogModel.o365_created_at)
@@ -486,6 +487,49 @@ class LoginAnalyticsService:
             except Exception as e:
                 logger.error(f"Error processing audit log {log.id}: {e}")
                 log.processed = True  # Mark as processed to avoid reprocessing
+
+        await self.db.commit()
+        return processed_count
+
+    async def process_audit_log_general(self, tenant_id: str, limit: int = 100) -> int:
+        """
+        Process unprocessed non-signin audit logs and mark as processed.
+        Can be extended to detect specific administrative anomalies.
+
+        Args:
+            tenant_id: Tenant ID to process
+            limit: Maximum number of logs to process
+
+        Returns:
+            Number of logs processed
+        """
+        # Get unprocessed non-signin logs
+        result = await self.db.execute(
+            select(AuditLogModel)
+            .where(
+                and_(
+                    AuditLogModel.tenant_id == tenant_id,
+                    AuditLogModel.log_type != LogType.SIGNIN,
+                    AuditLogModel.processed == False,
+                )
+            )
+            .order_by(AuditLogModel.o365_created_at)
+            .limit(limit)
+        )
+
+        logs = result.scalars().all()
+        processed_count = 0
+
+        for log in logs:
+            try:
+                # Placeholder for complex audit log analysis
+                # e.g., identifying elevation of privilege, mass deletions, etc.
+                
+                log.processed = True
+                processed_count += 1
+            except Exception as e:
+                logger.error(f"Error processing general audit log {log.id}: {e}")
+                log.processed = True
 
         await self.db.commit()
         return processed_count

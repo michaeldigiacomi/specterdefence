@@ -299,8 +299,15 @@ class O365ManagementClient:
                 line = line.strip()
                 if line:
                     import json
-
-                    events.append(json.loads(line))
+                    try:
+                        data = json.loads(line)
+                        if isinstance(data, list):
+                            events.extend(data)
+                        else:
+                            events.append(data)
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse JSON from blob line: {e}")
+                        continue
 
             return events
 

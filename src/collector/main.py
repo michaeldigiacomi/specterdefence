@@ -44,8 +44,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration from environment
-COLLECTION_LOOKBACK_MINUTES = int(os.getenv("COLLECTION_LOOKBACK_MINUTES", "10"))
+COLLECTION_LOOKBACK_MINUTES = int(os.getenv("COLLECTION_LOOKBACK_MINUTES", "60"))
 COLLECTION_INTERVAL_MINUTES = int(os.getenv("COLLECTION_INTERVAL_MINUTES", "5"))
+COLLECTION_LATENCY_BUFFER_MINUTES = int(os.getenv("COLLECTION_LATENCY_BUFFER_MINUTES", "15"))
 MAX_EVENTS_PER_BATCH = int(os.getenv("MAX_EVENTS_PER_BATCH", "1000"))
 
 
@@ -131,6 +132,7 @@ class TenantCollector:
         success: bool = True,
         error_message: str | None = None,
         events_count: int = 0,
+        collection_end_time: datetime | None = None,
     ) -> None:
         """Update collection state after collection attempt.
 
@@ -139,11 +141,17 @@ class TenantCollector:
             success: Whether collection was successful.
             error_message: Error message if failed.
             events_count: Number of events collected.
+            collection_end_time: The end_time used for this collection run.
         """
         now = utc_now()
 
         if success:
-            state.last_collection_time = now
+            # Update last_collection_time to the end of the window we just processed
+            if collection_end_time:
+                state.last_collection_time = collection_end_time
+            else:
+                state.last_collection_time = now
+            
             state.last_success_at = now
             state.total_logs_collected += events_count
             state.last_error = None
@@ -255,13 +263,29 @@ class TenantCollector:
         state = await self.get_collection_state()
 
         # Determine time range for collection
-        end_time = utc_now()
+        # Shift end_time back by latency buffer to ensure logs are available in API
+        now = utc_now()
+        end_time = now - timedelta(minutes=COLLECTION_LATENCY_BUFFER_MINUTES)
 
         if state.last_collection_time:
             # Start from last collection time, but not more than 24 hours ago
             # (O365 API limit for historical data)
-            # Ensure both datetimes are timezone-aware for comparison
             last_time = ensure_timezone_aware(state.last_collection_time)
+            
+            # If our delayed end_time is still before last_time, nothing to do yet
+            if end_time <= last_time:
+                logger.info(
+                    f"Last collection ({last_time}) is more recent than current "
+                    f"delayed end_time ({end_time}). Skipping collection for tenant {self.tenant.id}."
+                )
+                return {
+                    "tenant_id": self.tenant.id,
+                    "tenant_name": self.tenant.name,
+                    "total_events": 0,
+                    "success": True,
+                    "skipped": True
+                }
+
             start_time = max(
                 last_time, end_time - timedelta(hours=23)  # Leave buffer for API
             )
@@ -271,7 +295,7 @@ class TenantCollector:
 
         logger.info(
             f"Collecting logs for tenant {self.tenant.id} ({self.tenant.name}) "
-            f"from {start_time} to {end_time}"
+            f"from {start_time} to {end_time} (Current time: {now})"
         )
 
         # Ensure subscriptions are active
@@ -321,6 +345,7 @@ class TenantCollector:
             success=results["success"],
             error_message=results["error"],
             events_count=total_events,
+            collection_end_time=end_time,
         )
 
         await self.session.commit()
@@ -407,7 +432,15 @@ async def collect_logs() -> dict[str, Any]:
                                 tenant_id=tenant.id, 
                                 limit=1000  # Process up to 1000 at a time
                             )
-                            logger.info(f"Successfully processed {processed_count} logs into analytics for tenant {tenant.name}")
+                            logger.info(f"Successfully processed {processed_count} signin logs into analytics for tenant {tenant.name}")
+
+                            # Also mark other logs as processed
+                            general_processed = await analytics_service.process_audit_log_general(
+                                tenant_id=tenant.id,
+                                limit=1000
+                            )
+                            if general_processed > 0:
+                                logger.info(f"Successfully processed {general_processed} general audit logs for tenant {tenant.name}")
                         except Exception as process_err:
                             logger.error(f"Failed to process logs for tenant {tenant.name}: {process_err}")
 
