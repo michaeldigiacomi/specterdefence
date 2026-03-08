@@ -1,5 +1,6 @@
 """Pydantic models for tenant operations."""
 
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -63,7 +64,7 @@ class TenantResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: str = Field(..., description="Internal tenant UUID")
+    id: uuid.UUID = Field(..., description="Internal tenant UUID")
     name: str = Field(..., description="Tenant display name")
     tenant_id: str = Field(..., description="Azure AD tenant ID")
     client_id: str = Field(..., description="Azure AD application ID (masked)")
@@ -142,7 +143,7 @@ class TenantHealthCheckInfo(BaseModel):
 class TenantHealthCheckResponse(BaseModel):
     """Model for tenant health check response."""
 
-    tenant_id: str = Field(..., description="Internal tenant UUID")
+    tenant_id: uuid.UUID = Field(..., description="Internal tenant UUID")
     status: str = Field(
         ..., description="Overall status: healthy, unhealthy, error, timeout, unknown"
     )

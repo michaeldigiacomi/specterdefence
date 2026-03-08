@@ -3,6 +3,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import status as http_status
+import uuid
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,8 +27,8 @@ router = APIRouter()
 class OAuthAppResponse(BaseModel):
     """Response model for an OAuth application."""
 
-    id: str
-    tenant_id: str
+    id: uuid.UUID
+    tenant_id: uuid.UUID
     app_id: str
     display_name: str
     description: str | None
@@ -73,7 +74,7 @@ class OAuthAppListResponse(BaseModel):
 class OAuthAppPermissionResponse(BaseModel):
     """Response model for an OAuth app permission."""
 
-    id: str
+    id: uuid.UUID
     permission_id: str
     permission_type: str
     permission_value: str
@@ -93,7 +94,7 @@ class OAuthAppPermissionResponse(BaseModel):
 class OAuthAppConsentResponse(BaseModel):
     """Response model for an OAuth app consent."""
 
-    id: str
+    id: uuid.UUID
     user_id: str
     user_email: str
     user_display_name: str | None
@@ -112,9 +113,9 @@ class OAuthAppConsentResponse(BaseModel):
 class OAuthAppAlertResponse(BaseModel):
     """Response model for an OAuth app alert."""
 
-    id: str
-    app_id: str
-    tenant_id: str
+    id: uuid.UUID
+    app_id: uuid.UUID
+    tenant_id: uuid.UUID
     alert_type: str
     severity: str
     title: str
@@ -140,7 +141,7 @@ class OAuthAppAlertListResponse(BaseModel):
 class ScanRequest(BaseModel):
     """Request model for triggering an OAuth app scan."""
 
-    tenant_id: str | None = Field(
+    tenant_id: uuid.UUID | None = Field(
         None, description="Specific tenant to scan (if not provided, scans all tenants)"
     )
     trigger_alerts: bool = Field(True, description="Whether to trigger alerts for suspicious apps")
@@ -150,7 +151,7 @@ class ScanResponse(BaseModel):
     """Response model for scan operation."""
 
     success: bool
-    tenant_id: str | None
+    tenant_id: uuid.UUID | None
     results: dict
     message: str
 

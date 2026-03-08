@@ -1,6 +1,7 @@
 """Mailbox rule API endpoints for SpecterDefence."""
 
 
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import status as http_status
 from pydantic import BaseModel, Field
@@ -25,8 +26,8 @@ router = APIRouter()
 class MailboxRuleResponse(BaseModel):
     """Response model for a mailbox rule."""
 
-    id: str
-    tenant_id: str
+    id: uuid.UUID
+    tenant_id: uuid.UUID
     user_email: str
     rule_id: str
     rule_name: str
@@ -66,9 +67,9 @@ class MailboxRuleListResponse(BaseModel):
 class MailboxRuleAlertResponse(BaseModel):
     """Response model for a mailbox rule alert."""
 
-    id: str
-    rule_id: str
-    tenant_id: str
+    id: uuid.UUID
+    rule_id: uuid.UUID
+    tenant_id: uuid.UUID
     user_email: str
     alert_type: str
     severity: str
@@ -95,7 +96,7 @@ class MailboxRuleAlertListResponse(BaseModel):
 class ScanRequest(BaseModel):
     """Request model for triggering a mailbox rule scan."""
 
-    tenant_id: str | None = Field(
+    tenant_id: uuid.UUID | None = Field(
         None, description="Specific tenant to scan (if not provided, scans all tenants)"
     )
     trigger_alerts: bool = Field(True, description="Whether to trigger alerts for suspicious rules")
@@ -105,7 +106,7 @@ class ScanResponse(BaseModel):
     """Response model for scan operation."""
 
     success: bool
-    tenant_id: str | None
+    tenant_id: uuid.UUID | None
     results: dict
     message: str
 

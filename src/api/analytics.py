@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 from typing import Any
 
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +22,7 @@ router = APIRouter()
 class LoginRecord(BaseModel):
     """Login record response model."""
 
-    id: str
+    id: uuid.UUID
     user_email: str
     ip_address: str
     country: str | None = None
@@ -68,7 +69,7 @@ class UserLoginSummary(BaseModel):
     """User login summary response."""
 
     user_email: str
-    tenant_id: str
+    tenant_id: uuid.UUID
     total_logins: int
     known_countries: list[str]
     known_ips_count: int
@@ -81,7 +82,7 @@ class UserLoginSummary(BaseModel):
 class ProcessAuditLogsRequest(BaseModel):
     """Request to process audit logs."""
 
-    tenant_id: str
+    tenant_id: uuid.UUID
     limit: int = Field(default=100, ge=1, le=1000)
 
 
@@ -89,7 +90,7 @@ class ProcessAuditLogsResponse(BaseModel):
     """Response from processing audit logs."""
 
     processed_count: int
-    tenant_id: str
+    tenant_id: uuid.UUID
     message: str
 
 

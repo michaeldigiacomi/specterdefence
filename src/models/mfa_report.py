@@ -340,8 +340,8 @@ class MFAUserBase(BaseModel):
 class MFAUserResponse(MFAUserBase):
     """Response model for MFA user."""
 
-    id: str
-    tenant_id: str
+    id: uuid.UUID
+    tenant_id: uuid.UUID
     user_id: str
     mfa_methods: list[str]
     primary_mfa_method: str | None
@@ -375,7 +375,7 @@ class MFAUserListResponse(BaseModel):
 class MFAEnrollmentSummary(BaseModel):
     """Summary of MFA enrollment for a tenant."""
 
-    tenant_id: str
+    tenant_id: uuid.UUID
     snapshot_date: datetime
 
     # User counts
@@ -425,7 +425,7 @@ class MFAEnrollmentTrend(BaseModel):
 class MFAEnrollmentTrendsResponse(BaseModel):
     """Response model for MFA enrollment trends."""
 
-    tenant_id: str
+    tenant_id: uuid.UUID
     trends: list[MFAEnrollmentTrend]
     period_days: int
 
@@ -433,7 +433,7 @@ class MFAEnrollmentTrendsResponse(BaseModel):
 class MFAComplianceReport(BaseModel):
     """MFA compliance report."""
 
-    tenant_id: str
+    tenant_id: uuid.UUID
     generated_at: datetime
 
     # Summary
@@ -463,7 +463,7 @@ class MFAMethodDistribution(BaseModel):
 class MFAMethodsDistributionResponse(BaseModel):
     """Response model for MFA methods distribution."""
 
-    tenant_id: str
+    tenant_id: uuid.UUID
     total_mfa_users: int
     distribution: list[MFAMethodDistribution]
 
@@ -479,7 +479,7 @@ class MFAStrengthDistribution(BaseModel):
 class MFAStrengthDistributionResponse(BaseModel):
     """Response model for MFA strength distribution."""
 
-    tenant_id: str
+    tenant_id: uuid.UUID
     distribution: list[MFAStrengthDistribution]
     strong_mfa_percentage: float
     moderate_mfa_percentage: float
@@ -490,7 +490,7 @@ class MFAStrengthDistributionResponse(BaseModel):
 class MFAScanRequest(BaseModel):
     """Request model for triggering MFA scan."""
 
-    tenant_id: str
+    tenant_id: uuid.UUID
     full_scan: bool = True
     check_compliance: bool = True
 
@@ -499,7 +499,7 @@ class MFAScanResponse(BaseModel):
     """Response model for MFA scan."""
 
     success: bool
-    tenant_id: str
+    tenant_id: uuid.UUID
     users_scanned: int
     new_mfa_registrations: int
     compliance_violations: int
@@ -527,7 +527,7 @@ class MFAExemptionResponse(BaseModel):
     """Response model for MFA exemption."""
 
     success: bool
-    user_id: str
+    user_id: uuid.UUID
     exemption_granted: bool
     exemption_reason: str | None
     expires_at: datetime | None
@@ -544,7 +544,7 @@ class MFAResolveAlertResponse(BaseModel):
     """Response model for resolving MFA alert."""
 
     success: bool
-    alert_id: str
+    alert_id: uuid.UUID
     is_resolved: bool
     resolved_at: datetime | None
     message: str

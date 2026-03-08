@@ -514,8 +514,8 @@ class CAPolicyUpdate(BaseModel):
 class CAPolicyResponse(CAPolicyBase):
     """Response model for CA policies."""
 
-    id: str
-    tenant_id: str
+    id: uuid.UUID
+    tenant_id: uuid.UUID
     policy_id: str
     grant_controls: list[str]
     is_mfa_required: bool
@@ -545,9 +545,9 @@ class CAPolicyListResponse(BaseModel):
 class CAPolicyChangeResponse(BaseModel):
     """Response model for CA policy changes."""
 
-    id: str
-    policy_id: str
-    tenant_id: str
+    id: uuid.UUID
+    policy_id: uuid.UUID
+    tenant_id: uuid.UUID
     change_type: ChangeType
     changed_by: str | None
     changed_by_email: str | None
@@ -572,9 +572,9 @@ class CAPolicyChangeListResponse(BaseModel):
 class CAPolicyAlertResponse(BaseModel):
     """Response model for CA policy alerts."""
 
-    id: str
-    policy_id: str
-    tenant_id: str
+    id: uuid.UUID
+    policy_id: uuid.UUID
+    tenant_id: uuid.UUID
     alert_type: ChangeType
     severity: AlertSeverity
     title: str
@@ -613,15 +613,15 @@ class CABaselineConfigBase(BaseModel):
 class CABaselineConfigCreate(CABaselineConfigBase):
     """Model for creating baseline configuration."""
 
-    tenant_id: str
+    tenant_id: uuid.UUID
     created_by: str | None = None
 
 
 class CABaselineConfigResponse(CABaselineConfigBase):
     """Response model for baseline configuration."""
 
-    id: str
-    tenant_id: str
+    id: uuid.UUID
+    tenant_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
     created_by: str | None
@@ -633,7 +633,7 @@ class CABaselineConfigResponse(CABaselineConfigBase):
 class CAPolicyScanRequest(BaseModel):
     """Request model for triggering a CA policy scan."""
 
-    tenant_id: str
+    tenant_id: uuid.UUID
     trigger_alerts: bool = True
     compare_baseline: bool = True
 
@@ -642,7 +642,7 @@ class CAPolicyScanResponse(BaseModel):
     """Response model for CA policy scan."""
 
     success: bool
-    tenant_id: str
+    tenant_id: uuid.UUID
     policies_found: int
     changes_detected: int
     alerts_triggered: int

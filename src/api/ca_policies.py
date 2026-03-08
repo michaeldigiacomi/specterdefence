@@ -3,6 +3,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import status as http_status
+import uuid
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -59,8 +60,8 @@ class SetBaselineRequest(BaseModel):
 class BaselineResponse(BaseModel):
     """Response model for baseline configuration."""
 
-    id: str
-    tenant_id: str
+    id: uuid.UUID
+    tenant_id: uuid.UUID
     require_mfa_for_admins: bool
     require_mfa_for_all_users: bool
     block_legacy_auth: bool

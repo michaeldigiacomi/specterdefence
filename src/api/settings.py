@@ -2,6 +2,7 @@
 
 from typing import Any
 
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -143,7 +144,7 @@ class ApiKeyCreate(BaseModel):
 class ApiKeyResponse(BaseModel):
     """API key response (excludes hash)."""
 
-    id: str
+    id: uuid.UUID
     name: str
     key_prefix: str
     scopes: list[str]
@@ -158,7 +159,7 @@ class ApiKeyResponse(BaseModel):
 class ApiKeyCreateResponse(BaseModel):
     """API key creation response (includes full key once)."""
 
-    id: str
+    id: uuid.UUID
     key: str
     name: str
     prefix: str
@@ -200,7 +201,7 @@ class ConfigExportRequest(BaseModel):
 class ConfigExportResponse(BaseModel):
     """Configuration export response."""
 
-    id: str
+    id: uuid.UUID
     name: str
     description: str | None
     categories: list[str]
@@ -226,7 +227,7 @@ class ConfigImportResponse(BaseModel):
 class ConfigBackupResponse(BaseModel):
     """Configuration backup response."""
 
-    id: str
+    id: uuid.UUID
     name: str
     description: str | None
     categories: list[str]

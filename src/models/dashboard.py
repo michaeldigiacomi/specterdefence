@@ -1,5 +1,6 @@
 """Dashboard data models for SpecterDefence."""
 
+import uuid
 from datetime import datetime
 from enum import StrEnum
 
@@ -76,7 +77,7 @@ class TopRiskUser(BaseModel):
     """Top risk user entry."""
 
     user_email: str
-    tenant_id: str
+    tenant_id: uuid.UUID
     risk_score: int
     anomaly_count: int
     last_anomaly_time: datetime | None = None
