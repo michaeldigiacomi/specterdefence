@@ -7,6 +7,7 @@ from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
+from src.models.types import UUID
 
 
 def utc_now() -> datetime:
@@ -19,7 +20,7 @@ class TenantModel(Base):
 
     __tablename__ = "tenants"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     tenant_id: Mapped[str] = mapped_column(
         String(255), nullable=False, unique=True, index=True, comment="Azure AD tenant ID"

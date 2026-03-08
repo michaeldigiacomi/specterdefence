@@ -68,8 +68,8 @@ class MFAUserModel(Base):
     __tablename__ = "mfa_users"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[str] = mapped_column(
-        String(36),
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
         ForeignKey("tenants.id"),
         nullable=False,
         index=True,
@@ -223,8 +223,8 @@ class MFAEnrollmentHistoryModel(Base):
     __tablename__ = "mfa_enrollment_history"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("tenants.id"), nullable=False, index=True
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True
     )
 
     # Snapshot data
@@ -282,8 +282,8 @@ class MFAComplianceAlertModel(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("mfa_users.id"), nullable=False, index=True
     )
-    tenant_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("tenants.id"), nullable=False, index=True
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True
     )
 
     # Alert details

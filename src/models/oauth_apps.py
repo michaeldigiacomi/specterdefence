@@ -52,8 +52,8 @@ class OAuthAppModel(Base):
     __tablename__ = "oauth_apps"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[str] = mapped_column(
-        String(36),
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
         ForeignKey("tenants.id"),
         nullable=False,
         index=True,
@@ -248,8 +248,8 @@ class OAuthAppConsentModel(Base):
         index=True,
         comment="Reference to the OAuth app",
     )
-    tenant_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("tenants.id"), nullable=False, index=True
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True
     )
     user_id: Mapped[str] = mapped_column(
         String(255), nullable=False, comment="Microsoft Graph user ID"
@@ -309,8 +309,8 @@ class OAuthAppAlertModel(Base):
         nullable=False,
         comment="Reference to the OAuth app",
     )
-    tenant_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("tenants.id"), nullable=False, index=True
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True
     )
     alert_type: Mapped[str] = mapped_column(
         String(50), nullable=False, comment="Type of alert (new_app, high_risk_permissions, etc.)"
@@ -347,8 +347,8 @@ class OAuthAppPermissionModel(Base):
         index=True,
         comment="Reference to the OAuth app",
     )
-    tenant_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("tenants.id"), nullable=False, index=True
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True
     )
     permission_id: Mapped[str] = mapped_column(
         String(255), nullable=False, comment="Permission ID or value"

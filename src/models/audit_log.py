@@ -12,6 +12,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 if TYPE_CHECKING:
     from src.models.analytics import LoginAnalyticsModel
 
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from src.database import Base
 from src.models.types import JSONB, UUID
 
@@ -37,8 +38,8 @@ class AuditLogModel(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[str] = mapped_column(
-        String(36), index=True, nullable=False, comment="Internal tenant UUID (FK to tenants)"
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), index=True, nullable=False, comment="Internal tenant UUID (FK to tenants)"
     )
     log_type: Mapped[LogType] = mapped_column(
         SQLEnum(LogType, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False, comment="Type of audit log"
@@ -81,8 +82,8 @@ class CollectionStateModel(Base):
 
     __tablename__ = "collection_state"
 
-    tenant_id: Mapped[str] = mapped_column(
-        String(36),
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True),
         primary_key=True,
         nullable=False,
         comment="Internal tenant UUID (PK and FK to tenants)",
@@ -119,8 +120,8 @@ class ContentSubscriptionModel(Base):
     __tablename__ = "content_subscriptions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[str] = mapped_column(
-        String(36), index=True, nullable=False, comment="Internal tenant UUID"
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), index=True, nullable=False, comment="Internal tenant UUID"
     )
     content_type: Mapped[str] = mapped_column(
         String(100),

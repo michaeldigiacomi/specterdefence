@@ -34,8 +34,8 @@ class LoginAnalyticsModel(Base):
     user_email: Mapped[str] = mapped_column(
         String(255), index=True, nullable=False, comment="User email address"
     )
-    tenant_id: Mapped[str] = mapped_column(
-        String(36), index=True, nullable=False, comment="Internal tenant UUID"
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), index=True, nullable=False, comment="Internal tenant UUID"
     )
     ip_address: Mapped[str] = mapped_column(
         String(45), index=True, nullable=False, comment="IP address (IPv4 or IPv6)"
@@ -99,8 +99,8 @@ class UserLoginHistoryModel(Base):
     user_email: Mapped[str] = mapped_column(
         String(255), primary_key=True, comment="User email address (PK)"
     )
-    tenant_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("tenants.id"), nullable=False, comment="Internal tenant UUID"
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, comment="Internal tenant UUID"
     )
     known_countries: Mapped[list[str]] = mapped_column(
         JSONB, default=list, nullable=False, comment="List of previously seen country codes"
@@ -144,8 +144,8 @@ class AnomalyDetectionConfig(Base):
 
     __tablename__ = "anomaly_detection_config"
 
-    tenant_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("tenants.id"), primary_key=True, comment="Internal tenant UUID (PK)"
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id"), primary_key=True, comment="Internal tenant UUID (PK)"
     )
     enabled: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, comment="Whether anomaly detection is enabled"

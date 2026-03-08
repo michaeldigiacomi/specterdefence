@@ -55,8 +55,8 @@ class MailboxRuleModel(Base):
     __tablename__ = "mailbox_rules"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[str] = mapped_column(
-        String(36),
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
         ForeignKey("tenants.id"),
         nullable=False,
         index=True,
@@ -212,8 +212,8 @@ class MailboxRuleAlertModel(Base):
         nullable=False,
         comment="Reference to the mailbox rule",
     )
-    tenant_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("tenants.id"), nullable=False, index=True
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True
     )
     user_email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     alert_type: Mapped[str] = mapped_column(

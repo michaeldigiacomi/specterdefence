@@ -7,10 +7,10 @@ PostgreSQL (production) and SQLite (testing).
 import json
 from typing import Any
 
-from sqlalchemy import String, Text, TypeDecorator
+from sqlalchemy import String, Text, TypeDecorator, UUID as SQLUUID
 from sqlalchemy.dialects.postgresql import ARRAY as PGARRAY
 from sqlalchemy.dialects.postgresql import JSONB as PGJSONB
-from sqlalchemy.dialects.postgresql import UUID as PGUIID
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
 
 class JSONB(TypeDecorator):
@@ -45,7 +45,7 @@ class UUID(TypeDecorator):
     Uses PostgreSQL UUID in production, falls back to String(36) in SQLite.
     """
 
-    impl = String(36)
+    impl = SQLUUID
     cache_ok = True
 
     def __init__(self, as_uuid: bool = True, *args, **kwargs):
@@ -54,15 +54,14 @@ class UUID(TypeDecorator):
 
     def load_dialect_impl(self, dialect):
         if dialect.name == "postgresql":
-            return dialect.type_descriptor(PGUIID(as_uuid=self.as_uuid))
+            return dialect.type_descriptor(PGUUID(as_uuid=self.as_uuid))
         else:
             return dialect.type_descriptor(String(36))
 
     def process_bind_param(self, value: Any, dialect) -> Any:
         if value is None:
             return None
-        if dialect.name != "postgresql" and hasattr(value, "hex"):
-            # Convert UUID to string for SQLite
+        if dialect.name != "postgresql":
             return str(value)
         return value
 
@@ -70,9 +69,7 @@ class UUID(TypeDecorator):
         if value is None:
             return None
         if dialect.name != "postgresql" and self.as_uuid:
-            # Convert string back to UUID for SQLite
             import uuid
-
             if isinstance(value, str):
                 return uuid.UUID(value)
         return value
