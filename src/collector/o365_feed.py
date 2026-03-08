@@ -324,27 +324,66 @@ class O365ManagementClient:
 
         while True:
             try:
-                result = await self.get_content_blobs(
-                    content_type=content_type,
-                    start_time=start_time,
-                    end_time=end_time,
-                    next_page_uri=next_page_uri,
-                )
+                # The content endpoint returns a LIST of content blob objects,
+                # not a dict. Each item has a 'contentUri' field.
+                if next_page_uri:
+                    token = await self._get_access_token()
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(
+                            next_page_uri,
+                            headers={"Authorization": f"Bearer {token}"},
+                            timeout=60.0,
+                        )
+                        response.raise_for_status()
+                        result = response.json()
+                        # Pagination via NextPageUri header
+                        next_page_uri = response.headers.get("NextPageUri")
+                else:
+                    # First request
+                    token = await self._get_access_token()
+                    endpoint = "activity/feed/subscriptions/content"
+                    params: dict[str, str] = {"contentType": content_type}
+                    if start_time:
+                        params["startTime"] = start_time.strftime("%Y-%m-%dT%H:%M:%S")
+                    if end_time:
+                        params["endTime"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
 
-                blobs = result.get("contentUri", [])
-                next_page_uri = result.get("nextPageUri")
+                    url = f"{MANAGEMENT_API_BASE}/{self.tenant_id}/{endpoint}"
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(
+                            url,
+                            headers={
+                                "Authorization": f"Bearer {token}",
+                                "Content-Type": "application/json",
+                            },
+                            params=params,
+                            timeout=60.0,
+                        )
+                        response.raise_for_status()
+                        result = response.json()
+                        # Pagination via NextPageUri header
+                        next_page_uri = response.headers.get("NextPageUri")
 
-                if not blobs:
-                    logger.info(f"No more blobs for {content_type}")
+                # result is a list of content blob objects
+                blob_items = result if isinstance(result, list) else []
+
+                if not blob_items:
+                    logger.info(f"No more content blobs for {content_type}")
                     break
 
-                total_blobs += len(blobs)
+                # Extract content URIs from blob objects
+                blob_uris = []
+                for item in blob_items:
+                    if isinstance(item, dict) and "contentUri" in item:
+                        blob_uris.append(item["contentUri"])
+
+                total_blobs += len(blob_uris)
                 logger.info(
-                    f"Processing {len(blobs)} blobs for {content_type} (total: {total_blobs})"
+                    f"Processing {len(blob_uris)} blobs for {content_type} (total: {total_blobs})"
                 )
 
                 # Download content from each blob
-                for blob_url in blobs:
+                for blob_url in blob_uris:
                     try:
                         events = await self.download_content(blob_url)
                         if events:
