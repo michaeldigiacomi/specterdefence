@@ -24,6 +24,10 @@ from src.models.dashboard import (
     TopRiskUser,
     TopRiskUsersData,
 )
+from src.models.mfa_report import MFAUserModel
+from src.models.ca_policies import CAPolicyModel, PolicyState
+from src.models.oauth_apps import OAuthAppModel, RiskLevel
+from src.models.mailbox_rules import MailboxRuleModel, RuleStatus
 
 
 class DashboardService:
@@ -663,6 +667,41 @@ class DashboardService:
 
         top_threats = sorted(threat_types.keys(), key=lambda x: threat_types[x], reverse=True)[:3]
 
+        # Posture metrics
+        mfa_query = select(MFAUserModel)
+        if tenant_id:
+            mfa_query = mfa_query.where(MFAUserModel.tenant_id == tenant_id)
+        mfa_result = await self.db.execute(mfa_query)
+        mfa_users = mfa_result.scalars().all()
+        
+        total_protected_users = len(mfa_users)
+        mfa_registered = sum(1 for u in mfa_users if u.is_mfa_registered)
+        mfa_compliance_rate = (mfa_registered / total_protected_users * 100) if total_protected_users > 0 else 0.0
+
+        oauth_query = select(func.count(OAuthAppModel.id)).where(
+            OAuthAppModel.risk_level.in_([RiskLevel.HIGH, RiskLevel.CRITICAL])
+        )
+        if tenant_id:
+            oauth_query = oauth_query.where(OAuthAppModel.tenant_id == tenant_id)
+        oauth_result = await self.db.execute(oauth_query)
+        high_risk_oauth_apps = oauth_result.scalar() or 0
+
+        ca_query = select(func.count(CAPolicyModel.id)).where(
+            CAPolicyModel.state == PolicyState.DISABLED
+        )
+        if tenant_id:
+            ca_query = ca_query.where(CAPolicyModel.tenant_id == tenant_id)
+        ca_result = await self.db.execute(ca_query)
+        disabled_ca_policies = ca_result.scalar() or 0
+
+        rule_query = select(func.count(MailboxRuleModel.id)).where(
+            MailboxRuleModel.status.in_([RuleStatus.SUSPICIOUS, RuleStatus.MALICIOUS])
+        )
+        if tenant_id:
+            rule_query = rule_query.where(MailboxRuleModel.tenant_id == tenant_id)
+        rule_result = await self.db.execute(rule_query)
+        suspicious_mailbox_rules = rule_result.scalar() or 0
+
         return DashboardSummary(
             total_logins_24h=total_logins,
             failed_logins_24h=failed_logins,
@@ -673,4 +712,9 @@ class DashboardService:
             avg_risk_score=round(avg_risk, 2),
             login_success_rate=round(success_rate, 2),
             top_threats=top_threats,
+            mfa_compliance_rate=round(mfa_compliance_rate, 2),
+            high_risk_oauth_apps=high_risk_oauth_apps,
+            disabled_ca_policies=disabled_ca_policies,
+            suspicious_mailbox_rules=suspicious_mailbox_rules,
+            total_protected_users=total_protected_users,
         )

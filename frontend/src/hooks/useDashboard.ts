@@ -32,6 +32,11 @@ export interface DashboardSummary {
   avg_risk_score: number;
   login_success_rate: number;
   top_threats: string[];
+  mfa_compliance_rate: number;
+  high_risk_oauth_apps: number;
+  disabled_ca_policies: number;
+  suspicious_mailbox_rules: number;
+  total_protected_users: number;
 }
 
 // Login timeline interfaces

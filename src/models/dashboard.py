@@ -136,6 +136,13 @@ class DashboardSummary(BaseModel):
     login_success_rate: float
     top_threats: list[str] = Field(default_factory=list)
 
+    # Posture metrics
+    mfa_compliance_rate: float = 0.0
+    high_risk_oauth_apps: int = 0
+    disabled_ca_policies: int = 0
+    suspicious_mailbox_rules: int = 0
+    total_protected_users: int = 0
+
 
 class DashboardDataResponse(BaseModel):
     """Complete dashboard data response."""

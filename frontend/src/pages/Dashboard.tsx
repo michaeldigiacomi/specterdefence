@@ -5,7 +5,18 @@ import {
   TrendingDown,
   Shield,
   AlertTriangle,
-  Activity
+  Activity,
+  AppWindow,
+  FileText,
+  Mail,
+  TrendingUp,
+  AlertCircle,
+  Clock,
+  ChevronRight,
+  Filter,
+  Users,
+  Globe,
+  MapPin,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import {
@@ -174,6 +185,49 @@ export default function Dashboard() {
           }
           loading={isLoading}
         />
+      </div>
+
+      {/* Security Posture Overview */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <Shield className="w-5 h-5 text-primary-500" />
+          Security Posture
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatsCard
+            title="MFA Compliance"
+            value={`${summary?.mfa_compliance_rate || 0}%`}
+            icon={Shield}
+            color={(summary?.mfa_compliance_rate || 0) > 90 ? 'green' : (summary?.mfa_compliance_rate || 0) > 70 ? 'amber' : 'red'}
+            loading={isLoading}
+            trend={summary && {
+              value: summary.total_protected_users,
+              label: 'users',
+              positive: true
+            }}
+          />
+          <StatsCard
+            title="High Risk OAuth"
+            value={summary?.high_risk_oauth_apps || 0}
+            icon={AppWindow}
+            color={(summary?.high_risk_oauth_apps || 0) > 0 ? 'red' : 'green'}
+            loading={isLoading}
+          />
+          <StatsCard
+            title="Disabled CA Policies"
+            value={summary?.disabled_ca_policies || 0}
+            icon={FileText}
+            color={(summary?.disabled_ca_policies || 0) > 0 ? 'amber' : 'green'}
+            loading={isLoading}
+          />
+          <StatsCard
+            title="Suspicious Rules"
+            value={summary?.suspicious_mailbox_rules || 0}
+            icon={Mail}
+            color={(summary?.suspicious_mailbox_rules || 0) > 0 ? 'red' : 'green'}
+            loading={isLoading}
+          />
+        </div>
       </div>
 
       {/* Main Charts Grid */}
