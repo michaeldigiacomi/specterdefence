@@ -34,8 +34,8 @@ class Settings(BaseSettings):
         default_factory=list, description="Allowed CORS origins - empty means same-origin only"
     )
 
-    # Database (for future use)
-    DATABASE_URL: str = "sqlite:///./specterdefence.db"
+    # Database
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/specterdefence"
 
     # Microsoft Graph
     MS_GRAPH_API_URL: str = "https://graph.microsoft.com/v1.0"

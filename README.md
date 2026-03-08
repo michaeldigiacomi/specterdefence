@@ -84,7 +84,7 @@ SECRET_KEY=your-secret-key-here
 DEBUG=false
 HOST=0.0.0.0
 PORT=8000
-DATABASE_URL=sqlite:///./specterdefence.db
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/specterdefence
 ```
 
 ## API Documentation
@@ -146,7 +146,7 @@ kubectl create namespace specterdefence
 kubectl create secret generic specterdefence-secrets \
   --namespace specterdefence \
   --from-literal=SECRET_KEY="$(openssl rand -hex 32)" \
-  --from-literal=DATABASE_URL="sqlite+aiosqlite:////app/data/specterdefence.db" \
+  --from-literal=DATABASE_URL="postgresql+asyncpg://user:password@postgres:5432/specterdefence" \
   --from-literal=ENCRYPTION_KEY="$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" \
   --from-literal=KIMI_API_KEY="your-kimi-api-key"
 

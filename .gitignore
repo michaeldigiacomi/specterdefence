@@ -217,3 +217,4 @@ specterdefence.db
 *.db-journal
 
 test_env/
+testenv/
