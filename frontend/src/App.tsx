@@ -12,6 +12,7 @@ import Anomalies from '@/pages/Anomalies';
 import Tenants from '@/pages/Tenants';
 import MapPage from '@/pages/MapPage';
 import AlertFeed from '@/pages/AlertFeed';
+import Users from '@/pages/Users';
 import Settings from '@/pages/Settings';
 import CAPolicies from '@/pages/CAPolicies';
 import MailboxRules from '@/pages/MailboxRules';
@@ -84,6 +85,7 @@ function App() {
               <Route path="anomalies" element={<Anomalies />} />
               <Route path="tenants" element={<Tenants />} />
               <Route path="alerts" element={<AlertFeed />} />
+              <Route path="users" element={<Users />} />
               <Route path="settings" element={<Settings />} />
               <Route path="ca-policies" element={<CAPolicies />} />
               <Route path="mailbox-rules" element={<MailboxRules />} />

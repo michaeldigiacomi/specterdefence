@@ -12,11 +12,9 @@ import {
   Bell,
   Settings,
   LogOut,
-  User,
-  KeyRound,
-  ShieldCheck,
   Mail,
   AppWindow,
+  Users as UserIcon,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -42,6 +40,7 @@ const navItems = [
   { path: '/mfa-report', icon: KeyRound, label: 'MFA Report' },
   { path: '/oauth-apps', icon: AppWindow, label: 'OAuth Apps' },
   { path: '/tenants', icon: Building2, label: 'Tenants' },
+  { path: '/users', icon: UserIcon, label: 'Users' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -144,7 +143,7 @@ export default function Sidebar() {
                   {user.username}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  Administrator
+                  {user.is_admin ? 'Administrator' : 'User'}
                 </p>
               </div>
             </div>

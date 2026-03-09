@@ -4,7 +4,9 @@ import {
   LoginFilters,
   AlertFilters,
   TenantCreate,
-  TenantUpdate
+  TenantUpdate,
+  UserCreate,
+  UserUpdate
 } from '@/types';
 
 // Query keys
@@ -16,6 +18,8 @@ export const queryKeys = {
   tenant: (id: string) => ['tenant', id] as const,
   alertHistory: (filters: AlertFilters) => ['alertHistory', filters] as const,
   dashboardStats: () => ['dashboardStats'] as const,
+  users: () => ['users'] as const,
+  userTenants: (id: number) => ['userTenants', id] as const,
 };
 
 // ============== Login Analytics Hooks ==============
@@ -99,6 +103,70 @@ export function useDeleteTenant() {
 export function useValidateTenant() {
   return useMutation({
     mutationFn: (data: TenantCreate) => apiService.validateTenant(data),
+  });
+}
+
+// ============== User Hooks ==============
+
+export function useUsers() {
+  return useQuery({
+    queryKey: queryKeys.users(),
+    queryFn: () => apiService.getUsers(),
+    staleTime: 60000, // 1 minute
+  });
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: UserCreate) => apiService.createUser(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users() });
+    },
+  });
+}
+
+export function useUpdateUser(id: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: UserUpdate) => apiService.updateUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users() });
+    },
+  });
+}
+
+export function useUserTenants(id: number) {
+  return useQuery({
+    queryKey: queryKeys.userTenants(id),
+    queryFn: () => apiService.getUserTenants(id),
+    enabled: id > 0,
+  });
+}
+
+export function useAssignUserTenant() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, tenantId }: { userId: number; tenantId: string }) =>
+      apiService.assignUserTenant(userId, tenantId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.userTenants(variables.userId) });
+    },
+  });
+}
+
+export function useUnassignUserTenant() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, tenantId }: { userId: number; tenantId: string }) =>
+      apiService.unassignUserTenant(userId, tenantId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.userTenants(variables.userId) });
+    },
   });
 }
 

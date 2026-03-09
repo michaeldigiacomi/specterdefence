@@ -37,6 +37,10 @@ import {
   LoginRequest,
   LoginResponse,
   User,
+  UserInternal,
+  UserCreate,
+  UserUpdate,
+  UserListResponse,
 } from '@/types';
 import type {
   TimeRange,
@@ -176,6 +180,40 @@ class ApiService {
   async validateTenant(data: TenantCreate): Promise<{ valid: boolean; message?: string }> {
     const response = await this.client.post('/tenants/validate', data);
     return response.data;
+  }
+
+  // ============== Users ==============
+
+  async getUsers(): Promise<UserListResponse> {
+    const response = await this.client.get('/users/');
+    const data = response.data;
+    if (Array.isArray(data)) {
+      return { items: data, total: data.length };
+    }
+    return data;
+  }
+
+  async createUser(data: UserCreate): Promise<UserInternal> {
+    const response = await this.client.post('/users/', data);
+    return response.data;
+  }
+
+  async updateUser(id: number, data: UserUpdate): Promise<UserInternal> {
+    const response = await this.client.patch(`/users/${id}`, data);
+    return response.data;
+  }
+
+  async getUserTenants(id: number): Promise<Tenant[]> {
+    const response = await this.client.get(`/users/${id}/tenants`);
+    return response.data;
+  }
+
+  async assignUserTenant(userId: number, tenantId: string): Promise<void> {
+    await this.client.post(`/users/${userId}/tenants/${tenantId}`);
+  }
+
+  async unassignUserTenant(userId: number, tenantId: string): Promise<void> {
+    await this.client.delete(`/users/${userId}/tenants/${tenantId}`);
   }
 
   // ============== Alerts ==============

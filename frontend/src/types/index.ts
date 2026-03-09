@@ -173,10 +173,43 @@ export interface MapLocation {
 /** Theme type */
 export type Theme = 'light' | 'dark';
 
+/** User model (Internal for administration) */
+export interface UserInternal {
+  id: number;
+  username: string;
+  is_active: boolean;
+  is_admin: boolean;
+  last_login?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** User creation request */
+export interface UserCreate {
+  username: string;
+  password: string;
+  is_admin: boolean;
+}
+
+/** User update request */
+export interface UserUpdate {
+  is_active?: boolean;
+  is_admin?: boolean;
+  password?: string;
+}
+
+/** User list response */
+export interface UserListResponse {
+  items: UserInternal[];
+  total: number;
+}
+
 /** User authentication */
 export interface User {
+  id?: number;
   username: string;
   is_authenticated: boolean;
+  is_admin?: boolean;
 }
 
 /** Login request */
