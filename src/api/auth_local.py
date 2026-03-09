@@ -6,7 +6,6 @@ from datetime import UTC, datetime, timedelta
 
 # Use bcrypt directly to avoid passlib compatibility issues with newer bcrypt versions
 import bcrypt as bcrypt_lib
-from src.api.auth_local import get_authorized_tenant
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
