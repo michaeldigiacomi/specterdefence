@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.models.user import UserModel
-from src.models.db import TenantModel, user_tenants
+from src.models.db import TenantModel
 from src.api.auth_local import require_admin, get_current_user, get_password_hash
 
 router = APIRouter()
@@ -41,7 +41,7 @@ class UserResponse(BaseModel):
 class TenantLightResponse(BaseModel):
     id: str
     name: str
-    
+
     class Config:
         from_attributes = True
 

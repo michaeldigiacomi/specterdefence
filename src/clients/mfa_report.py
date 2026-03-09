@@ -353,29 +353,29 @@ class MFAReportClient:
         # Get all users
         users = await self.get_all_users()
         total = len(users)
-        
+
         # Use a semaphore to limit concurrent API requests
         # MFA scan requires 3 sub-requests per user
         semaphore = asyncio.Semaphore(5)
-        
+
         # Variables for tracking progress
         processed_count = 0
-        
+
         async def scan_user(user: dict[str, Any]) -> dict[str, Any] | None:
             nonlocal processed_count
             user_id = user.get("id")
             if not user_id:
                 return None
-                
+
             try:
                 async with semaphore:
                     mfa_data = await self.get_full_user_mfa_data(user_id, user)
-                    
+
                     # Report progress
                     processed_count += 1
                     if progress_callback:
                         progress_callback(processed_count, total)
-                        
+
                     return mfa_data
             except Exception as e:
                 logger.error(f"Error processing user {user.get('userPrincipalName')}: {e}")
@@ -384,10 +384,10 @@ class MFAReportClient:
         # Execute concurrent scans
         tasks = [scan_user(user) for user in users]
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         # Filter out Nones and Exceptions
         valid_results: list[dict[str, Any]] = [
-            r for r in results 
+            r for r in results
             if r is not None and not isinstance(r, Exception)
         ]
 

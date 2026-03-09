@@ -438,7 +438,7 @@ class LoginAnalyticsService:
                     AuditLogModel.tenant_id == tenant_id,
                     # Handle both signin and general audit types that are signin-related
                     AuditLogModel.log_type == LogType.SIGNIN,
-                    AuditLogModel.processed == False,
+                    AuditLogModel.processed.is_(False),
                 )
             )
             .order_by(AuditLogModel.o365_created_at)
@@ -451,7 +451,7 @@ class LoginAnalyticsService:
         for log in logs:
             try:
                 raw_data = log.raw_data
-                
+
                 if not isinstance(raw_data, dict):
                     logger.warning(f"Skipping audit log {log.id}: raw_data is not a dict")
                     log.processed = True
@@ -537,7 +537,7 @@ class LoginAnalyticsService:
                 and_(
                     AuditLogModel.tenant_id == tenant_id,
                     AuditLogModel.log_type != LogType.SIGNIN,
-                    AuditLogModel.processed == False,
+                    AuditLogModel.processed.is_(False),
                 )
             )
             .order_by(AuditLogModel.o365_created_at)
@@ -551,7 +551,7 @@ class LoginAnalyticsService:
             try:
                 # Placeholder for complex audit log analysis
                 # e.g., identifying elevation of privilege, mass deletions, etc.
-                
+
                 log.processed = True
                 processed_count += 1
             except Exception as e:

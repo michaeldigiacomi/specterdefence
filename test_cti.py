@@ -11,14 +11,14 @@ logging.basicConfig(level=logging.INFO)
 async def main():
     async with async_session_maker() as session:
         service = LoginAnalyticsService(session)
-        
+
         # Test with known malicious IP
         user_email = "test.user@digitaladrenalin.net"
         tenant_id = "test-tenant-123"
         malicious_ip = "8.8.8.8"
-        
+
         print(f"Testing CTI lookup for {malicious_ip}...")
-        
+
         record = await service.process_login_event(
             user_email=user_email,
             tenant_id=tenant_id,
@@ -26,11 +26,11 @@ async def main():
             login_time=datetime.now(UTC),
             is_success=True,
         )
-        
-        print(f"\nResult:")
+
+        print("\nResult:")
         print(f"Risk Score: {record.risk_score}")
         print(f"Anomaly Flags: {record.anomaly_flags}")
-        
+
         if "malicious_ip" in record.anomaly_flags and record.risk_score >= 90:
             print("\nSUCCESS: Malicious IP triggered correctly!")
         else:

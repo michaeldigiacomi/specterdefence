@@ -44,43 +44,43 @@ async def migrate():
     """Migrate data from SQLite to PostgreSQL."""
     sqlite_url = "sqlite+aiosqlite:///./specterdefence.db"
     postgres_url = input("Enter PostgreSQL URL (postgresql+asyncpg://...): ").strip()
-    
+
     if not postgres_url.startswith("postgresql+asyncpg://"):
         print("Error: URL must start with postgresql+asyncpg://")
         sys.exit(1)
-    
-    print(f"\nMigrating from SQLite to PostgreSQL...")
+
+    print("\nMigrating from SQLite to PostgreSQL...")
     print(f"Source: {sqlite_url}")
     print(f"Target: {postgres_url}")
-    
+
     # Create engines
     sqlite_engine = create_async_engine(sqlite_url, echo=False)
     postgres_engine = create_async_engine(postgres_url, echo=False)
-    
+
     try:
         # Test connections
         async with sqlite_engine.connect() as conn:
             result = await conn.execute(text("SELECT COUNT(*) FROM users"))
             user_count = result.scalar()
             print(f"\n✓ SQLite connection successful ({user_count} users found)")
-        
+
         async with postgres_engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
             print("✓ PostgreSQL connection successful")
-        
+
         # Confirm migration
         confirm = input("\nThis will delete existing PostgreSQL data and migrate from SQLite. Continue? (yes/no): ")
         if confirm.lower() != "yes":
             print("Migration cancelled.")
             return
-        
+
         # Create tables in PostgreSQL
         print("\nCreating tables in PostgreSQL...")
         async with postgres_engine.begin() as conn:
             # Drop existing tables
             await conn.execute(text("DROP TABLE IF EXISTS users CASCADE"))
             await conn.execute(text("DROP TABLE IF EXISTS alembic_version CASCADE"))
-            
+
             # Create users table
             await conn.execute(text("""
                 CREATE TABLE users (
@@ -95,24 +95,24 @@ async def migrate():
                 )
             """))
             print("✓ Tables created")
-        
+
         # Migrate users
         print("\nMigrating users...")
         async with sqlite_engine.connect() as sqlite_conn:
             result = await sqlite_conn.execute(text("SELECT * FROM users"))
             users = result.fetchall()
-            
+
             async with postgres_engine.begin() as pg_conn:
                 for user in users:
                     # Convert SQLite integers to booleans for PostgreSQL
                     is_active = bool(user.is_active) if user.is_active is not None else True
                     is_admin = bool(user.is_admin) if user.is_admin is not None else False
-                    
+
                     # Convert SQLite datetime strings to datetime objects
                     last_login = parse_datetime(user.last_login)
                     created_at = parse_datetime(user.created_at) if user.created_at else datetime.now()
                     updated_at = parse_datetime(user.updated_at) if user.updated_at else datetime.now()
-                    
+
                     await pg_conn.execute(
                         text("""
                             INSERT INTO users (id, username, password_hash, is_active, is_admin, last_login, created_at, updated_at)
@@ -129,20 +129,20 @@ async def migrate():
                             "updated_at": updated_at
                         }
                     )
-                
+
                 # Reset sequence
                 if users:
                     max_id = max(u.id for u in users)
                     await pg_conn.execute(text(f"ALTER SEQUENCE users_id_seq RESTART WITH {max_id + 1}"))
-            
+
             print(f"✓ Migrated {len(users)} users")
-        
+
         print("\n✅ Migration completed successfully!")
-        print(f"\nNext steps:")
+        print("\nNext steps:")
         print(f"1. Update DATABASE_URL in your Kubernetes secret to: {postgres_url}")
-        print(f"2. Restart the specterdefence deployment")
-        print(f"3. Verify both pods can connect to PostgreSQL")
-        
+        print("2. Restart the specterdefence deployment")
+        print("3. Verify both pods can connect to PostgreSQL")
+
     except Exception as e:
         print(f"\n❌ Migration failed: {e}")
         sys.exit(1)

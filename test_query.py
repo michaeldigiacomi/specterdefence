@@ -13,14 +13,14 @@ async def test():
             print("!= '[]' works")
         except Exception as e:
             print(f"!= '[]' failed: {e}")
-            
+
         try:
             q = select(LoginAnalyticsModel).where(func.json_array_length(LoginAnalyticsModel.anomaly_flags) > 0).limit(1)
             result = await session.execute(q)
             print("json_array_length works")
         except Exception as e:
             print(f"json_array_length failed: {e}")
-            
+
         try:
             q = select(LoginAnalyticsModel).where(LoginAnalyticsModel.anomaly_flags.cast(String) != "[]").limit(1)
             result = await session.execute(q)

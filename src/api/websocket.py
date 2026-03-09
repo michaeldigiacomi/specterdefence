@@ -4,7 +4,6 @@ import asyncio
 import json
 import logging
 from datetime import UTC, datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -130,7 +129,7 @@ class ConnectionManager:
         tenant_filter = filters.get("tenant_id")
         if not tenant_filter:
             return True
-            
+
         msg_tenant = message.get("tenant_id")
         if tenant_filter == "NONE":
             return msg_tenant == "NONE_ASSIGNED"

@@ -2,7 +2,7 @@
 
 import time
 from collections import defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 # Use bcrypt directly to avoid passlib compatibility issues with newer bcrypt versions
 import bcrypt as bcrypt_lib
@@ -270,26 +270,26 @@ async def get_authorized_tenant(
     from sqlalchemy.orm import selectinload
     from sqlalchemy import select
     from src.models.user import UserModel
-    
+
     result = await db.execute(
         select(UserModel).options(selectinload(UserModel.tenants)).where(UserModel.id == user["id"])
     )
     db_user = result.scalar()
-    
+
     if not db_user:
         raise HTTPException(status_code=401, detail="User not found")
-        
+
     allowed_ids = [str(t.id) for t in db_user.tenants]
-    
+
     if tenant_id:
         if tenant_id not in allowed_ids:
             raise HTTPException(status_code=403, detail="Access denied to this tenant")
         return tenant_id
-        
+
     if not allowed_ids:
         # Return a dummy string that won't match any tenant
         return "NONE"
-        
+
     return allowed_ids
 
 

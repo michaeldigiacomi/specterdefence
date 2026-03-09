@@ -1,9 +1,7 @@
 """Test configuration and fixtures."""
 
-import asyncio
 import os
 import sys
-from datetime import datetime, timedelta
 from typing import AsyncGenerator, Generator
 
 import pytest
@@ -17,7 +15,7 @@ from sqlalchemy.pool import NullPool
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from src.database import Base, get_db
+from src.database import Base
 from src.main import app
 
 # Test database URL - use SQLite for tests
@@ -123,7 +121,7 @@ def rate_limiter():
 def mock_db():
     """Create a mock database session for unit tests."""
     from unittest.mock import AsyncMock, MagicMock
-    
+
     mock = AsyncMock()
     mock.execute = AsyncMock()
     mock.commit = AsyncMock()
@@ -132,7 +130,7 @@ def mock_db():
     mock.add_all = MagicMock()
     mock.delete = AsyncMock()
     mock.close = AsyncMock()
-    
+
     # Common query result patterns
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = None
@@ -141,7 +139,7 @@ def mock_db():
     mock_result.scalars().all.return_value = []
     mock_result.scalars().first.return_value = None
     mock.execute.return_value = mock_result
-    
+
     return mock
 
 
@@ -157,7 +155,7 @@ def test_db(mock_db):
 def mock_tenant():
     """Create a mock tenant for testing."""
     from unittest.mock import MagicMock
-    
+
     tenant = MagicMock()
     tenant.id = "test-tenant-id"
     tenant.tenant_id = "test-tenant-123"

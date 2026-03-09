@@ -655,7 +655,7 @@ class OAuthAppsService:
         if is_internal is not None:
             query = query.where(OAuthAppModel.is_internal == is_internal)
         if exclude_microsoft:
-            query = query.where(OAuthAppModel.is_microsoft_publisher == False)
+            query = query.where(OAuthAppModel.is_microsoft_publisher.is_(False))
 
         # Get total count
         count_query = select(func.count()).select_from(query.subquery())
@@ -965,7 +965,7 @@ class OAuthAppsService:
             select(func.count(OAuthAppModel.id)).where(
                 and_(
                     OAuthAppModel.tenant_id == tenant_id,
-                    OAuthAppModel.is_microsoft_publisher == False,
+                    OAuthAppModel.is_microsoft_publisher.is_(False),
                     OAuthAppModel.publisher_type != PublisherType.VERIFIED,
                 )
             )
@@ -996,7 +996,7 @@ class OAuthAppsService:
             select(func.count(OAuthAppAlertModel.id)).where(
                 and_(
                     OAuthAppAlertModel.tenant_id == tenant_id,
-                    OAuthAppAlertModel.is_acknowledged == False,
+                    OAuthAppAlertModel.is_acknowledged.is_(False),
                 )
             )
         )

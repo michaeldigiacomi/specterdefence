@@ -151,7 +151,7 @@ class TenantCollector:
                 state.last_collection_time = collection_end_time
             else:
                 state.last_collection_time = now
-            
+
             state.last_success_at = now
             state.total_logs_collected += events_count
             state.last_error = None
@@ -271,7 +271,7 @@ class TenantCollector:
             # Start from last collection time, but not more than 24 hours ago
             # (O365 API limit for historical data)
             last_time = ensure_timezone_aware(state.last_collection_time)
-            
+
             # If our delayed end_time is still before last_time, nothing to do yet
             if end_time <= last_time:
                 logger.info(
@@ -423,13 +423,13 @@ async def collect_logs() -> dict[str, Any]:
                             f"Successfully collected {collection_result['total_events']} "
                             f"events for tenant {tenant.name}"
                         )
-                        
+
                         # Auto-process the collected logs right away
                         try:
                             logger.info(f"Processing collected logs for tenant {tenant.name}...")
                             analytics_service = LoginAnalyticsService(session)
                             processed_count = await analytics_service.process_audit_log_signins(
-                                tenant_id=tenant.id, 
+                                tenant_id=tenant.id,
                                 limit=1000  # Process up to 1000 at a time
                             )
                             logger.info(f"Successfully processed {processed_count} signin logs into analytics for tenant {tenant.name}")

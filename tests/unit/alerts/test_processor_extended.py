@@ -1,7 +1,5 @@
 """Comprehensive tests for alert engine and security checks."""
 
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 

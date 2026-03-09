@@ -3,7 +3,6 @@
 import logging
 from typing import Any
 
-import httpx
 
 from src.clients.ms_graph import MSGraphAPIError, MSGraphClient
 
@@ -391,7 +390,7 @@ class OAuthAppsClient:
         current_score = analysis.get("risk_score", 0)
         if isinstance(current_score, int):
             analysis["risk_score"] = min(current_score, 100)
-            
+
         categories = analysis.get("risk_categories", set())
         if isinstance(categories, set):
             analysis["risk_categories"] = list(categories)
@@ -426,7 +425,7 @@ class OAuthAppsClient:
         publisher_name = app.get("publisherName", "")
 
         reasons = analysis["detection_reasons"]
-        
+
         if verified_publisher and verified_publisher.get("verifiedPublisherId"):
             analysis["is_verified_publisher"] = True
             analysis["publisher_type"] = "verified"

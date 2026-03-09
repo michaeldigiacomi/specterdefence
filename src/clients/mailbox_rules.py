@@ -196,15 +196,15 @@ class MailboxRuleClient:
                 analysis["forward_to"] = (
                     forward_recipients[0].get("emailAddress", {}).get("address", "")
                 )
-                
+
                 # Check against tenant domains (can be passed in future)
                 analysis["forward_to_external"] = self._is_external_address(analysis["forward_to"])
-                
+
                 if analysis["forward_to_external"]:
                     forward_to = analysis.get("forward_to")
                     if isinstance(forward_to, str) and "@" in forward_to:
                         analysis["external_domain"] = forward_to.split("@")[-1]
-                        
+
                     reasons = analysis.get("detection_reasons")
                     if isinstance(reasons, list):
                         reasons.append("Forwarding to external email address")
@@ -290,7 +290,7 @@ class MailboxRuleClient:
             return False
 
         domain = email.split("@")[-1].lower()
-        
+
         # If tenant domains are provided, trust them over the consumer list
         if tenant_domains:
             return domain not in [d.lower() for d in tenant_domains]

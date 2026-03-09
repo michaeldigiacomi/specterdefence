@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 import time
-import traceback
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request

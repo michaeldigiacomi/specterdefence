@@ -55,7 +55,7 @@ async def run_security_scans():
 
                 except Exception as scan_err:
                     logger.error(f"Failed to run security scans for tenant {tenant.name}: {scan_err}")
-                
+
             await session.commit()
         except Exception:
             logger.exception("Unexpected error during security scans")

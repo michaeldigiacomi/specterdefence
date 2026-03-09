@@ -319,7 +319,7 @@ class MFAReportService:
                 and_(
                     MFAUserModel.tenant_id == tenant_id,
                     MFAUserModel.compliance_status == ComplianceStatus.NON_COMPLIANT,
-                    MFAUserModel.compliance_exempt == False,
+                    MFAUserModel.compliance_exempt.is_(False),
                     MFAUserModel.account_enabled,
                 )
             )
@@ -365,7 +365,7 @@ class MFAReportService:
                         and_(
                             MFAComplianceAlertModel.user_id == user_id,
                             MFAComplianceAlertModel.alert_type == alert_type,
-                            MFAComplianceAlertModel.is_resolved == False,
+                            MFAComplianceAlertModel.is_resolved.is_(False),
                         )
                     )
                 )
@@ -641,10 +641,10 @@ class MFAReportService:
             if needs_attention:
                 query = query.where(
                     and_(
-                        MFAUserModel.compliance_exempt == False,
+                        MFAUserModel.compliance_exempt.is_(False),
                         MFAUserModel.account_enabled,
                         or_(
-                            MFAUserModel.is_mfa_registered == False,
+                            MFAUserModel.is_mfa_registered.is_(False),
                             and_(
                                 MFAUserModel.is_admin,
                                 MFAUserModel.mfa_strength == MFAStrengthLevel.WEAK,
@@ -656,11 +656,11 @@ class MFAReportService:
                 query = query.where(
                     or_(
                         MFAUserModel.compliance_exempt,
-                        MFAUserModel.account_enabled == False,
+                        MFAUserModel.account_enabled.is_(False),
                         and_(
                             MFAUserModel.is_mfa_registered,
                             or_(
-                                MFAUserModel.is_admin == False,
+                                MFAUserModel.is_admin.is_(False),
                                 MFAUserModel.mfa_strength != MFAStrengthLevel.WEAK,
                             ),
                         ),
@@ -703,12 +703,12 @@ class MFAReportService:
         """
         conditions = [
             self._get_tenant_filter(MFAUserModel, tenant_id),
-            MFAUserModel.is_mfa_registered == False,
+            MFAUserModel.is_mfa_registered.is_(False),
             MFAUserModel.account_enabled,
         ]
 
         if not include_exempt:
-            conditions.append(MFAUserModel.compliance_exempt == False)
+            conditions.append(MFAUserModel.compliance_exempt.is_(False))
 
         query = select(MFAUserModel).where(and_(*conditions))
 
@@ -746,8 +746,8 @@ class MFAReportService:
             and_(
                 self._get_tenant_filter(MFAUserModel, tenant_id),
                 MFAUserModel.is_admin,
-                MFAUserModel.is_mfa_registered == False,
-                MFAUserModel.compliance_exempt == False,
+                MFAUserModel.is_mfa_registered.is_(False),
+                MFAUserModel.compliance_exempt.is_(False),
                 MFAUserModel.account_enabled,
             )
         )

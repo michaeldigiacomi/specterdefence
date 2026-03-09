@@ -32,7 +32,7 @@ class UserModel(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
-    
+
     # Relationship to tenants
     tenants = relationship("TenantModel", secondary="user_tenants", back_populates="users")
 

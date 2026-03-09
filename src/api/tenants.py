@@ -36,7 +36,7 @@ async def get_tenant_service(db: AsyncSession = Depends(get_db)) -> TenantServic
     description="Retrieve a list of all registered tenants. Optionally include inactive tenants.",
 )
 async def list_tenants(
-    include_inactive: bool = False, 
+    include_inactive: bool = False,
     service: TenantService = Depends(get_tenant_service),
     user: dict = Depends(get_current_user)
 ) -> list[TenantResponse]:
@@ -150,7 +150,7 @@ async def validate_tenant_before_create(
     description="Retrieve details of a specific tenant by its internal ID.",
 )
 async def get_tenant(
-    tenant_id: str, 
+    tenant_id: str,
     service: TenantService = Depends(get_tenant_service),
     user: dict = Depends(get_current_user)
 ) -> TenantResponse:
@@ -181,8 +181,8 @@ async def get_tenant(
     description="Update tenant information (name, active status).",
 )
 async def update_tenant(
-    tenant_id: str, 
-    update: TenantUpdate, 
+    tenant_id: str,
+    update: TenantUpdate,
     service: TenantService = Depends(get_tenant_service),
     user: dict = Depends(get_current_user)
 ) -> TenantResponse:
@@ -214,8 +214,8 @@ async def update_tenant(
     description="Soft-delete a tenant (sets is_active to False). Use hard delete for permanent removal.",
 )
 async def delete_tenant(
-    tenant_id: str, 
-    hard: bool = False, 
+    tenant_id: str,
+    hard: bool = False,
     service: TenantService = Depends(get_tenant_service),
     user: dict = Depends(get_current_user)
 ) -> None:
@@ -246,7 +246,7 @@ async def delete_tenant(
     description="Re-validate tenant credentials against Microsoft Graph.",
 )
 async def validate_tenant_credentials(
-    tenant_id: str, 
+    tenant_id: str,
     service: TenantService = Depends(get_tenant_service),
     user: dict = Depends(get_current_user)
 ):

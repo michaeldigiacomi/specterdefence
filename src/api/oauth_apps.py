@@ -3,7 +3,6 @@
 
 from src.api.auth_local import get_authorized_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
-from src.api.auth_local import get_authorized_tenant
 from fastapi import status as http_status
 import uuid
 from pydantic import BaseModel, Field
