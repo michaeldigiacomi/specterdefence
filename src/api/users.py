@@ -1,7 +1,8 @@
 """Users API endpoints."""
 
-from typing import List
+from typing import List, Any
 from datetime import datetime
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -27,7 +28,7 @@ class UserUpdate(BaseModel):
     password: str | None = Field(None, min_length=8)
 
 class UserResponse(BaseModel):
-    id: int
+    id: Any
     username: str
     is_active: bool
     is_admin: bool
@@ -39,7 +40,7 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 class TenantLightResponse(BaseModel):
-    id: str
+    id: Any
     name: str
 
     class Config:
