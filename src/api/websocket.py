@@ -4,11 +4,12 @@ import asyncio
 import json
 import logging
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.auth_local import verify_token, get_current_user
+from src.api.auth_local import get_authorized_tenant, get_current_user, verify_token
 from src.database import get_db
 from src.services.alert_stream import AlertStreamManager, AlertStreamService
 
@@ -127,7 +128,16 @@ class ConnectionManager:
 
         # Filter by tenant
         tenant_filter = filters.get("tenant_id")
-        return not (tenant_filter and message.get("tenant_id") != tenant_filter)
+        if not tenant_filter:
+            return True
+            
+        msg_tenant = message.get("tenant_id")
+        if tenant_filter == "NONE":
+            return msg_tenant == "NONE_ASSIGNED"
+        elif isinstance(tenant_filter, list):
+            return msg_tenant in tenant_filter
+        else:
+            return msg_tenant == tenant_filter
 
     def get_connection_count(self) -> int:
         """Get total number of active connections."""
@@ -148,7 +158,7 @@ async def alert_websocket(
     token: str | None = Query(None, description="JWT authentication token"),
     severity: str | None = Query(None, description="Filter by severity (comma-separated)"),
     event_types: str | None = Query(None, description="Filter by event types (comma-separated)"),
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """WebSocket endpoint for real-time alert streaming.

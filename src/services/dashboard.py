@@ -36,6 +36,15 @@ class DashboardService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    def _apply_tenant_filter(self, query: Any, model_class: Any, tenant_id: str | list[str] | None) -> Any:
+        if tenant_id is None:
+            return query
+        if tenant_id == "NONE":
+            return query.where(model_class.tenant_id == "NONE_ASSIGNED")
+        if isinstance(tenant_id, list):
+            return query.where(model_class.tenant_id.in_(tenant_id))
+        return query.where(model_class.tenant_id == tenant_id)
+
     def _get_time_range(self, time_range: TimeRange) -> tuple[datetime, datetime, datetime]:
         """Calculate start and end dates for a time range."""
         end_date = datetime.now(timezone.utc)
@@ -79,8 +88,7 @@ class DashboardService:
             )
         )
 
-        if tenant_id:
-            query = query.where(LoginAnalyticsModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, LoginAnalyticsModel, tenant_id)
 
         result = await self.db.execute(query)
         logins = result.scalars().all()
@@ -136,8 +144,7 @@ class DashboardService:
                 LoginAnalyticsModel.login_time < start_date,
             )
         )
-        if tenant_id:
-            prev_query = prev_query.where(LoginAnalyticsModel.tenant_id == tenant_id)
+        prev_query = self._apply_tenant_filter(prev_query, LoginAnalyticsModel, tenant_id)
 
         prev_result = await self.db.execute(prev_query)
         prev_total = len(prev_result.scalars().all())
@@ -145,7 +152,7 @@ class DashboardService:
 
         change_percent = 0.0
         if prev_total > 0:
-            change_percent = round(((current_total - prev_total) / prev_total) * 100, 2)
+            change_percent = round(float(((current_total - prev_total) / prev_total) * 100), 2)
 
         return LoginActivityTimeline(
             data=points,
@@ -210,8 +217,7 @@ class DashboardService:
             )
         )
 
-        if tenant_id:
-            query = query.where(LoginAnalyticsModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, LoginAnalyticsModel, tenant_id)
 
         query = query.group_by(
             LoginAnalyticsModel.country_code,
@@ -237,7 +243,7 @@ class DashboardService:
                         longitude=row.longitude,
                         login_count=row.login_count,
                         user_count=row.user_count,
-                        risk_score_avg=round(row.avg_risk or 0, 2),
+                        risk_score_avg=round(float(row.avg_risk or 0), 2),
                     )
                 )
 
@@ -268,8 +274,7 @@ class DashboardService:
             )
         )
 
-        if tenant_id:
-            query = query.where(LoginAnalyticsModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, LoginAnalyticsModel, tenant_id)
 
         result = await self.db.execute(query)
         logins = result.scalars().all()
@@ -318,15 +323,14 @@ class DashboardService:
                 cast(LoginAnalyticsModel.anomaly_flags, String) != '[]',
             )
         )
-        if tenant_id:
-            prev_query = prev_query.where(LoginAnalyticsModel.tenant_id == tenant_id)
+        prev_query = self._apply_tenant_filter(prev_query, LoginAnalyticsModel, tenant_id)
 
         prev_result = await self.db.execute(prev_query)
         prev_count = len(prev_result.scalars().all())
 
         change_percent = 0.0
         if prev_count > 0:
-            change_percent = round(((total_anomalies - prev_count) / prev_count) * 100, 2)
+            change_percent = round(float(((total_anomalies - prev_count) / prev_count) * 100), 2)
 
         return AnomalyTrendData(
             data=points,
@@ -379,8 +383,7 @@ class DashboardService:
             func.max(LoginAnalyticsModel.login_time).label("last_anomaly"),
         ).where(cast(LoginAnalyticsModel.anomaly_flags, String) != '[]')
 
-        if tenant_id:
-            query = query.where(LoginAnalyticsModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, LoginAnalyticsModel, tenant_id)
 
         query = (
             query.group_by(LoginAnalyticsModel.user_email, LoginAnalyticsModel.tenant_id)
@@ -432,7 +435,7 @@ class DashboardService:
 
             total_risk += row.max_risk
 
-        avg_risk = round(total_risk / len(users), 2) if users else 0.0
+        avg_risk = round(float(total_risk / len(users)), 2) if users else 0.0
 
         return TopRiskUsersData(users=users, total_users=len(users), avg_risk_score=avg_risk)
 
@@ -448,8 +451,7 @@ class DashboardService:
             and_(AlertHistoryModel.sent_at >= start_date, AlertHistoryModel.sent_at <= end_date)
         )
 
-        if tenant_id:
-            query = query.where(AlertHistoryModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, AlertHistoryModel, tenant_id)
 
         result = await self.db.execute(query)
         alerts = result.all()
@@ -562,8 +564,7 @@ class DashboardService:
             )
         )
 
-        if tenant_id:
-            query = query.where(LoginAnalyticsModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, LoginAnalyticsModel, tenant_id)
 
         result = await self.db.execute(query)
         rows = result.all()
@@ -583,8 +584,8 @@ class DashboardService:
         for anomaly_type, stats in sorted(
             type_stats.items(), key=lambda x: x[1]["count"], reverse=True
         ):
-            percentage = round((stats["count"] / total_count) * 100, 2) if total_count > 0 else 0
-            avg_risk = round(stats["risk_sum"] / stats["count"], 2) if stats["count"] > 0 else 0
+            percentage = round(float((stats["count"] / total_count) * 100), 2) if total_count > 0 else 0
+            avg_risk = round(float(stats["risk_sum"] / stats["count"]), 2) if stats["count"] > 0 else 0
 
             breakdown.append(
                 AnomalyTypeBreakdown(
@@ -605,8 +606,7 @@ class DashboardService:
 
         # Login stats (24h)
         login_query = select(LoginAnalyticsModel).where(LoginAnalyticsModel.login_time >= day_ago)
-        if tenant_id:
-            login_query = login_query.where(LoginAnalyticsModel.tenant_id == tenant_id)
+        login_query = self._apply_tenant_filter(login_query, LoginAnalyticsModel, tenant_id)
 
         login_result = await self.db.execute(login_query)
         logins = login_result.scalars().all()
@@ -622,8 +622,7 @@ class DashboardService:
                 cast(LoginAnalyticsModel.anomaly_flags, String) != '[]',
             )
         )
-        if tenant_id:
-            anomaly_query = anomaly_query.where(LoginAnalyticsModel.tenant_id == tenant_id)
+        anomaly_query = self._apply_tenant_filter(anomaly_query, LoginAnalyticsModel, tenant_id)
 
         anomaly_result = await self.db.execute(anomaly_query)
         anomaly_logins = anomaly_result.scalars().all()
@@ -631,8 +630,7 @@ class DashboardService:
 
         # Alerts today
         alert_query = select(AlertHistoryModel).where(AlertHistoryModel.sent_at >= today_start)
-        if tenant_id:
-            alert_query = alert_query.where(AlertHistoryModel.tenant_id == tenant_id)
+        alert_query = self._apply_tenant_filter(alert_query, AlertHistoryModel, tenant_id)
 
         alert_result = await self.db.execute(alert_query)
         alerts_today = len(alert_result.scalars().all())
@@ -648,8 +646,7 @@ class DashboardService:
         risk_query = select(func.avg(LoginAnalyticsModel.risk_score)).where(
             LoginAnalyticsModel.login_time >= day_ago
         )
-        if tenant_id:
-            risk_query = risk_query.where(LoginAnalyticsModel.tenant_id == tenant_id)
+        risk_query = self._apply_tenant_filter(risk_query, LoginAnalyticsModel, tenant_id)
 
         risk_result = await self.db.execute(risk_query)
         avg_risk = risk_result.scalar() or 0
@@ -669,8 +666,7 @@ class DashboardService:
 
         # Posture metrics
         mfa_query = select(MFAUserModel)
-        if tenant_id:
-            mfa_query = mfa_query.where(MFAUserModel.tenant_id == tenant_id)
+        mfa_query = self._apply_tenant_filter(mfa_query, MFAUserModel, tenant_id)
         mfa_result = await self.db.execute(mfa_query)
         mfa_users = mfa_result.scalars().all()
         
@@ -681,24 +677,21 @@ class DashboardService:
         oauth_query = select(func.count(OAuthAppModel.id)).where(
             OAuthAppModel.risk_level.in_([RiskLevel.HIGH, RiskLevel.CRITICAL])
         )
-        if tenant_id:
-            oauth_query = oauth_query.where(OAuthAppModel.tenant_id == tenant_id)
+        oauth_query = self._apply_tenant_filter(oauth_query, OAuthAppModel, tenant_id)
         oauth_result = await self.db.execute(oauth_query)
         high_risk_oauth_apps = oauth_result.scalar() or 0
 
         ca_query = select(func.count(CAPolicyModel.id)).where(
             CAPolicyModel.state == PolicyState.DISABLED
         )
-        if tenant_id:
-            ca_query = ca_query.where(CAPolicyModel.tenant_id == tenant_id)
+        ca_query = self._apply_tenant_filter(ca_query, CAPolicyModel, tenant_id)
         ca_result = await self.db.execute(ca_query)
         disabled_ca_policies = ca_result.scalar() or 0
 
         rule_query = select(func.count(MailboxRuleModel.id)).where(
             MailboxRuleModel.status.in_([RuleStatus.SUSPICIOUS, RuleStatus.MALICIOUS])
         )
-        if tenant_id:
-            rule_query = rule_query.where(MailboxRuleModel.tenant_id == tenant_id)
+        rule_query = self._apply_tenant_filter(rule_query, MailboxRuleModel, tenant_id)
         rule_result = await self.db.execute(rule_query)
         suspicious_mailbox_rules = rule_result.scalar() or 0
 
@@ -709,10 +702,10 @@ class DashboardService:
             anomalies_today=anomalies_today,
             alerts_today=alerts_today,
             active_tenants=active_tenants,
-            avg_risk_score=round(avg_risk, 2),
-            login_success_rate=round(success_rate, 2),
-            top_threats=top_threats,
-            mfa_compliance_rate=round(mfa_compliance_rate, 2),
+            avg_risk_score=round(float(avg_risk), 2),
+            login_success_rate=round(float(success_rate), 2),
+            anomalies_per_user=round(float(anomalies_today / active_users) if active_users > 0 else 0, 2),
+            mfa_compliance_rate=round(float(mfa_compliance_rate), 2),
             high_risk_oauth_apps=high_risk_oauth_apps,
             disabled_ca_policies=disabled_ca_policies,
             suspicious_mailbox_rules=suspicious_mailbox_rules,

@@ -3,11 +3,20 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, DateTime, String, Table, Column, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
 from src.models.types import UUID
+
+
+user_tenants = Table(
+    "user_tenants",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("tenant_id", ForeignKey("tenants.id", ondelete="CASCADE"), primary_key=True),
+)
+
 
 
 def utc_now() -> datetime:
@@ -51,3 +60,7 @@ class TenantModel(Base):
 
     def __repr__(self) -> str:
         return f"<Tenant(id={self.id}, name={self.name}, tenant_id={self.tenant_id}, status={self.connection_status})>"
+
+    # Relationship to user
+    users = relationship("UserModel", secondary="user_tenants", back_populates="tenants")
+

@@ -1,7 +1,9 @@
 """Conditional Access policies API endpoints for SpecterDefence."""
 
 
+from src.api.auth_local import get_authorized_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
+from src.api.auth_local import get_authorized_tenant
 from fastapi import status as http_status
 import uuid
 from pydantic import BaseModel, Field
@@ -165,7 +167,7 @@ def _format_alert_response(alert: CAPolicyAlertModel) -> CAPolicyAlertResponse:
     description="List Conditional Access policies across all tenants with optional filtering.",
 )
 async def list_ca_policies(
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     state: str | None = None,
     is_baseline_policy: bool | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
@@ -416,7 +418,7 @@ async def scan_ca_policies(
     description="List Conditional Access policy changes across all tenants with optional filtering.",
 )
 async def list_policy_changes(
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     change_type: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
@@ -469,7 +471,7 @@ async def list_policy_changes(
     description="List Conditional Access policy alerts with optional filtering.",
 )
 async def list_ca_policy_alerts(
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     acknowledged: bool | None = None,
     severity: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),

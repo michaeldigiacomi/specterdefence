@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
 
@@ -32,6 +32,9 @@ class UserModel(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
+    
+    # Relationship to tenants
+    tenants = relationship("TenantModel", secondary="user_tenants", back_populates="users")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, username={self.username}, is_active={self.is_active})>"

@@ -41,6 +41,15 @@ class LoginAnalyticsService:
         self.detector = anomaly_detector or AnomalyDetector()
         self.threat_intel = threat_intel_client or get_threat_intel_client()
 
+    def _apply_tenant_filter(self, query: Any, model_class: Any, tenant_id: str | list[str] | None) -> Any:
+        if tenant_id is None:
+            return query
+        if tenant_id == "NONE":
+            return query.where(model_class.tenant_id == "NONE_ASSIGNED")
+        if isinstance(tenant_id, list):
+            return query.where(model_class.tenant_id.in_(tenant_id))
+        return query.where(model_class.tenant_id == tenant_id)
+
     async def process_login_event(
         self,
         user_email: str,
@@ -261,7 +270,7 @@ class LoginAnalyticsService:
 
     async def query_logins(
         self,
-        tenant_id: str | None = None,
+        tenant_id: str | list[str] | None = None,
         user_email: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
@@ -286,8 +295,8 @@ class LoginAnalyticsService:
 
         filters = []
 
-        if tenant_id:
-            filters.append(LoginAnalyticsModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, LoginAnalyticsModel, tenant_id)
+        count_query = self._apply_tenant_filter(count_query, LoginAnalyticsModel, tenant_id)
 
         if user_email:
             filters.append(LoginAnalyticsModel.user_email == user_email)
@@ -442,6 +451,11 @@ class LoginAnalyticsService:
         for log in logs:
             try:
                 raw_data = log.raw_data
+                
+                if not isinstance(raw_data, dict):
+                    logger.warning(f"Skipping audit log {log.id}: raw_data is not a dict")
+                    log.processed = True
+                    continue
 
                 # Extract relevant fields from O365 signin log
                 user_email = raw_data.get("UserId") or raw_data.get("UserPrincipalName")
@@ -463,12 +477,25 @@ class LoginAnalyticsService:
                     login_time = log.o365_created_at or log.created_at
 
                 # Determine success/failure
-                status = raw_data.get("Status", {})
-                is_success = status.get("ErrorCode") == 0 if isinstance(status, dict) else True
-
+                is_success = True
                 failure_reason = None
-                if not is_success and isinstance(status, dict):
-                    failure_reason = status.get("FailureReason") or status.get("AdditionalDetails")
+
+                if "ResultStatus" in raw_data:
+                    is_success = raw_data.get("ResultStatus") == "Success"
+                    if not is_success:
+                        # Try to find reason in ExtendedProperties
+                        ext_props = raw_data.get("ExtendedProperties", [])
+                        if isinstance(ext_props, list):
+                            for prop in ext_props:
+                                if isinstance(prop, dict) and prop.get("Name") == "ResultStatusDetail":
+                                    failure_reason = prop.get("Value")
+                                    break
+                elif "Status" in raw_data:
+                    status = raw_data.get("Status", {})
+                    if isinstance(status, dict):
+                        is_success = status.get("ErrorCode") == 0
+                        if not is_success:
+                            failure_reason = status.get("FailureReason") or status.get("AdditionalDetails")
 
                 # Process the login event
                 await self.process_login_event(

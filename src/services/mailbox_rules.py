@@ -43,6 +43,15 @@ class MailboxRuleService:
         """
         self.db = db_session
 
+    def _apply_tenant_filter(self, query: Any, model_class: Any, tenant_id: str | list[str] | None) -> Any:
+        if tenant_id is None:
+            return query
+        if tenant_id == "NONE":
+            return query.where(model_class.tenant_id == "NONE_ASSIGNED")
+        if isinstance(tenant_id, list):
+            return query.where(model_class.tenant_id.in_(tenant_id))
+        return query.where(model_class.tenant_id == tenant_id)
+
     async def scan_tenant_mailbox_rules(
         self, tenant_id: str, trigger_alerts: bool = True
     ) -> dict[str, Any]:
@@ -399,7 +408,7 @@ class MailboxRuleService:
 
     async def get_rules(
         self,
-        tenant_id: str | None = None,
+        tenant_id: str | list[str] | None = None,
         user_email: str | None = None,
         status: RuleStatus | None = None,
         severity: RuleSeverity | None = None,
@@ -425,7 +434,12 @@ class MailboxRuleService:
 
         # Apply filters
         if tenant_id:
-            query = query.where(MailboxRuleModel.tenant_id == tenant_id)
+            if tenant_id == "NONE":
+                query = query.where(MailboxRuleModel.tenant_id == "NONE_ASSIGNED")
+            elif isinstance(tenant_id, list):
+                query = query.where(MailboxRuleModel.tenant_id.in_(tenant_id))
+            else:
+                query = query.where(MailboxRuleModel.tenant_id == tenant_id)
         if user_email:
             query = query.where(MailboxRuleModel.user_email == user_email)
         if status:
@@ -469,7 +483,7 @@ class MailboxRuleService:
         return result.scalar_one_or_none()
 
     async def get_suspicious_rules(
-        self, tenant_id: str | None = None, limit: int = 100
+        self, tenant_id: str | list[str] | None = None, limit: int = 100
     ) -> list[MailboxRuleModel]:
         """Get suspicious and malicious rules.
 
@@ -485,7 +499,12 @@ class MailboxRuleService:
         )
 
         if tenant_id:
-            query = query.where(MailboxRuleModel.tenant_id == tenant_id)
+            if tenant_id == "NONE":
+                query = query.where(MailboxRuleModel.tenant_id == "NONE_ASSIGNED")
+            elif isinstance(tenant_id, list):
+                query = query.where(MailboxRuleModel.tenant_id.in_(tenant_id))
+            else:
+                query = query.where(MailboxRuleModel.tenant_id == tenant_id)
 
         query = query.order_by(desc(MailboxRuleModel.severity))
         query = query.limit(limit)
@@ -495,7 +514,7 @@ class MailboxRuleService:
 
     async def get_alerts(
         self,
-        tenant_id: str | None = None,
+        tenant_id: str | list[str] | None = None,
         acknowledged: bool | None = None,
         severity: RuleSeverity | None = None,
         limit: int = 100,
@@ -515,8 +534,7 @@ class MailboxRuleService:
         """
         query = select(MailboxRuleAlertModel)
 
-        if tenant_id:
-            query = query.where(MailboxRuleAlertModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, MailboxRuleAlertModel, tenant_id)
         if acknowledged is not None:
             query = query.where(MailboxRuleAlertModel.is_acknowledged == acknowledged)
         if severity:

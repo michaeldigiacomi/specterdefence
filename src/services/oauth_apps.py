@@ -46,6 +46,15 @@ class OAuthAppsService:
         """
         self.db = db_session
 
+    def _apply_tenant_filter(self, query: Any, model_class: Any, tenant_id: str | list[str] | None) -> Any:
+        if tenant_id is None:
+            return query
+        if tenant_id == "NONE":
+            return query.where(model_class.tenant_id == "NONE_ASSIGNED")
+        if isinstance(tenant_id, list):
+            return query.where(model_class.tenant_id.in_(tenant_id))
+        return query.where(model_class.tenant_id == tenant_id)
+
     async def scan_tenant_oauth_apps(
         self, tenant_id: str, trigger_alerts: bool = True
     ) -> dict[str, Any]:
@@ -609,7 +618,7 @@ class OAuthAppsService:
 
     async def get_apps(
         self,
-        tenant_id: str | None = None,
+        tenant_id: str | list[str] | None = None,
         status: AppStatus | None = None,
         risk_level: RiskLevel | None = None,
         publisher_type: PublisherType | None = None,
@@ -636,8 +645,7 @@ class OAuthAppsService:
         query = select(OAuthAppModel)
 
         # Apply filters
-        if tenant_id:
-            query = query.where(OAuthAppModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, OAuthAppModel, tenant_id)
         if status:
             query = query.where(OAuthAppModel.status == status)
         if risk_level:
@@ -698,7 +706,7 @@ class OAuthAppsService:
         return result.scalar_one_or_none()
 
     async def get_suspicious_apps(
-        self, tenant_id: str | None = None, limit: int = 100
+        self, tenant_id: str | list[str] | None = None, limit: int = 100
     ) -> list[OAuthAppModel]:
         """Get suspicious and malicious apps.
 
@@ -713,8 +721,7 @@ class OAuthAppsService:
             OAuthAppModel.status.in_([AppStatus.SUSPICIOUS, AppStatus.MALICIOUS])
         )
 
-        if tenant_id:
-            query = query.where(OAuthAppModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, OAuthAppModel, tenant_id)
 
         query = query.order_by(desc(OAuthAppModel.risk_score))
         query = query.limit(limit)
@@ -723,7 +730,7 @@ class OAuthAppsService:
         return list(result.scalars().all())
 
     async def get_high_risk_apps(
-        self, tenant_id: str | None = None, limit: int = 100
+        self, tenant_id: str | list[str] | None = None, limit: int = 100
     ) -> list[OAuthAppModel]:
         """Get high-risk and critical apps.
 
@@ -738,8 +745,7 @@ class OAuthAppsService:
             OAuthAppModel.risk_level.in_([RiskLevel.HIGH, RiskLevel.CRITICAL])
         )
 
-        if tenant_id:
-            query = query.where(OAuthAppModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, OAuthAppModel, tenant_id)
 
         query = query.order_by(desc(OAuthAppModel.risk_score))
         query = query.limit(limit)

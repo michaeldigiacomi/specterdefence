@@ -6,14 +6,15 @@ from datetime import UTC, datetime, timedelta
 
 # Use bcrypt directly to avoid passlib compatibility issues with newer bcrypt versions
 import bcrypt as bcrypt_lib
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from src.api.auth_local import get_authorized_tenant
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
 from sqlalchemy import select
 
 from src.config import settings
-from src.database import async_session_maker
+from src.database import async_session_maker, get_db
 from src.models.user import UserModel
 
 router = APIRouter()
@@ -221,19 +222,76 @@ async def get_current_user(
         )
 
     username = payload.get("sub")
-    if username != settings.ADMIN_USERNAME:
+    if not username:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return {"username": username}
+    async with async_session_maker() as session:
+        result = await session.execute(select(UserModel).where(UserModel.username == username))
+        user = result.scalar_one_or_none()
+
+        if not user or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found or inactive",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+    return {"id": user.id, "username": user.username, "is_admin": user.is_admin}
 
 
 async def require_auth(user: dict = Depends(get_current_user)) -> dict:
     """Dependency that requires authentication."""
     return user
+
+
+async def require_admin(user: dict = Depends(get_current_user)) -> dict:
+    """Dependency that requires admin authentication."""
+    if not user.get("is_admin", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required",
+        )
+    return user
+
+
+async def get_authorized_tenant(
+    tenant_id: str | None = Query(None),
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db)
+) -> str | list[str] | None:
+    """Returns requested tenant_id if authorized, or list of authorized tenants."""
+    if user.get("is_admin"):
+        return tenant_id
+
+    # For standard users, load their assigned tenants
+    from sqlalchemy.orm import selectinload
+    from sqlalchemy import select
+    from src.models.user import UserModel
+    
+    result = await db.execute(
+        select(UserModel).options(selectinload(UserModel.tenants)).where(UserModel.id == user["id"])
+    )
+    db_user = result.scalar()
+    
+    if not db_user:
+        raise HTTPException(status_code=401, detail="User not found")
+        
+    allowed_ids = [str(t.id) for t in db_user.tenants]
+    
+    if tenant_id:
+        if tenant_id not in allowed_ids:
+            raise HTTPException(status_code=403, detail="Access denied to this tenant")
+        return tenant_id
+        
+    if not allowed_ids:
+        # Return a dummy string that won't match any tenant
+        return "NONE"
+        
+    return allowed_ids
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -253,19 +311,25 @@ async def login(request: LoginRequest, req: Request):
     # Record this attempt
     _record_attempt(client_ip)
 
-    # Verify username
-    if request.username != settings.ADMIN_USERNAME:
+    async with async_session_maker() as session:
+        # Check if first-time admin setup or get existing admin
+        if request.username == settings.ADMIN_USERNAME:
+            user = await get_or_create_admin_user()
+        else:
+            result = await session.execute(
+                select(UserModel).where(UserModel.username == request.username)
+            )
+            user = result.scalar_one_or_none()
+
+    if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Get password hash from database (creates from env var if first time)
-    admin_hash = await get_admin_password_hash()
-
     # Verify password
-    if not verify_password(request.password, admin_hash):
+    if not verify_password(request.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
@@ -281,7 +345,7 @@ async def login(request: LoginRequest, req: Request):
     # Create access token (reduced to 2 hours for security)
     access_token_expires = timedelta(hours=2)
     access_token = create_access_token(
-        data={"sub": settings.ADMIN_USERNAME}, expires_delta=access_token_expires
+        data={"sub": request.username}, expires_delta=access_token_expires
     )
 
     return LoginResponse(
@@ -319,11 +383,20 @@ class ChangePasswordResponse(BaseModel):
 @router.post("/change-password", response_model=ChangePasswordResponse)
 async def change_password(request: ChangePasswordRequest, user: dict = Depends(get_current_user)):
     """Change the current user's password."""
-    # Get current password hash from database
-    admin_hash = await get_admin_password_hash()
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(UserModel).where(UserModel.username == user["username"])
+        )
+        db_user = result.scalar_one_or_none()
+
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found",
+        )
 
     # Verify current password
-    if not verify_password(request.current_password, admin_hash):
+    if not verify_password(request.current_password, db_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Current password is incorrect",
@@ -340,7 +413,14 @@ async def change_password(request: ChangePasswordRequest, user: dict = Depends(g
     new_hash = get_password_hash(request.new_password)
 
     # Save to database
-    await update_admin_password(new_hash)
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(UserModel).where(UserModel.username == user["username"])
+        )
+        db_user_update = result.scalar_one()
+        db_user_update.password_hash = new_hash
+        db_user_update.updated_at = datetime.now()
+        await session.commit()
 
     return ChangePasswordResponse(
         message="Password changed successfully. Please log in again with your new password.",

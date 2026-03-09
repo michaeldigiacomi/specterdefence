@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
+from src.api.auth_local import get_authorized_tenant
 from src.models.mfa_report import (
     MFAComplianceReport,
     MFAEnrollmentSummary,
@@ -108,7 +109,7 @@ def _format_user_response(user: MFAUserModel) -> MFAUserResponse:
     description="Get a summary of MFA enrollment for a tenant.",
 )
 async def get_mfa_summary(
-    tenant_id: str = Query(..., description="Tenant UUID"),
+    tenant_id: list[str] = Depends(get_authorized_tenant),
     service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAEnrollmentSummary:
     """Get MFA enrollment summary for a tenant.
@@ -154,7 +155,7 @@ async def get_mfa_summary(
     description="List users with their MFA enrollment status.",
 )
 async def list_mfa_users(
-    tenant_id: str = Query(..., description="Tenant UUID"),
+    tenant_id: list[str] = Depends(get_authorized_tenant),
     is_mfa_registered: bool | None = Query(None, description="Filter by MFA registration"),
     is_admin: bool | None = Query(None, description="Filter by admin status"),
     mfa_strength: str
@@ -215,7 +216,7 @@ async def list_mfa_users(
     description="Get all users without MFA registration (non-compliant).",
 )
 async def get_users_without_mfa(
-    tenant_id: str = Query(..., description="Tenant UUID"),
+    tenant_id: list[str] = Depends(get_authorized_tenant),
     include_exempt: bool = Query(default=False, description="Include exempt users"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
@@ -259,7 +260,7 @@ async def get_users_without_mfa(
     description="Get admin users without MFA registration. This is a critical security finding!",
 )
 async def get_admins_without_mfa(
-    tenant_id: str = Query(..., description="Tenant UUID"),
+    tenant_id: list[str] = Depends(get_authorized_tenant),
     limit: int = Query(default=100, ge=1, le=500),
     service: MFAReportService = Depends(get_mfa_report_service),
 ) -> AdminsWithoutMFAResponse:
@@ -298,7 +299,7 @@ async def get_admins_without_mfa(
     description="Get MFA enrollment trends over time.",
 )
 async def get_mfa_trends(
-    tenant_id: str = Query(..., description="Tenant UUID"),
+    tenant_id: list[str] = Depends(get_authorized_tenant),
     days: int = Query(default=30, ge=1, le=365, description="Number of days to look back"),
     service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAEnrollmentTrendsResponse:
@@ -331,7 +332,7 @@ async def get_mfa_trends(
     description="Get the distribution of MFA methods used by users.",
 )
 async def get_method_distribution(
-    tenant_id: str = Query(..., description="Tenant UUID"),
+    tenant_id: list[str] = Depends(get_authorized_tenant),
     service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAMethodsDistributionResponse:
     """Get distribution of MFA methods.
@@ -359,7 +360,7 @@ async def get_method_distribution(
     description="Get the distribution of MFA strength levels.",
 )
 async def get_strength_distribution(
-    tenant_id: str = Query(..., description="Tenant UUID"),
+    tenant_id: list[str] = Depends(get_authorized_tenant),
     service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAStrengthDistributionResponse:
     """Get distribution of MFA strength levels.
@@ -390,7 +391,7 @@ async def get_strength_distribution(
     description="Get a comprehensive MFA compliance report including recommendations.",
 )
 async def get_compliance_report(
-    tenant_id: str = Query(..., description="Tenant UUID"),
+    tenant_id: list[str] = Depends(get_authorized_tenant),
     service: MFAReportService = Depends(get_mfa_report_service),
 ) -> MFAComplianceReport:
     """Get comprehensive MFA compliance report.
@@ -599,7 +600,7 @@ async def set_user_exemption(
     description="List MFA compliance alerts with optional filtering.",
 )
 async def list_mfa_alerts(
-    tenant_id: str | None = Query(None, description="Tenant UUID"),
+    tenant_id: list[str] = Depends(get_authorized_tenant),
     resolved: bool | None = Query(None, description="Filter by resolution status"),
     severity: str
     | None = Query(None, description="Filter by severity (critical, high, medium, low)"),

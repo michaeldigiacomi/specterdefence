@@ -17,6 +17,7 @@ from src.api import (
     oauth_apps,
     settings,
     tenants,
+    users,
     websocket,
 )
 
@@ -31,6 +32,7 @@ router.include_router(websocket.router, prefix="/ws", tags=["websocket"])
 protected_deps = [Depends(get_current_user)]
 
 router.include_router(auth.router, prefix="/auth", tags=["authentication"], dependencies=protected_deps)
+router.include_router(users.router, prefix="/users", tags=["users"], dependencies=protected_deps)
 router.include_router(tenants.router, prefix="/tenants", tags=["tenants"], dependencies=protected_deps)
 router.include_router(analytics.router, prefix="/analytics", tags=["analytics"], dependencies=protected_deps)
 router.include_router(alerts.router, prefix="/alerts", tags=["alerts"], dependencies=protected_deps)
@@ -40,4 +42,3 @@ router.include_router(ca_policies.router, prefix="/ca-policies", tags=["ca-polic
 router.include_router(mfa_report.router, prefix="/mfa-report", tags=["mfa-report"], dependencies=protected_deps)
 router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"], dependencies=protected_deps)
 router.include_router(settings.router, prefix="/settings", tags=["settings"], dependencies=protected_deps)
-

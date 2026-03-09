@@ -3,6 +3,7 @@
 from typing import Any
 
 import uuid
+from src.api.auth_local import get_authorized_tenant
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -81,7 +82,7 @@ class UserPreferencesUpdate(BaseModel):
 class DetectionThresholdsResponse(BaseModel):
     """Detection thresholds response."""
 
-    tenant_id: str | None = None
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant)
 
     # Impossible travel
     impossible_travel_enabled: bool
@@ -137,7 +138,7 @@ class ApiKeyCreate(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=255)
     scopes: list[str]
-    tenant_id: str | None = None
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant)
     expires_days: int | None = Field(None, ge=1, le=365)
 
 
@@ -359,7 +360,7 @@ async def update_user_preferences(
     description="Get anomaly detection thresholds for a tenant or global defaults.",
 )
 async def get_detection_thresholds(
-    tenant_id: str | None = None, service: SettingsService = Depends(get_settings_service)
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant), service: SettingsService = Depends(get_settings_service)
 ) -> DetectionThresholdsResponse:
     """Get detection thresholds."""
     thresholds = await service.get_detection_thresholds(tenant_id)
@@ -393,7 +394,7 @@ async def get_detection_thresholds(
 )
 async def update_detection_thresholds(
     update: DetectionThresholdsUpdate,
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: SettingsService = Depends(get_settings_service),
 ) -> DetectionThresholdsResponse:
     """Update detection thresholds."""
@@ -457,7 +458,7 @@ async def create_api_key(
     description="List all API keys.",
 )
 async def list_api_keys(
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     include_inactive: bool = False,
     service: SettingsService = Depends(get_settings_service),
 ) -> list[ApiKeyResponse]:

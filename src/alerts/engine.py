@@ -320,7 +320,7 @@ class AlertEngine:
 
     async def get_alert_history(
         self,
-        tenant_id: str | None = None,
+        tenant_id: str | list[str] | None = None,
         event_type: str | None = None,
         severity: SeverityLevel | None = None,
         user_email: str | None = None,
@@ -344,9 +344,16 @@ class AlertEngine:
 
         # Apply filters
         if tenant_id:
-            query = query.where(
-                or_(AlertHistoryModel.tenant_id == tenant_id, AlertHistoryModel.tenant_id.is_(None))
-            )
+            if tenant_id == "NONE":
+                query = query.where(AlertHistoryModel.tenant_id == "NONE_ASSIGNED")
+            elif isinstance(tenant_id, list):
+                query = query.where(
+                    or_(AlertHistoryModel.tenant_id.in_(tenant_id), AlertHistoryModel.tenant_id.is_(None))
+                )
+            else:
+                query = query.where(
+                    or_(AlertHistoryModel.tenant_id == tenant_id, AlertHistoryModel.tenant_id.is_(None))
+                )
 
         if event_type:
             query = query.where(AlertHistoryModel.event_type == event_type)

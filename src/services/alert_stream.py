@@ -111,7 +111,12 @@ class AlertStreamService:
         if event_types:
             filters.append(AlertHistoryModel.event_type.in_(event_types))
         if tenant_id:
-            filters.append(AlertHistoryModel.tenant_id == tenant_id)
+            if tenant_id == "NONE":
+                filters.append(AlertHistoryModel.tenant_id == "NONE_ASSIGNED")
+            elif isinstance(tenant_id, list):
+                filters.append(AlertHistoryModel.tenant_id.in_(tenant_id))
+            else:
+                filters.append(AlertHistoryModel.tenant_id == tenant_id)
 
         if filters:
             query = query.where(and_(*filters))

@@ -6,6 +6,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.auth_local import get_authorized_tenant
 from src.database import get_db
 from src.models.dashboard import (
     AlertVolumeData,
@@ -44,7 +45,7 @@ async def get_dashboard_service(db: AsyncSession = Depends(get_db)) -> Dashboard
     description="Get summary statistics for the dashboard.",
 )
 async def get_dashboard_summary(
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: DashboardService = Depends(get_dashboard_service),
 ) -> DashboardSummary:
     """Get dashboard summary statistics."""
@@ -66,7 +67,7 @@ async def get_dashboard_summary(
 )
 async def get_login_timeline(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: DashboardService = Depends(get_dashboard_service),
 ) -> LoginActivityTimeline:
     """Get login activity timeline chart data."""
@@ -88,7 +89,7 @@ async def get_login_timeline(
 )
 async def get_geo_heatmap(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: DashboardService = Depends(get_dashboard_service),
 ) -> GeoHeatmapData:
     """Get geographic heatmap data."""
@@ -110,7 +111,7 @@ async def get_geo_heatmap(
 )
 async def get_anomaly_trend(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: DashboardService = Depends(get_dashboard_service),
 ) -> AnomalyTrendData:
     """Get anomaly trend chart data."""
@@ -132,7 +133,7 @@ async def get_anomaly_trend(
 )
 async def get_top_risk_users(
     limit: int = Query(10, ge=1, le=50, description="Number of users to return"),
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: DashboardService = Depends(get_dashboard_service),
 ) -> TopRiskUsersData:
     """Get top risk users list."""
@@ -154,7 +155,7 @@ async def get_top_risk_users(
 )
 async def get_alert_volume(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: DashboardService = Depends(get_dashboard_service),
 ) -> AlertVolumeData:
     """Get alert volume chart data."""
@@ -176,7 +177,7 @@ async def get_alert_volume(
 )
 async def get_anomaly_breakdown(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: DashboardService = Depends(get_dashboard_service),
 ) -> list[AnomalyTypeBreakdown]:
     """Get anomaly type breakdown."""
@@ -198,7 +199,7 @@ async def get_anomaly_breakdown(
 )
 async def get_full_dashboard(
     time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: DashboardService = Depends(get_dashboard_service),
 ) -> DashboardDataResponse:
     """Get complete dashboard data."""
@@ -243,7 +244,7 @@ async def get_full_dashboard(
 )
 async def export_dashboard(
     request: ExportRequest,
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: DashboardService = Depends(get_dashboard_service),
 ) -> ExportResponse:
     """Export dashboard data."""

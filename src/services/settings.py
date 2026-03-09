@@ -139,7 +139,7 @@ class SettingsService:
     # ========== Detection Thresholds ==========
 
     async def get_detection_thresholds(
-        self, tenant_id: str | None = None
+        self, tenant_id: str | list[str] | None = None
     ) -> DetectionThresholdsModel:
         """Get detection thresholds for a tenant (or global defaults).
 
@@ -150,12 +150,25 @@ class SettingsService:
             Detection thresholds model
         """
         if tenant_id:
-            result = await self.db.execute(
-                select(DetectionThresholdsModel).where(
-                    DetectionThresholdsModel.tenant_id == tenant_id
+            if tenant_id == "NONE":
+                result = await self.db.execute(
+                    select(DetectionThresholdsModel).where(
+                        DetectionThresholdsModel.tenant_id == "NONE_ASSIGNED"
+                    )
                 )
-            )
-            thresholds = result.scalar_one_or_none()
+            elif isinstance(tenant_id, list):
+                result = await self.db.execute(
+                    select(DetectionThresholdsModel).where(
+                        DetectionThresholdsModel.tenant_id.in_(tenant_id)
+                    )
+                )
+            else:
+                result = await self.db.execute(
+                    select(DetectionThresholdsModel).where(
+                        DetectionThresholdsModel.tenant_id == tenant_id
+                    )
+                )
+            thresholds = result.scalars().first()
             if thresholds:
                 return thresholds
 
@@ -253,7 +266,7 @@ class SettingsService:
         }
 
     async def list_api_keys(
-        self, tenant_id: str | None = None, include_inactive: bool = False
+        self, tenant_id: str | list[str] | None = None, include_inactive: bool = False
     ) -> list[ApiKeyModel]:
         """List API keys.
 
@@ -267,9 +280,18 @@ class SettingsService:
         query = select(ApiKeyModel)
 
         if tenant_id:
-            query = query.where(
-                (ApiKeyModel.tenant_id == tenant_id) | (ApiKeyModel.tenant_id.is_(None))
-            )
+            if tenant_id == "NONE":
+                query = query.where(
+                    (ApiKeyModel.tenant_id == "NONE_ASSIGNED") | (ApiKeyModel.tenant_id.is_(None))
+                )
+            elif isinstance(tenant_id, list):
+                query = query.where(
+                    (ApiKeyModel.tenant_id.in_(tenant_id)) | (ApiKeyModel.tenant_id.is_(None))
+                )
+            else:
+                query = query.where(
+                    (ApiKeyModel.tenant_id == tenant_id) | (ApiKeyModel.tenant_id.is_(None))
+                )
 
         if not include_inactive:
             query = query.where(ApiKeyModel.is_active.is_(True))

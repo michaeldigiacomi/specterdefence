@@ -1,7 +1,9 @@
 """OAuth applications API endpoints for SpecterDefence."""
 
 
+from src.api.auth_local import get_authorized_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
+from src.api.auth_local import get_authorized_tenant
 from fastapi import status as http_status
 import uuid
 from pydantic import BaseModel, Field
@@ -271,7 +273,7 @@ def _format_app_response(app: OAuthAppModel) -> OAuthAppResponse:
     description="List OAuth applications across all tenants with optional filtering.",
 )
 async def list_oauth_apps(
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     status: str | None = None,
     risk_level: str | None = None,
     publisher_type: str | None = None,
@@ -566,7 +568,7 @@ async def scan_oauth_apps(
     description="List OAuth app alerts with optional filtering.",
 )
 async def list_oauth_app_alerts(
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     acknowledged: bool | None = None,
     severity: str | None = None,
     limit: int = Query(default=100, ge=1, le=1000),

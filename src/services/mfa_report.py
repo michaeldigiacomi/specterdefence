@@ -77,7 +77,7 @@ class MFAReportService:
         logger.info(f"Starting MFA scan for tenant {tenant.name}")
 
         # Scan all users
-        results = {
+        results: dict[str, Any] = {
             "users_scanned": 0,
             "new_mfa_registrations": 0,
             "compliance_violations": 0,
@@ -425,7 +425,6 @@ class MFAReportService:
             mfa_coverage = (mfa_registered / total_users * 100) if total_users > 0 else 0
             admin_mfa_coverage = (admins_with_mfa / total_admins * 100) if total_admins > 0 else 0
 
-            # Create snapshot
             snapshot = MFAEnrollmentHistoryModel(
                 tenant_id=tenant_id,
                 snapshot_date=datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0),
@@ -443,8 +442,8 @@ class MFAReportService:
                 moderate_mfa_users=moderate_count,
                 weak_mfa_users=weak_count,
                 exempt_users=exempt_count,
-                mfa_coverage_percentage=round(mfa_coverage, 2),
-                admin_mfa_coverage_percentage=round(admin_mfa_coverage, 2),
+                mfa_coverage_percentage=round(float(mfa_coverage), 2),
+                admin_mfa_coverage_percentage=round(float(admin_mfa_coverage), 2),
             )
 
             # Check for existing snapshot for today
@@ -486,43 +485,50 @@ class MFAReportService:
             return None
 
     # Count helper methods
-    async def _get_count(self, tenant_id: str) -> int:
+    def _get_tenant_filter(self, model: Any, tenant_id: str | list[str]) -> Any:
+        if tenant_id == "NONE":
+            return model.tenant_id == "NONE_ASSIGNED"
+        elif isinstance(tenant_id, list):
+            return model.tenant_id.in_(tenant_id)
+        return model.tenant_id == tenant_id
+
+    async def _get_count(self, tenant_id: str | list[str]) -> int:
         """Get total user count."""
         result = await self.db.execute(
-            select(func.count(MFAUserModel.id)).where(MFAUserModel.tenant_id == tenant_id)
+            select(func.count(MFAUserModel.id)).where(self._get_tenant_filter(MFAUserModel, tenant_id))
         )
         return result.scalar() or 0
 
-    async def _get_mfa_registered_count(self, tenant_id: str) -> int:
+    async def _get_mfa_registered_count(self, tenant_id: str | list[str]) -> int:
         """Get MFA registered user count."""
         result = await self.db.execute(
             select(func.count(MFAUserModel.id)).where(
                 and_(
-                    MFAUserModel.tenant_id == tenant_id,
+                    self._get_tenant_filter(MFAUserModel, tenant_id),
                     MFAUserModel.is_mfa_registered,
                 )
             )
         )
         return result.scalar() or 0
 
-    async def _get_admin_count(self, tenant_id: str) -> int:
+    async def _get_admin_count(self, tenant_id: str | list[str]) -> int:
         """Get admin user count."""
         result = await self.db.execute(
             select(func.count(MFAUserModel.id)).where(
                 and_(
-                    MFAUserModel.tenant_id == tenant_id,
+                    self._get_tenant_filter(MFAUserModel, tenant_id),
                     MFAUserModel.is_admin,
                 )
             )
         )
         return result.scalar() or 0
 
-    async def _get_admin_with_mfa_count(self, tenant_id: str) -> int:
+    async def _get_admin_with_mfa_count(self, tenant_id: str | list[str]) -> int:
         """Get admin users with MFA count."""
         result = await self.db.execute(
             select(func.count(MFAUserModel.id)).where(
                 and_(
-                    MFAUserModel.tenant_id == tenant_id,
+                    self._get_tenant_filter(MFAUserModel, tenant_id),
                     MFAUserModel.is_admin,
                     MFAUserModel.is_mfa_registered,
                 )
@@ -530,28 +536,28 @@ class MFAReportService:
         )
         return result.scalar() or 0
 
-    async def _get_strength_count(self, tenant_id: str, strength: MFAStrengthLevel) -> int:
+    async def _get_strength_count(self, tenant_id: str | list[str], strength: MFAStrengthLevel) -> int:
         """Get users by MFA strength count."""
         result = await self.db.execute(
             select(func.count(MFAUserModel.id)).where(
                 and_(
-                    MFAUserModel.tenant_id == tenant_id,
+                    self._get_tenant_filter(MFAUserModel, tenant_id),
                     MFAUserModel.mfa_strength == strength,
                 )
             )
         )
         return result.scalar() or 0
 
-    async def _get_method_count(self, tenant_id: str, strength: MFAStrengthLevel) -> int:
+    async def _get_method_count(self, tenant_id: str | list[str], strength: MFAStrengthLevel) -> int:
         """Get users by method strength (approximation)."""
         return await self._get_strength_count(tenant_id, strength)
 
-    async def _get_exempt_count(self, tenant_id: str) -> int:
+    async def _get_exempt_count(self, tenant_id: str | list[str]) -> int:
         """Get exempt user count."""
         result = await self.db.execute(
             select(func.count(MFAUserModel.id)).where(
                 and_(
-                    MFAUserModel.tenant_id == tenant_id,
+                    self._get_tenant_filter(MFAUserModel, tenant_id),
                     MFAUserModel.compliance_exempt,
                 )
             )
@@ -594,7 +600,7 @@ class MFAReportService:
 
     async def get_users(
         self,
-        tenant_id: str | None = None,
+        tenant_id: str | list[str] | None = None,
         is_mfa_registered: bool | None = None,
         is_admin: bool | None = None,
         compliance_status: ComplianceStatus | None = None,
@@ -621,7 +627,7 @@ class MFAReportService:
         query = select(MFAUserModel)
 
         if tenant_id:
-            query = query.where(MFAUserModel.tenant_id == tenant_id)
+            query = query.where(self._get_tenant_filter(MFAUserModel, tenant_id))
         if is_mfa_registered is not None:
             query = query.where(MFAUserModel.is_mfa_registered == is_mfa_registered)
         if is_admin is not None:
@@ -682,7 +688,7 @@ class MFAReportService:
         }
 
     async def get_users_without_mfa(
-        self, tenant_id: str, include_exempt: bool = False, limit: int = 100, offset: int = 0
+        self, tenant_id: str | list[str], include_exempt: bool = False, limit: int = 100, offset: int = 0
     ) -> dict[str, Any]:
         """Get users without MFA registration.
 
@@ -696,7 +702,7 @@ class MFAReportService:
             Dictionary with items and total count
         """
         conditions = [
-            MFAUserModel.tenant_id == tenant_id,
+            self._get_tenant_filter(MFAUserModel, tenant_id),
             MFAUserModel.is_mfa_registered == False,
             MFAUserModel.account_enabled,
         ]
@@ -726,7 +732,7 @@ class MFAReportService:
             "offset": offset,
         }
 
-    async def get_admins_without_mfa(self, tenant_id: str, limit: int = 100) -> list[MFAUserModel]:
+    async def get_admins_without_mfa(self, tenant_id: str | list[str], limit: int = 100) -> list[MFAUserModel]:
         """Get admin users without MFA (critical findings).
 
         Args:
@@ -738,7 +744,7 @@ class MFAReportService:
         """
         query = select(MFAUserModel).where(
             and_(
-                MFAUserModel.tenant_id == tenant_id,
+                self._get_tenant_filter(MFAUserModel, tenant_id),
                 MFAUserModel.is_admin,
                 MFAUserModel.is_mfa_registered == False,
                 MFAUserModel.compliance_exempt == False,
@@ -752,7 +758,7 @@ class MFAReportService:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def get_enrollment_summary(self, tenant_id: str) -> dict[str, Any]:
+    async def get_enrollment_summary(self, tenant_id: str | list[str]) -> dict[str, Any]:
         """Get MFA enrollment summary for a tenant.
 
         Args:
@@ -804,9 +810,9 @@ class MFAReportService:
             "moderate_mfa_users": moderate_count,
             "weak_mfa_users": weak_count,
             "exempt_users": exempt_count,
-            "mfa_coverage_percentage": round(mfa_coverage, 2),
-            "admin_mfa_coverage_percentage": round(admin_mfa_coverage, 2),
-            "compliance_rate": round(compliance_rate, 2),
+            "coverage_percentage": round(float(mfa_coverage), 2),
+            "admin_coverage_percentage": round(float(admin_mfa_coverage), 2),
+            "critical_findings_rate": round(float(compliance_rate), 2),
             "meets_admin_requirement": admin_mfa_coverage >= 100 if total_admins > 0 else True,
             "meets_user_target": mfa_coverage >= self.USER_MFA_TARGET_PERCENTAGE,
         }
@@ -918,40 +924,40 @@ class MFAReportService:
             {
                 "strength_level": MFAStrengthLevel.STRONG,
                 "count": strong_count,
-                "percentage": round(strong_count / total_users * 100, 2) if total_users > 0 else 0,
+                "percentage": round(float(strong_count / total_users * 100), 2) if total_users > 0 else 0,
             },
             {
                 "strength_level": MFAStrengthLevel.MODERATE,
                 "count": moderate_count,
-                "percentage": round(moderate_count / total_users * 100, 2)
+                "percentage": round(float(moderate_count / total_users * 100), 2)
                 if total_users > 0
                 else 0,
             },
             {
                 "strength_level": MFAStrengthLevel.WEAK,
                 "count": weak_count,
-                "percentage": round(weak_count / total_users * 100, 2) if total_users > 0 else 0,
+                "percentage": round(float(weak_count / total_users * 100 if total_users > 0 else 0), 2),
             },
             {
                 "strength_level": MFAStrengthLevel.NONE,
                 "count": no_mfa_count,
-                "percentage": round(no_mfa_count / total_users * 100, 2) if total_users > 0 else 0,
+                "percentage": round(float(no_mfa_count / total_users * 100), 2) if total_users > 0 else 0,
             },
         ]
 
         return {
             "tenant_id": tenant_id,
             "distribution": distribution,
-            "strong_mfa_percentage": round(strong_count / total_users * 100, 2)
+            "strong_mfa_percentage": round(float(strong_count / total_users * 100), 2)
             if total_users > 0
             else 0,
-            "moderate_mfa_percentage": round(moderate_count / total_users * 100, 2)
+            "moderate_mfa_percentage": round(float(moderate_count / total_users * 100), 2)
             if total_users > 0
             else 0,
-            "weak_mfa_percentage": round(weak_count / total_users * 100, 2)
+            "weak_mfa_percentage": round(float(weak_count / total_users * 100), 2)
             if total_users > 0
             else 0,
-            "no_mfa_percentage": round(no_mfa_count / total_users * 100, 2)
+            "no_mfa_percentage": round(float(no_mfa_count / total_users * 100), 2)
             if total_users > 0
             else 0,
         }

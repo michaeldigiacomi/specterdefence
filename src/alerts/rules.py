@@ -94,7 +94,7 @@ class AlertRuleService:
 
     async def list_webhooks(
         self,
-        tenant_id: str | None = None,
+        tenant_id: str | list[str] | None = None,
         include_inactive: bool = False,
     ) -> list[AlertWebhookModel]:
         """List webhooks.
@@ -110,9 +110,16 @@ class AlertRuleService:
 
         # Filter by tenant (None = global, specific = tenant-specific)
         if tenant_id is not None:
-            query = query.where(
-                or_(AlertWebhookModel.tenant_id == tenant_id, AlertWebhookModel.tenant_id.is_(None))
-            )
+            if tenant_id == "NONE":
+                query = query.where(AlertWebhookModel.tenant_id == "NONE_ASSIGNED")
+            elif isinstance(tenant_id, list):
+                query = query.where(
+                    or_(AlertWebhookModel.tenant_id.in_(tenant_id), AlertWebhookModel.tenant_id.is_(None))
+                )
+            else:
+                query = query.where(
+                    or_(AlertWebhookModel.tenant_id == tenant_id, AlertWebhookModel.tenant_id.is_(None))
+                )
 
         if not include_inactive:
             query = query.where(AlertWebhookModel.is_active.is_(True))
@@ -236,7 +243,7 @@ class AlertRuleService:
 
     async def list_rules(
         self,
-        tenant_id: str | None = None,
+        tenant_id: str | list[str] | None = None,
         include_inactive: bool = False,
     ) -> list[AlertRuleModel]:
         """List alert rules.
@@ -252,9 +259,16 @@ class AlertRuleService:
 
         # Filter by tenant (None = global, specific = tenant-specific)
         if tenant_id is not None:
-            query = query.where(
-                or_(AlertRuleModel.tenant_id == tenant_id, AlertRuleModel.tenant_id.is_(None))
-            )
+            if tenant_id == "NONE":
+                query = query.where(AlertRuleModel.tenant_id == "NONE_ASSIGNED")
+            elif isinstance(tenant_id, list):
+                query = query.where(
+                    or_(AlertRuleModel.tenant_id.in_(tenant_id), AlertRuleModel.tenant_id.is_(None))
+                )
+            else:
+                query = query.where(
+                    or_(AlertRuleModel.tenant_id == tenant_id, AlertRuleModel.tenant_id.is_(None))
+                )
 
         if not include_inactive:
             query = query.where(AlertRuleModel.is_active.is_(True))

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import uuid
+from src.api.auth_local import get_authorized_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -112,7 +113,7 @@ async def get_analytics_service(db: AsyncSession = Depends(get_db)) -> LoginAnal
     description="Query login events with various filters and detect anomalies.",
 )
 async def get_login_analytics(
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     user: str | None = Query(None, description="Filter by user email"),
     start_time: datetime | None = Query(None, description="Filter from this time (ISO 8601)"),
     end_time: datetime | None = Query(None, description="Filter until this time (ISO 8601)"),
@@ -349,7 +350,7 @@ async def process_audit_logs(
     description="Get recent login anomalies across all users or filtered by tenant.",
 )
 async def get_recent_anomalies(
-    tenant_id: str | None = Query(None, description="Filter by tenant ID"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     hours: int = Query(24, ge=1, le=168, description="Look back period in hours"),
     min_risk_score: int = Query(50, ge=0, le=100, description="Minimum risk score"),
     limit: int = Query(50, ge=1, le=100, description="Maximum results"),

@@ -2,6 +2,7 @@
 
 from uuid import UUID
 
+from src.api.auth_local import get_authorized_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +35,7 @@ class WebhookResponse(BaseModel):
     name: str
     webhook_type: str
     is_active: bool
-    tenant_id: str | None = None
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant)
     created_at: str
 
     class Config:
@@ -139,7 +140,7 @@ async def get_alert_engine(db: AsyncSession = Depends(get_db)) -> AlertEngine:
 )
 async def create_webhook(
     webhook: WebhookCreate,
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: AlertRuleService = Depends(get_rule_service),
 ) -> WebhookResponse:
     """Create a new alert webhook.
@@ -181,7 +182,7 @@ async def create_webhook(
     description="List all configured alert webhooks.",
 )
 async def list_webhooks(
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     include_inactive: bool = False,
     service: AlertRuleService = Depends(get_rule_service),
 ) -> list[WebhookResponse]:
@@ -297,7 +298,7 @@ async def delete_webhook(
 )
 async def create_rule(
     rule: RuleCreate,
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     service: AlertRuleService = Depends(get_rule_service),
 ) -> RuleResponse:
     """Create a new alert rule.
@@ -342,7 +343,7 @@ async def create_rule(
     description="List all alert rules.",
 )
 async def list_rules(
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     include_inactive: bool = False,
     service: AlertRuleService = Depends(get_rule_service),
 ) -> list[RuleResponse]:
@@ -493,7 +494,7 @@ async def delete_rule(rule_id: UUID, service: AlertRuleService = Depends(get_rul
     description="Get history of sent alerts with optional filtering.",
 )
 async def get_alert_history(
-    tenant_id: str | None = None,
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     event_type: str | None = None,
     severity: str | None = None,
     user_email: str | None = None,

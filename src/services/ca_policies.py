@@ -48,6 +48,15 @@ class CAPoliciesService:
         """
         self.db = db_session
 
+    def _apply_tenant_filter(self, query: Any, model_class: Any, tenant_id: str | list[str] | None) -> Any:
+        if tenant_id is None:
+            return query
+        if tenant_id == "NONE":
+            return query.where(model_class.tenant_id == "NONE_ASSIGNED")
+        if isinstance(tenant_id, list):
+            return query.where(model_class.tenant_id.in_(tenant_id))
+        return query.where(model_class.tenant_id == tenant_id)
+
     async def scan_tenant_policies(
         self, tenant_id: str, trigger_alerts: bool = True, compare_baseline: bool = True
     ) -> dict[str, Any]:
@@ -696,7 +705,7 @@ class CAPoliciesService:
 
     async def get_policies(
         self,
-        tenant_id: str | None = None,
+        tenant_id: str | list[str] | None = None,
         state: PolicyState | None = None,
         is_baseline_policy: bool | None = None,
         limit: int = 100,
@@ -717,7 +726,12 @@ class CAPoliciesService:
         query = select(CAPolicyModel)
 
         if tenant_id:
-            query = query.where(CAPolicyModel.tenant_id == tenant_id)
+            if tenant_id == "NONE":
+                query = query.where(CAPolicyModel.tenant_id == "NONE_ASSIGNED")
+            elif isinstance(tenant_id, list):
+                query = query.where(CAPolicyModel.tenant_id.in_(tenant_id))
+            else:
+                query = query.where(CAPolicyModel.tenant_id == tenant_id)
         if state:
             query = query.where(CAPolicyModel.state == state)
         if is_baseline_policy is not None:
@@ -757,7 +771,7 @@ class CAPoliciesService:
     async def get_policy_changes(
         self,
         policy_id: str | None = None,
-        tenant_id: str | None = None,
+        tenant_id: str | list[str] | None = None,
         change_type: ChangeType | None = None,
         limit: int = 100,
         offset: int = 0,
@@ -778,8 +792,7 @@ class CAPoliciesService:
 
         if policy_id:
             query = query.where(CAPolicyChangeModel.policy_id == policy_id)
-        if tenant_id:
-            query = query.where(CAPolicyChangeModel.tenant_id == tenant_id)
+        query = self._apply_tenant_filter(query, CAPolicyChangeModel, tenant_id)
         if change_type:
             query = query.where(CAPolicyChangeModel.change_type == change_type)
 
@@ -804,7 +817,7 @@ class CAPoliciesService:
 
     async def get_alerts(
         self,
-        tenant_id: str | None = None,
+        tenant_id: str | list[str] | None = None,
         acknowledged: bool | None = None,
         severity: AlertSeverity | None = None,
         limit: int = 100,
@@ -825,7 +838,12 @@ class CAPoliciesService:
         query = select(CAPolicyAlertModel)
 
         if tenant_id:
-            query = query.where(CAPolicyAlertModel.tenant_id == tenant_id)
+            if tenant_id == "NONE":
+                query = query.where(CAPolicyAlertModel.tenant_id == "NONE_ASSIGNED")
+            elif isinstance(tenant_id, list):
+                query = query.where(CAPolicyAlertModel.tenant_id.in_(tenant_id))
+            else:
+                query = query.where(CAPolicyAlertModel.tenant_id == tenant_id)
         if acknowledged is not None:
             query = query.where(CAPolicyAlertModel.is_acknowledged == acknowledged)
         if severity:
@@ -881,7 +899,7 @@ class CAPoliciesService:
         return alert
 
     async def get_disabled_policies(
-        self, tenant_id: str | None = None, limit: int = 100
+        self, tenant_id: str | list[str] | None = None, limit: int = 100
     ) -> list[CAPolicyModel]:
         """Get disabled CA policies.
 
@@ -895,7 +913,12 @@ class CAPoliciesService:
         query = select(CAPolicyModel).where(CAPolicyModel.state == PolicyState.DISABLED)
 
         if tenant_id:
-            query = query.where(CAPolicyModel.tenant_id == tenant_id)
+            if tenant_id == "NONE":
+                query = query.where(CAPolicyModel.tenant_id == "NONE_ASSIGNED")
+            elif isinstance(tenant_id, list):
+                query = query.where(CAPolicyModel.tenant_id.in_(tenant_id))
+            else:
+                query = query.where(CAPolicyModel.tenant_id == tenant_id)
 
         query = query.order_by(desc(CAPolicyModel.updated_at))
         query = query.limit(limit)
@@ -904,7 +927,7 @@ class CAPoliciesService:
         return list(result.scalars().all())
 
     async def get_mfa_policies(
-        self, tenant_id: str | None = None, limit: int = 100
+        self, tenant_id: str | list[str] | None = None, limit: int = 100
     ) -> list[CAPolicyModel]:
         """Get policies that require MFA.
 
@@ -920,7 +943,12 @@ class CAPoliciesService:
         )
 
         if tenant_id:
-            query = query.where(CAPolicyModel.tenant_id == tenant_id)
+            if tenant_id == "NONE":
+                query = query.where(CAPolicyModel.tenant_id == "NONE_ASSIGNED")
+            elif isinstance(tenant_id, list):
+                query = query.where(CAPolicyModel.tenant_id.in_(tenant_id))
+            else:
+                query = query.where(CAPolicyModel.tenant_id == tenant_id)
 
         query = query.order_by(desc(CAPolicyModel.security_score))
         query = query.limit(limit)
@@ -928,27 +956,39 @@ class CAPoliciesService:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def get_policies_summary(self, tenant_id: str) -> dict[str, Any]:
+    async def get_policies_summary(self, tenant_id: str | list[str]) -> dict[str, Any]:
         """Get summary of CA policies for a tenant.
 
         Args:
-            tenant_id: Tenant UUID
+            tenant_id: Tenant UUID or list of UUIDs
 
         Returns:
             Summary statistics
         """
+        if tenant_id == "NONE":
+            tenant_filter = CAPolicyModel.tenant_id == "NONE_ASSIGNED"
+            tenant_change_filter = CAPolicyChangeModel.tenant_id == "NONE_ASSIGNED"
+            tenant_alert_filter = CAPolicyAlertModel.tenant_id == "NONE_ASSIGNED"
+        elif isinstance(tenant_id, list):
+            tenant_filter = CAPolicyModel.tenant_id.in_(tenant_id)
+            tenant_change_filter = CAPolicyChangeModel.tenant_id.in_(tenant_id)
+            tenant_alert_filter = CAPolicyAlertModel.tenant_id.in_(tenant_id)
+        else:
+            tenant_filter = CAPolicyModel.tenant_id == tenant_id
+            tenant_change_filter = CAPolicyChangeModel.tenant_id == tenant_id
+            tenant_alert_filter = CAPolicyAlertModel.tenant_id == tenant_id
         # Get counts by state
         enabled_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
                 and_(
-                    CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.state == PolicyState.ENABLED
+                    tenant_filter, CAPolicyModel.state == PolicyState.ENABLED
                 )
             )
         )
         disabled_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
                 and_(
-                    CAPolicyModel.tenant_id == tenant_id,
+                    tenant_filter,
                     CAPolicyModel.state == PolicyState.DISABLED,
                 )
             )
@@ -956,7 +996,7 @@ class CAPoliciesService:
         report_only_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
                 and_(
-                    CAPolicyModel.tenant_id == tenant_id,
+                    tenant_filter,
                     CAPolicyModel.state == PolicyState.REPORT_ONLY,
                 )
             )
@@ -965,21 +1005,21 @@ class CAPoliciesService:
         # Get MFA policies count
         mfa_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
-                and_(CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.is_mfa_required)
+                and_(tenant_filter, CAPolicyModel.is_mfa_required)
             )
         )
 
         # Get baseline policies count
         baseline_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
-                and_(CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.is_baseline_policy)
+                and_(tenant_filter, CAPolicyModel.is_baseline_policy)
             )
         )
 
         # Get baseline compliant count
         compliant_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
-                and_(CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.baseline_compliant)
+                and_(tenant_filter, CAPolicyModel.baseline_compliant)
             )
         )
 
@@ -987,7 +1027,7 @@ class CAPoliciesService:
         recent_changes_count = await self.db.execute(
             select(func.count(CAPolicyChangeModel.id)).where(
                 and_(
-                    CAPolicyChangeModel.tenant_id == tenant_id,
+                    tenant_change_filter,
                     CAPolicyChangeModel.detected_at >= datetime.utcnow() - timedelta(days=7),
                 )
             )
@@ -997,7 +1037,7 @@ class CAPoliciesService:
         high_severity_count = await self.db.execute(
             select(func.count(CAPolicyAlertModel.id)).where(
                 and_(
-                    CAPolicyAlertModel.tenant_id == tenant_id,
+                    tenant_alert_filter,
                     CAPolicyAlertModel.severity.in_([AlertSeverity.HIGH, AlertSeverity.CRITICAL]),
                     not CAPolicyAlertModel.is_acknowledged,
                 )
@@ -1007,14 +1047,14 @@ class CAPoliciesService:
         # Get policies covering all users
         all_users_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
-                and_(CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.applies_to_all_users)
+                and_(tenant_filter, CAPolicyModel.applies_to_all_users)
             )
         )
 
         # Get policies covering all apps
         all_apps_count = await self.db.execute(
             select(func.count(CAPolicyModel.id)).where(
-                and_(CAPolicyModel.tenant_id == tenant_id, CAPolicyModel.applies_to_all_apps)
+                and_(tenant_filter, CAPolicyModel.applies_to_all_apps)
             )
         )
 
