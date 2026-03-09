@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { BarChart3, Download } from 'lucide-react';
 import FilterPanel from '@/components/FilterPanel';
@@ -8,9 +9,13 @@ import { LoginFilters } from '@/types';
 import toast from 'react-hot-toast';
 
 export default function LoginAnalytics() {
+  const [searchParams] = useSearchParams();
+  const initialUser = searchParams.get('user');
+
   const [filters, setFilters] = useState<LoginFilters>({
     page: 1,
-    page_size: 20
+    page_size: 20,
+    ...(initialUser ? { user: initialUser } : {})
   });
 
   const { data, isLoading, error } = useLoginAnalytics(filters);
