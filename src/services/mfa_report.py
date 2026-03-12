@@ -810,9 +810,9 @@ class MFAReportService:
             "moderate_mfa_users": moderate_count,
             "weak_mfa_users": weak_count,
             "exempt_users": exempt_count,
-            "coverage_percentage": round(float(mfa_coverage), 2),
-            "admin_coverage_percentage": round(float(admin_mfa_coverage), 2),
-            "critical_findings_rate": round(float(compliance_rate), 2),
+            "mfa_coverage_percentage": round(float(mfa_coverage), 2),
+            "admin_mfa_coverage_percentage": round(float(admin_mfa_coverage), 2),
+            "compliance_rate": round(float(compliance_rate), 2),
             "meets_admin_requirement": admin_mfa_coverage >= 100 if total_admins > 0 else True,
             "meets_user_target": mfa_coverage >= self.USER_MFA_TARGET_PERCENTAGE,
         }
