@@ -290,7 +290,13 @@ async def get_authorized_tenant(
         # Return a dummy string that won't match any tenant
         return "NONE"
 
-    return allowed_ids
+    # If user has only one tenant, return it directly
+    if len(allowed_ids) == 1:
+        return allowed_ids[0]
+
+    # User has multiple tenants - they need to specify which one
+    # Return None to indicate they need to pick one
+    return None
 
 
 @router.post("/login", response_model=LoginResponse)
