@@ -481,7 +481,9 @@ class LoginAnalyticsService:
                 failure_reason = None
 
                 if "ResultStatus" in raw_data:
-                    is_success = raw_data.get("ResultStatus") == "Success" and raw_data.get("ConditionalAccessStatus", "success") == "success"
+                    # Check both ResultStatus and ErrorNumber
+                    # ErrorNumber != "0" indicates failures like account lockouts, policy violations
+                    is_success = raw_data.get("ResultStatus") == "Success" and raw_data.get("ErrorNumber", "0") == "0"
                     if not is_success:
                         # Try to find reason in ExtendedProperties
                         ext_props = raw_data.get("ExtendedProperties", [])
