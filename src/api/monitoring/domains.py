@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.dependencies import get_db, get_authorized_tenant
+from src.database import get_db
+from src.api.auth_local import get_authorized_tenant
 from src.services.monitoring.domain import DomainExpiryService
 
 router = APIRouter(prefix="/domains", tags=["Domain Expiry Monitoring"])
