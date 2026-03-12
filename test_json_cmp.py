@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, cast
+from sqlalchemy import Column, String, cast, func
 from sqlalchemy.types import JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects import postgresql, sqlite
