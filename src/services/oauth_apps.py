@@ -877,7 +877,11 @@ class OAuthAppsService:
         query = select(OAuthAppAlertModel)
 
         if tenant_id:
-            query = query.where(OAuthAppAlertModel.tenant_id == tenant_id)
+            # Handle both string and list of tenant IDs
+            if isinstance(tenant_id, list):
+                query = query.where(OAuthAppAlertModel.tenant_id.in_(tenant_id))
+            else:
+                query = query.where(OAuthAppAlertModel.tenant_id == tenant_id)
         if acknowledged is not None:
             query = query.where(OAuthAppAlertModel.is_acknowledged == acknowledged)
         if severity:
