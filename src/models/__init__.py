@@ -89,6 +89,11 @@ from src.models.tenant import (
     TenantValidationResponse,
 )
 from src.models.user import UserModel
+from src.models.monitoring import (
+    DomainExpiryModel,
+    SslCertificateModel,
+    WebsiteMonitorModel,
+)
 
 __all__ = [
     "UserModel",
@@ -160,4 +165,7 @@ __all__ = [
     "CAPolicyChangeModel",
     "CAPolicyModel",
     "PolicyState",
+    "WebsiteMonitorModel",
+    "SslCertificateModel",
+    "DomainExpiryModel",
 ]
