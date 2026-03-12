@@ -252,7 +252,8 @@ class SslCertificateService:
         
         total = len(certificates)
         valid = sum(1 for c in certificates if c.is_valid and not c.has_errors)
-        expired = sum(1 for c in certificates if c.is_expired)
+        # Determine expired based on valid_until date or is_valid flag
+        expired = sum(1 for c in certificates if (c.valid_until and c.valid_until < datetime.utcnow()) or (not c.is_valid and c.has_errors))
         expiring_soon = sum(1 for c in certificates if c.days_until_expiry and 0 <= c.days_until_expiry <= 30)
         errors = sum(1 for c in certificates if c.has_errors)
         
