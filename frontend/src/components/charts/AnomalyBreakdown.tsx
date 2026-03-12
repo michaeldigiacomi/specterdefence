@@ -77,9 +77,9 @@ export function AnomalyBreakdownChart({
       </div>
 
       {data.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="flex flex-col gap-6">
           {/* Pie Chart */}
-          <div className="h-64">
+          <div className="h-48 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -131,7 +131,7 @@ export function AnomalyBreakdownChart({
           </div>
 
           {/* Legend/List */}
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+          <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
             {chartData.map((item, index) => (
               <div
                 key={item.type}
