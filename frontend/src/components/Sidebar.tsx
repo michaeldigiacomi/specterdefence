@@ -18,6 +18,7 @@ import {
   Mail,
   AppWindow,
   Users as UserIcon,
+  Globe,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -42,6 +43,7 @@ const navItems = [
   { path: '/mailbox-rules', icon: Mail, label: 'Mailbox Rules' },
   { path: '/mfa-report', icon: KeyRound, label: 'MFA Report' },
   { path: '/oauth-apps', icon: AppWindow, label: 'OAuth Apps' },
+  { path: '/monitoring', icon: Globe, label: 'Monitoring' },
   { path: '/tenants', icon: Building2, label: 'Tenants' },
   { path: '/users', icon: UserIcon, label: 'Users' },
   { path: '/settings', icon: Settings, label: 'Settings' },
