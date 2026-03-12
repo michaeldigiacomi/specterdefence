@@ -11,6 +11,8 @@ import {
   Trash2
 } from 'lucide-react';
 import { websiteApi, sslApi, domainApi, Website, SslCertificate, Domain, WebsiteStats, SslStats, DomainStats } from '../services/monitoring';
+import { apiService } from '../services/api';
+import type { Tenant } from '../types';
 
 type TabType = 'websites' | 'ssl' | 'domains';
 
@@ -25,32 +27,49 @@ export default function Monitoring() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', url: '', domain: '', port: 443 });
+  
+  // Tenant selection
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [selectedTenant, setSelectedTenant] = useState<string>('');
 
   useEffect(() => {
-    loadData();
-  }, [activeTab]);
+    // Load tenants on mount
+    apiService.getTenants().then(res => {
+      const items = res.items || res;
+      setTenants(items);
+      if (items.length > 0) {
+        setSelectedTenant(items[0].id);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (selectedTenant) {
+      loadData();
+    }
+  }, [activeTab, selectedTenant]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       if (activeTab === 'websites') {
         const [listRes, statsRes] = await Promise.all([
-          websiteApi.list(),
-          websiteApi.stats()
+          websiteApi.list(selectedTenant),
+          websiteApi.stats(selectedTenant)
         ]);
         setWebsites(listRes.data);
         setWebsiteStats(statsRes.data);
       } else if (activeTab === 'ssl') {
         const [listRes, statsRes] = await Promise.all([
-          sslApi.list(),
-          sslApi.stats()
+          sslApi.list(selectedTenant),
+          sslApi.stats(selectedTenant)
         ]);
         setSslCerts(listRes.data);
         setSslStats(statsRes.data);
       } else if (activeTab === 'domains') {
         const [listRes, statsRes] = await Promise.all([
-          domainApi.list(),
-          domainApi.stats()
+          domainApi.list(selectedTenant),
+          domainApi.stats(selectedTenant)
         ]);
         setDomains(listRes.data);
         setDomainStats(statsRes.data);
@@ -64,7 +83,7 @@ export default function Monitoring() {
   const handleAddWebsite = async () => {
     if (!newItem.name || !newItem.url) return;
     try {
-      await websiteApi.create({ name: newItem.name, url: newItem.url });
+      await websiteApi.create({ name: newItem.name, url: newItem.url }, selectedTenant);
       setShowAddModal(false);
       setNewItem({ name: '', url: '', domain: '', port: 443 });
       loadData();
@@ -76,7 +95,7 @@ export default function Monitoring() {
   const handleAddSsl = async () => {
     if (!newItem.domain) return;
     try {
-      await sslApi.create({ domain: newItem.domain, port: newItem.port });
+      await sslApi.create({ domain: newItem.domain, port: newItem.port }, selectedTenant);
       setShowAddModal(false);
       setNewItem({ name: '', url: '', domain: '', port: 443 });
       loadData();
@@ -88,7 +107,7 @@ export default function Monitoring() {
   const handleAddDomain = async () => {
     if (!newItem.domain) return;
     try {
-      await domainApi.create({ domain: newItem.domain });
+      await domainApi.create({ domain: newItem.domain }, selectedTenant);
       setShowAddModal(false);
       setNewItem({ name: '', url: '', domain: '', port: 443 });
       loadData();
@@ -101,11 +120,11 @@ export default function Monitoring() {
     if (!confirm('Are you sure you want to delete this item?')) return;
     try {
       if (type === 'websites') {
-        await websiteApi.delete(id);
+        await websiteApi.delete(id, selectedTenant);
       } else if (type === 'ssl') {
-        await sslApi.delete(id);
+        await sslApi.delete(id, selectedTenant);
       } else if (type === 'domains') {
-        await domainApi.delete(id);
+        await domainApi.delete(id, selectedTenant);
       }
       loadData();
     } catch (error) {
@@ -116,11 +135,11 @@ export default function Monitoring() {
   const handleCheck = async (type: TabType, id: string) => {
     try {
       if (type === 'websites') {
-        await websiteApi.check(id);
+        await websiteApi.check(id, selectedTenant);
       } else if (type === 'ssl') {
-        await sslApi.check(id);
+        await sslApi.check(id, selectedTenant);
       } else if (type === 'domains') {
-        await domainApi.check(id);
+        await domainApi.check(id, selectedTenant);
       }
       loadData();
     } catch (error) {
@@ -435,7 +454,22 @@ export default function Monitoring() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Monitoring</h1>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold">Monitoring</h1>
+          {tenants.length > 0 && (
+            <select
+              value={selectedTenant}
+              onChange={(e) => setSelectedTenant(e.target.value)}
+              className="ml-4 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm"
+            >
+              {tenants.map((tenant) => (
+                <option key={tenant.id} value={tenant.id}>
+                  {tenant.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
         <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
