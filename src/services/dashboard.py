@@ -367,8 +367,19 @@ class DashboardService:
         data_dict = dict(data)
 
         while current <= end:
-            if current in data_dict:
-                filled.append((current, data_dict[current]))
+            # Normalize current to the same precision as the keys in data_dict
+            if interval == "hour":
+                normalized_current = current.replace(minute=0, second=0, microsecond=0)
+            elif interval == "day":
+                normalized_current = current.replace(hour=0, minute=0, second=0, microsecond=0)
+            else:
+                days_since_monday = current.weekday()
+                normalized_current = (current - timedelta(days=days_since_monday)).replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+
+            if normalized_current in data_dict:
+                filled.append((current, data_dict[normalized_current]))
             else:
                 filled.append((current, {"count": 0, "types": {}}))
 
