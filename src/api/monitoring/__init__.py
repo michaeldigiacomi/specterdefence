@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/monitoring", tags=["Monitoring"])
+router = APIRouter(tags=["Monitoring"])
 
 # Import sub-routers
 from src.api.monitoring import websites, ssl, domains
