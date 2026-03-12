@@ -39,7 +39,7 @@ def test_root_endpoint():
 
 def test_api_v1_health():
     """Test API v1 health endpoint."""
-    response = client.get("/api/v1/health/")
+    response = client.get("/api/v1/v1/v1/v1/health/")
     assert response.status_code == 200
     data = response.json()
     assert "status" in data

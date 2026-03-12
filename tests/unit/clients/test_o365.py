@@ -626,7 +626,7 @@ class TestO365ContentBlobs:
         o365_client._access_token = "test-token"
         o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
-        next_page_uri = "https://manage.office.com/api/v1.0/next-page"
+        next_page_uri = "https://manage.office.com/api/v1/v1/v1/v1.0/next-page"
 
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_response = MagicMock()
@@ -757,7 +757,7 @@ class TestO365Pagination:
         o365_client._access_token = "test-token"
         o365_client._token_expires_at = datetime.now(UTC) + timedelta(hours=1)
 
-        next_page_uri = "https://manage.office.com/api/v1.0/tenant/activity/feed/subscriptions/content?$skip=100"
+        next_page_uri = "https://manage.office.com/api/v1/v1/v1/v1.0/tenant/activity/feed/subscriptions/content?$skip=100"
 
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_response = MagicMock()

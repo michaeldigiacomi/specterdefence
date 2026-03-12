@@ -16,7 +16,7 @@ class TestDiscordWebhookClient:
     @pytest.fixture
     def webhook_url(self):
         """Test webhook URL."""
-        return "https://discord.com/api/webhooks/123456/test_token"
+        return "https://discord.com/api/v1/v1/v1/webhooks/123456/test_token"
 
     @pytest.fixture
     def client(self, webhook_url):

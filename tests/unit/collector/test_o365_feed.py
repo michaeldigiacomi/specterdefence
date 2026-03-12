@@ -252,7 +252,7 @@ class TestO365ManagementClient:
     @pytest.mark.asyncio
     async def test_get_content_blobs_with_next_page(self, client):
         """Test getting content blobs with pagination."""
-        next_page_uri = "https://manage.office.com/api/v1.0/next-page"
+        next_page_uri = "https://manage.office.com/api/v1/v1/v1/v1.0/next-page"
 
         # Mock _get_access_token
         client._access_token = "test-token"
