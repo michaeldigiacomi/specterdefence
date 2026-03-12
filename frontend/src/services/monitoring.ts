@@ -1,6 +1,40 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 
 const API_BASE = '/api/v1/monitoring';
+
+// Create axios instance with auth interceptor
+const createAuthAxios = (): AxiosInstance => {
+  const client = axios.create({
+    baseURL: API_BASE,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    timeout: 30000,
+  });
+
+  // Add request interceptor to include auth token
+  client.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('specterdefence-storage');
+      if (token) {
+        try {
+          const parsed = JSON.parse(token);
+          if (parsed.state?.token) {
+            config.headers.Authorization = `Bearer ${parsed.state.token}`;
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  return client;
+};
+
+const authAxios = createAuthAxios();
 
 // Website types
 export interface Website {
@@ -80,38 +114,38 @@ export interface DomainStats {
 
 // Website API
 export const websiteApi = {
-  list: () => axios.get<Website[]>(`${API_BASE}/websites`),
-  get: (id: string) => axios.get<Website>(`${API_BASE}/websites/${id}`),
+  list: () => authAxios.get<Website[]>('/websites'),
+  get: (id: string) => authAxios.get<Website>(`/websites/${id}`),
   create: (data: { name: string; url: string; check_interval_minutes?: number }) =>
-    axios.post<Website>(`${API_BASE}/websites`, data),
-  delete: (id: string) => axios.delete(`${API_BASE}/websites/${id}`),
-  check: (id: string) => axios.post<Website>(`${API_BASE}/websites/${id}/check`),
-  checkAll: () => axios.post<{ checked: number }>(`${API_BASE}/websites/check-all`),
-  stats: () => axios.get<WebsiteStats>(`${API_BASE}/websites/stats`),
+    authAxios.post<Website>('/websites', data),
+  delete: (id: string) => authAxios.delete(`/websites/${id}`),
+  check: (id: string) => authAxios.post<Website>(`/websites/${id}/check`),
+  checkAll: () => authAxios.post<{ checked: number }>('/websites/check-all'),
+  stats: () => authAxios.get<WebsiteStats>('/websites/stats'),
 };
 
 // SSL API
 export const sslApi = {
-  list: () => axios.get<SslCertificate[]>(`${API_BASE}/ssl`),
-  get: (id: string) => axios.get<SslCertificate>(`${API_BASE}/ssl/${id}`),
+  list: () => authAxios.get<SslCertificate[]>('/ssl'),
+  get: (id: string) => authAxios.get<SslCertificate>(`/ssl/${id}`),
   create: (data: { domain: string; port?: number }) =>
-    axios.post<SslCertificate>(`${API_BASE}/ssl`, data),
-  delete: (id: string) => axios.delete(`${API_BASE}/ssl/${id}`),
-  check: (id: string) => axios.post<SslCertificate>(`${API_BASE}/ssl/${id}/check`),
-  checkAll: () => axios.post<{ checked: number }>(`${API_BASE}/ssl/check-all`),
-  stats: () => axios.get<SslStats>(`${API_BASE}/ssl/stats`),
-  expiring: (days?: number) => axios.get<SslCertificate[]>(`${API_BASE}/ssl/expiring`, { params: { days } }),
+    authAxios.post<SslCertificate>('/ssl', data),
+  delete: (id: string) => authAxios.delete(`/ssl/${id}`),
+  check: (id: string) => authAxios.post<SslCertificate>(`/ssl/${id}/check`),
+  checkAll: () => authAxios.post<{ checked: number }>('/ssl/check-all'),
+  stats: () => authAxios.get<SslStats>('/ssl/stats'),
+  expiring: (days?: number) => authAxios.get<SslCertificate[]>('/ssl/expiring', { params: { days } }),
 };
 
 // Domain API
 export const domainApi = {
-  list: () => axios.get<Domain[]>(`${API_BASE}/domains`),
-  get: (id: string) => axios.get<Domain>(`${API_BASE}/domains/${id}`),
+  list: () => authAxios.get<Domain[]>('/domains'),
+  get: (id: string) => authAxios.get<Domain>(`/domains/${id}`),
   create: (data: { domain: string }) =>
-    axios.post<Domain>(`${API_BASE}/domains`, data),
-  delete: (id: string) => axios.delete(`${API_BASE}/domains/${id}`),
-  check: (id: string) => axios.post<Domain>(`${API_BASE}/domains/${id}/check`),
-  checkAll: () => axios.post<{ checked: number }>(`${API_BASE}/domains/check-all`),
-  stats: () => axios.get<DomainStats>(`${API_BASE}/domains/stats`),
-  expiring: (days?: number) => axios.get<Domain[]>(`${API_BASE}/domains/expiring`, { params: { days } }),
+    authAxios.post<Domain>('/domains', data),
+  delete: (id: string) => authAxios.delete(`/domains/${id}`),
+  check: (id: string) => authAxios.post<Domain>(`/domains/${id}/check`),
+  checkAll: () => authAxios.post<{ checked: number }>('/domains/check-all'),
+  stats: () => authAxios.get<DomainStats>('/domains/stats'),
+  expiring: (days?: number) => authAxios.get<Domain[]>('/domains/expiring', { params: { days } }),
 };
