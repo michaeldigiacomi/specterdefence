@@ -8,7 +8,7 @@ from sqlalchemy import String, Integer, Boolean, DateTime, Text, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.models import Base
+from src.models.db import Base
 
 
 class WebsiteMonitorModel(Base):
