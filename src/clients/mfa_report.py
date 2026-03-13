@@ -73,10 +73,12 @@ class MFAReportClient:
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             # Get users with relevant fields
+            # Filter out shared mailboxes (userType = 'SharedMailbox') and disabled accounts
             url = (
                 "https://graph.microsoft.com/v1.0/users"
                 "?$select=id,displayName,userPrincipalName,accountEnabled,userType,"
                 "signInActivity,createdDateTime"
+                "&$filter=userType ne 'SharedMailbox' and accountEnabled eq true"
                 "&$top=999"
             )
 
