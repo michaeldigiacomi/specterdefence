@@ -60,6 +60,11 @@ spec:
                 secretKeyRef:
                   name: specterdefence-secrets
                   key: KIMI_API_KEY
+            - name: ADMIN_PASSWORD_HASH
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: ADMIN_PASSWORD_HASH
             - name: API_URL
               value: "http://specterdefence-backend:8000"
           livenessProbe:
