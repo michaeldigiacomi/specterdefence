@@ -12,6 +12,8 @@ export const dashboardQueryKeys = {
     ['dashboard', 'login-timeline', timeRange, tenantId] as const,
   geoHeatmap: (timeRange: TimeRange, tenantId?: string) =>
     ['dashboard', 'geo-heatmap', timeRange, tenantId] as const,
+  successfulLoginLocations: (timeRange: TimeRange, tenantId?: string) =>
+    ['dashboard', 'successful-login-locations', timeRange, tenantId] as const,
   anomalyTrend: (timeRange: TimeRange, tenantId?: string) =>
     ['dashboard', 'anomaly-trend', timeRange, tenantId] as const,
   topRiskUsers: (tenantId?: string) => ['dashboard', 'top-risk-users', tenantId] as const,
@@ -176,6 +178,14 @@ export function useGeoHeatmap(timeRange: TimeRange = '30d', tenantId?: string) {
   return useQuery({
     queryKey: dashboardQueryKeys.geoHeatmap(timeRange, tenantId),
     queryFn: () => apiService.getGeoHeatmap(timeRange, tenantId),
+    staleTime: 120000, // 2 minutes
+  });
+}
+
+export function useSuccessfulLoginLocations(timeRange: TimeRange = '30d', tenantId?: string) {
+  return useQuery({
+    queryKey: dashboardQueryKeys.successfulLoginLocations(timeRange, tenantId),
+    queryFn: () => apiService.getSuccessfulLoginLocations(timeRange, tenantId),
     staleTime: 120000, // 2 minutes
   });
 }

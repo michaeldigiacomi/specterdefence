@@ -18,6 +18,7 @@ interface GeoHeatmapProps {
   isLoading?: boolean;
   totalCountries?: number;
   topCountry?: string;
+  title?: string;
 }
 
 // Color scale based on risk score
@@ -40,6 +41,7 @@ export function GeoHeatmap({
   isLoading = false,
   totalCountries = 0,
   topCountry,
+  title = 'Geographic Activity',
 }: GeoHeatmapProps) {
   // Calculate map center based on data
   const center = useMemo(() => {
@@ -74,7 +76,7 @@ export function GeoHeatmap({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Geographic Activity
+            {title}
           </h3>
           <div className="flex items-center gap-4 mt-1">
             <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">

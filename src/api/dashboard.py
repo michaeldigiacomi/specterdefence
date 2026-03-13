@@ -104,6 +104,28 @@ async def get_geo_heatmap(
 
 
 @router.get(
+    "/successful-login-locations",
+    response_model=GeoHeatmapData,
+    summary="Get successful login locations",
+    description="Get successful login locations aggregated by country for heatmap visualization.",
+)
+async def get_successful_login_locations(
+    time_range: TimeRange = Query(TimeRange.DAY_30, description="Time range for data"),
+    tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
+    service: DashboardService = Depends(get_dashboard_service),
+) -> GeoHeatmapData:
+    """Get successful login locations by country."""
+    try:
+        return await service.get_successful_login_locations(time_range=time_range, tenant_id=tenant_id)
+    except Exception as e:
+        logger.exception("Error fetching successful login locations")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching successful login locations: {str(e)}",
+        )
+
+
+@router.get(
     "/anomaly-trend",
     response_model=AnomalyTrendData,
     summary="Get anomaly trend data",

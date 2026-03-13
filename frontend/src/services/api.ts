@@ -280,6 +280,15 @@ class ApiService {
     return response.data;
   }
 
+  async getSuccessfulLoginLocations(timeRange: TimeRange, tenantId?: string): Promise<GeoHeatmapData> {
+    const params = new URLSearchParams();
+    params.append('time_range', timeRange);
+    if (tenantId) params.append('tenant_id', tenantId);
+
+    const response = await this.client.get(`/dashboard/successful-login-locations?${params.toString()}`);
+    return response.data;
+  }
+
   async getAnomalyTrend(timeRange: TimeRange, tenantId?: string): Promise<AnomalyTrendData> {
     const params = new URLSearchParams();
     params.append('time_range', timeRange);

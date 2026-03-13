@@ -269,6 +269,72 @@ class DashboardService:
             top_country_count=top_count,
         )
 
+    async def get_successful_login_locations(
+        self, time_range: TimeRange, tenant_id: str | None = None
+    ) -> GeoHeatmapData:
+        """Get successful login locations by country."""
+        start_date, end_date, _ = self._get_time_range(time_range)
+
+        # Query successful logins grouped by country
+        query = select(
+            LoginAnalyticsModel.country_code,
+            LoginAnalyticsModel.country,
+            LoginAnalyticsModel.latitude,
+            LoginAnalyticsModel.longitude,
+            func.count(LoginAnalyticsModel.id).label("login_count"),
+            func.count(func.distinct(LoginAnalyticsModel.user_email)).label("user_count"),
+        ).where(
+            and_(
+                LoginAnalyticsModel.login_time >= start_date,
+                LoginAnalyticsModel.login_time <= end_date,
+                LoginAnalyticsModel.country_code.isnot(None),
+                LoginAnalyticsModel.latitude.isnot(None),
+                LoginAnalyticsModel.longitude.isnot(None),
+                LoginAnalyticsModel.is_success == True,  # Only successful logins
+            )
+        )
+
+        query = self._apply_tenant_filter(query, LoginAnalyticsModel, tenant_id)
+
+        query = query.group_by(
+            LoginAnalyticsModel.country_code,
+            LoginAnalyticsModel.country,
+            LoginAnalyticsModel.latitude,
+            LoginAnalyticsModel.longitude,
+        )
+
+        result = await self.db.execute(query)
+        rows = result.all()
+
+        locations = []
+        top_country = None
+        top_count = 0
+
+        for row in rows:
+            if row.country_code and row.latitude and row.longitude:
+                locations.append(
+                    GeoLocationPoint(
+                        country_code=row.country_code.upper(),
+                        country_name=row.country or row.country_code,
+                        latitude=row.latitude,
+                        longitude=row.longitude,
+                        login_count=row.login_count,
+                        user_count=row.user_count,
+                        risk_score_avg=0,  # Successful logins have no risk
+                    )
+                )
+
+                if row.login_count > top_count:
+                    top_count = row.login_count
+                    top_country = row.country or row.country_code
+
+        return GeoHeatmapData(
+            locations=locations,
+            total_countries=len(locations),
+            top_country=top_country,
+            top_country_count=top_count,
+        )
+
     async def get_anomaly_trend(
         self, time_range: TimeRange, tenant_id: str | None = None
     ) -> AnomalyTrendData:

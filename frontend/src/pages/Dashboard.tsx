@@ -27,7 +27,7 @@ import {
   TopRiskUsers,
   AnomalyBreakdownChart,
 } from '@/components/charts';
-import { useDashboardData, TimeRange } from '@/hooks/useDashboard';
+import { useDashboardData, TimeRange, useSuccessfulLoginLocations } from '@/hooks/useDashboard';
 import StatsCard from '@/components/StatsCard';
 import clsx from 'clsx';
 import { apiService } from '@/services/api';
@@ -37,6 +37,7 @@ export default function Dashboard() {
   const [isExporting, setIsExporting] = useState(false);
 
   const { data, isLoading, refetch, isRefetching } = useDashboardData(timeRange);
+  const { data: successfulLoginLocations, isLoading: isLoadingSuccessful } = useSuccessfulLoginLocations(timeRange);
 
   const handleExport = async (format: 'csv' | 'json' | 'pdf') => {
     setIsExporting(true);
@@ -247,6 +248,16 @@ export default function Dashboard() {
           totalCountries={data?.geo_heatmap?.total_countries || 0}
           topCountry={data?.geo_heatmap?.top_country || undefined}
           isLoading={isLoading}
+          title="Geographic Activity"
+        />
+
+        {/* Successful Login Locations */}
+        <GeoHeatmap
+          data={successfulLoginLocations?.locations || []}
+          totalCountries={successfulLoginLocations?.total_countries || 0}
+          topCountry={successfulLoginLocations?.top_country || undefined}
+          isLoading={isLoadingSuccessful}
+          title="Successful Login Locations"
         />
 
         {/* Anomaly Trend */}
