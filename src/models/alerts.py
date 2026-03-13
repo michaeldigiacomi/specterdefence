@@ -120,8 +120,8 @@ class AlertRuleModel(Base):
     __tablename__ = "alert_rules"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[str | None] = mapped_column(
-        String(36),
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
         ForeignKey("tenants.id"),
         nullable=True,
         index=True,
@@ -179,8 +179,8 @@ class AlertHistoryModel(Base):
         nullable=False,
         comment="Reference to the webhook used",
     )
-    tenant_id: Mapped[str | None] = mapped_column(
-        String(36),
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
         ForeignKey("tenants.id"),
         nullable=True,
         index=True,
