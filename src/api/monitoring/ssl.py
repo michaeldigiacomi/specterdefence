@@ -135,6 +135,8 @@ async def create_certificate(
         domain=data.domain,
         port=data.port,
     )
+    # Automatically check the certificate to fetch details
+    certificate = await service.check_certificate(certificate.id, tenant_id)
     return _model_to_response(certificate)
 
 
