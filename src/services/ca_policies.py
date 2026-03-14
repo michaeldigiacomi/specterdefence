@@ -174,6 +174,7 @@ class CAPoliciesService:
 
             except Exception as e:
                 logger.error(f"Error processing policy {policy_data.get('id')}: {e}")
+                await self.db.rollback()
                 continue
 
         # Check for deleted policies
