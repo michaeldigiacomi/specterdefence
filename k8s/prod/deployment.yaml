@@ -65,6 +65,16 @@ spec:
                 secretKeyRef:
                   name: specterdefence-secrets
                   key: ADMIN_PASSWORD_HASH
+            - name: ABUSEIPDB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: ABUSEIPDB_API_KEY
+            - name: ALIENVAULT_OTX_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: ALIENVAULT_OTX_API_KEY
             - name: API_URL
               value: "http://specterdefence-backend:8000"
           livenessProbe:
