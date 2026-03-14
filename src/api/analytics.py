@@ -37,6 +37,10 @@ class LoginRecord(BaseModel):
     failure_reason: str | None = None
     anomaly_flags: list[str] = []
     risk_score: int = 0
+    is_malicious: bool = False
+    threat_score: int = 0
+    threat_tags: list[str] = []
+    threat_sources: list[str] = []
 
     class Config:
         from_attributes = True

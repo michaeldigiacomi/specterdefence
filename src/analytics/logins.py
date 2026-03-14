@@ -151,6 +151,10 @@ class LoginAnalyticsService:
             failure_reason=failure_reason,
             anomaly_flags=anomaly_flags,
             risk_score=max_risk_score,
+            is_malicious=cti_data.get("is_malicious", False),
+            threat_score=cti_data.get("threat_score", 0),
+            threat_tags=cti_data.get("tags", []),
+            threat_sources=cti_data.get("sources", []),
         )
 
         self.db.add(login_record)

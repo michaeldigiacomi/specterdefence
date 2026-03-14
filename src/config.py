@@ -63,6 +63,14 @@ class Settings(BaseSettings):
         default="", description="Salt for encryption - should be set in production"
     )
 
+    # Threat Intelligence
+    ABUSEIPDB_API_KEY: str = Field(
+        default="", description="AbuseIPDB API key for threat intelligence"
+    )
+    ALIENVAULT_OTX_API_KEY: str = Field(
+        default="", description="AlienVault OTX API key for threat intelligence"
+    )
+
     @field_validator("SECRET_KEY")
     @classmethod
     def validate_secret_key(cls, v: str) -> str:

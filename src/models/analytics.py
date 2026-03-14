@@ -71,6 +71,18 @@ class LoginAnalyticsModel(Base):
     risk_score: Mapped[int] = mapped_column(
         default=0, nullable=False, comment="Calculated risk score (0-100)"
     )
+    is_malicious: Mapped[bool] = mapped_column(
+        default=False, nullable=False, comment="Whether IP is known malicious (CTI)"
+    )
+    threat_score: Mapped[int] = mapped_column(
+        default=0, nullable=False, comment="Threat intelligence score (0-100)"
+    )
+    threat_tags: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, nullable=False, comment="Threat intel tags (e.g., brute_force, bot)"
+    )
+    threat_sources: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, nullable=False, comment="Sources that reported threat (e.g., AbuseIPDB)"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     # Relationships
