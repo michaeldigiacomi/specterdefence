@@ -67,7 +67,7 @@ def ensure_timezone_aware(dt: datetime) -> datetime:
     """
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
-    return dt
+    return dt.astimezone(timezone.utc)
 
 
 class TenantCollector:
