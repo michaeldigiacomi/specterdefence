@@ -31,7 +31,7 @@ jobs:
   # Lint & Test
   # ============================================
   lint-test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -70,7 +70,7 @@ jobs:
   # Build and Push
   # ============================================
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted]
     needs: lint-test
     permissions:
       contents: read
@@ -122,7 +122,7 @@ jobs:
   # Deploy (main branch only)
   # ============================================
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted]
     needs: build
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     permissions:
