@@ -21,11 +21,10 @@ interface GeoHeatmapProps {
   title?: string;
 }
 
-// Color scale based on risk score
-const getRiskColor = (riskScore: number): string => {
-  if (riskScore >= 70) return '#ef4444'; // Red
-  if (riskScore >= 40) return '#f59e0b'; // Amber
-  return '#10b981'; // Green
+// Color based on success/failure ratio
+const getSuccessFailureColor = (successCount: number, failedCount: number): string => {
+  if (failedCount > 0) return '#ef4444'; // Red - has failed logins
+  return '#10b981'; // Green - all successful
 };
 
 // Radius based on login count (scaled)
@@ -126,8 +125,8 @@ export function GeoHeatmap({
                 key={`${location.country_code}-${index}`}
                 center={[location.latitude, location.longitude]}
                 radius={getRadius(location.login_count)}
-                fillColor={getRiskColor(location.risk_score_avg)}
-                color={getRiskColor(location.risk_score_avg)}
+                fillColor={getSuccessFailureColor(location.success_count, location.failed_count)}
+                color={getSuccessFailureColor(location.success_count, location.failed_count)}
                 weight={2}
                 opacity={0.8}
                 fillOpacity={0.6}
@@ -148,7 +147,7 @@ export function GeoHeatmap({
                       </div>
                       <div className="flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-gray-400" />
-                        <span>Risk Score: {location.risk_score_avg?.toFixed(1) ?? 'N/A'}</span>
+                        <span>Success: {location.success_count}, Failed: {location.failed_count}</span>
                       </div>
                     </div>
                   </div>
@@ -183,9 +182,11 @@ export function GeoHeatmap({
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {data.length > 0 ? (data.reduce((sum, d) => sum + (d.risk_score_avg || 0), 0) / data.length).toFixed(1) : '0.0'}
+              {data.length > 0 
+                ? ((data.reduce((sum, d) => sum + (d.failed_count || 0), 0) / data.reduce((sum, d) => sum + (d.login_count || 0), 0)) * 100).toFixed(1) 
+                : '0.0'}%
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Avg Risk Score</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Failed Logins %</p>
           </div>
         </div>
       )}

@@ -44,6 +44,8 @@ class GeoLocationPoint(BaseModel):
     login_count: int
     user_count: int
     risk_score_avg: float
+    success_count: int = 0
+    failed_count: int = 0
 
 
 class GeoHeatmapData(BaseModel):

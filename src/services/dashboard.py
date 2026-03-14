@@ -218,6 +218,8 @@ class DashboardService:
             func.count(LoginAnalyticsModel.id).label("login_count"),
             func.count(func.distinct(LoginAnalyticsModel.user_email)).label("user_count"),
             func.avg(LoginAnalyticsModel.risk_score).label("avg_risk"),
+            func.sum(case((LoginAnalyticsModel.is_success == True, 1), else_=0)).label("success_count"),
+            func.sum(case((LoginAnalyticsModel.is_success == False, 1), else_=0)).label("failed_count"),
         ).where(
             and_(
                 LoginAnalyticsModel.login_time >= start_date,
@@ -255,6 +257,8 @@ class DashboardService:
                         login_count=row.login_count,
                         user_count=row.user_count,
                         risk_score_avg=round(float(row.avg_risk or 0), 2),
+                        success_count=int(row.success_count or 0),
+                        failed_count=int(row.failed_count or 0),
                     )
                 )
 
@@ -283,6 +287,8 @@ class DashboardService:
             LoginAnalyticsModel.longitude,
             func.count(LoginAnalyticsModel.id).label("login_count"),
             func.count(func.distinct(LoginAnalyticsModel.user_email)).label("user_count"),
+            func.count(LoginAnalyticsModel.id).label("success_count"),  # All are successful
+            func.literal(0).label("failed_count"),  # None are failed
         ).where(
             and_(
                 LoginAnalyticsModel.login_time >= start_date,
@@ -321,6 +327,8 @@ class DashboardService:
                         login_count=row.login_count,
                         user_count=row.user_count,
                         risk_score_avg=0,  # Successful logins have no risk
+                        success_count=int(row.success_count or 0),
+                        failed_count=int(row.failed_count or 0),
                     )
                 )
 

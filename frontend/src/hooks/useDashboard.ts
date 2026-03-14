@@ -66,6 +66,8 @@ export interface GeoLocationPoint {
   login_count: number;
   user_count: number;
   risk_score_avg: number;
+  success_count: number;
+  failed_count: number;
 }
 
 export interface GeoHeatmapData {
