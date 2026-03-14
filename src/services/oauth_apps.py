@@ -945,24 +945,32 @@ class OAuthAppsService:
             Summary statistics
         """
         # Get counts by risk level
-        risk_counts = {}
-        for risk in RiskLevel:
-            count_result = await self.db.execute(
-                select(func.count(OAuthAppModel.id)).where(
-                    and_(OAuthAppModel.tenant_id == tenant_id, OAuthAppModel.risk_level == risk)
-                )
-            )
-            risk_counts[risk.value] = count_result.scalar()
+        risk_counts = {risk.value: 0 for risk in RiskLevel}
+        risk_query = (
+            select(OAuthAppModel.risk_level, func.count(OAuthAppModel.id))
+            .where(OAuthAppModel.tenant_id == tenant_id)
+            .group_by(OAuthAppModel.risk_level)
+        )
+        risk_results = await self.db.execute(risk_query)
+        for risk_val, count in risk_results.all():
+            # Handle both Enum member and raw string value
+            key = risk_val.value if hasattr(risk_val, "value") else risk_val
+            if key in risk_counts:
+                risk_counts[key] = count
 
         # Get counts by status
-        status_counts = {}
-        for status in AppStatus:
-            count_result = await self.db.execute(
-                select(func.count(OAuthAppModel.id)).where(
-                    and_(OAuthAppModel.tenant_id == tenant_id, OAuthAppModel.status == status)
-                )
-            )
-            status_counts[status.value] = count_result.scalar()
+        status_counts = {status.value: 0 for status in AppStatus}
+        status_query = (
+            select(OAuthAppModel.status, func.count(OAuthAppModel.id))
+            .where(OAuthAppModel.tenant_id == tenant_id)
+            .group_by(OAuthAppModel.status)
+        )
+        status_results = await self.db.execute(status_query)
+        for status_val, count in status_results.all():
+            # Handle both Enum member and raw string value
+            key = status_val.value if hasattr(status_val, "value") else status_val
+            if key in status_counts:
+                status_counts[key] = count
 
         # Get high-risk apps with mail access
         mail_apps_result = await self.db.execute(
