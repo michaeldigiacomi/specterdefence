@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import String, and_, cast, desc, func, select
+from sqlalchemy import String, and_, cast, desc, func, select, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.alerts import AlertHistoryModel
