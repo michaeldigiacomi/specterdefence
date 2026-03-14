@@ -56,15 +56,17 @@ class CollectorError(Exception):
     pass
 
 
-def ensure_timezone_aware(dt: datetime) -> datetime:
+def ensure_timezone_aware(dt: datetime | None) -> datetime | None:
     """Ensure datetime is timezone-aware (UTC).
 
     Args:
         dt: Datetime that may or may not have timezone info.
 
     Returns:
-        Timezone-aware datetime in UTC.
+        Timezone-aware datetime in UTC, or None if input was None.
     """
+    if dt is None:
+        return None
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
@@ -123,6 +125,12 @@ class TenantCollector:
             )
             self.session.add(state)
             await self.session.flush()
+        else:
+            # Ensure all datetime fields are timezone-aware (especially for SQLite)
+            state.last_collection_time = ensure_timezone_aware(state.last_collection_time)
+            state.last_success_at = ensure_timezone_aware(state.last_success_at)
+            state.last_error_at = ensure_timezone_aware(state.last_error_at)
+            state.updated_at = ensure_timezone_aware(state.updated_at)
 
         return state
 
