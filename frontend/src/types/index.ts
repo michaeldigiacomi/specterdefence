@@ -14,6 +14,10 @@ export interface LoginRecord {
   failure_reason?: string;
   anomaly_flags: string[];
   risk_score: number;
+  is_malicious: boolean;
+  threat_score: number;
+  threat_tags: string[];
+  threat_sources: string[];
 }
 
 /** Anomaly detail response */

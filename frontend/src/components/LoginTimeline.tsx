@@ -125,7 +125,12 @@ export default function LoginTimeline({
                         : 'Unknown location'}
                     </span>
                     <span className="hidden sm:inline">•</span>
-                    <span>{login.ip_address}</span>
+                    <span className={login.is_malicious ? "text-red-600 dark:text-red-400 font-medium" : ""}>
+                      {login.ip_address}
+                    </span>
+                    {login.is_malicious && (
+                      <span className="ml-1 text-red-500" title="Known malicious IP">⚠️</span>
+                    )}
                   </div>
                 </div>
 
@@ -197,6 +202,43 @@ export default function LoginTimeline({
                               {flag}
                             </span>
                           ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Threat Intelligence */}
+                    {(login.is_malicious || login.threat_score > 0 || login.threat_tags.length > 0) && (
+                      <div className="sm:col-span-2">
+                        <p className="text-gray-500 dark:text-gray-400 mb-2">Threat Intelligence</p>
+                        <div className="flex flex-wrap gap-2 items-center">
+                          {login.is_malicious && (
+                            <span className="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 text-xs rounded font-medium">
+                              ⚠️ Malicious IP
+                            </span>
+                          )}
+                          {login.threat_score > 0 && (
+                            <span className={cn(
+                              'px-2 py-1 text-xs rounded font-medium',
+                              login.threat_score >= 80 ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                              : login.threat_score >= 60 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400'
+                              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
+                            )}>
+                              Threat Score: {login.threat_score}
+                            </span>
+                          )}
+                          {login.threat_tags.map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 text-xs rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {login.threat_sources.length > 0 && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              via {login.threat_sources.join(', ')}
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
