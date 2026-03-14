@@ -29,6 +29,36 @@ _BLOCK_DURATION = 900  # Block for 15 minutes after exceeded
 _blocklist: dict[str, float] = {}  # IP -> unblock timestamp
 
 
+def get_client_ip(request: Request) -> str:
+    """
+    Securely extract client IP address from request.
+    Traverses X-Forwarded-For from right to left, trusting only configured proxies.
+    """
+    x_forwarded_for = request.headers.get("x-forwarded-for")
+    if not x_forwarded_for:
+        return request.client.host
+
+    # List of IPs in X-Forwarded-For, from leftmost (original client) to rightmost (last proxy)
+    ips = [ip.strip() for ip in x_forwarded_for.split(",")]
+
+    # Start from the IP of the machine that directly connected to us
+    client_ip = request.client.host
+
+    # If we trust the direct connector, we look at the rightmost IP in X-Forwarded-For
+    # We continue as long as the current IP is in TRUSTED_PROXIES
+    trusted_proxies = settings.TRUSTED_PROXIES
+
+    # Work backwards from the last proxy to the original client
+    for ip in reversed(ips):
+        if client_ip in trusted_proxies:
+            client_ip = ip
+        else:
+            # We reached an untrusted IP, which is the actual client IP
+            break
+
+    return client_ip
+
+
 def _check_rate_limit(ip_address: str) -> bool:
     """Check if IP is rate limited. Returns True if allowed, False if blocked."""
     now = time.time()
@@ -302,8 +332,8 @@ async def get_authorized_tenant(
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest, req: Request):
     """Authenticate user and return JWT token."""
-    # Get client IP
-    client_ip = req.headers.get("x-forwarded-for", req.client.host).split(",")[0].strip()
+    # Get client IP securely
+    client_ip = get_client_ip(req)
 
     # Check rate limit
     if not _check_rate_limit(client_ip):
