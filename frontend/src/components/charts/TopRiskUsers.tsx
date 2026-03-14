@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { User, AlertTriangle, Globe, ChevronUp, ChevronDown, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
@@ -42,26 +42,33 @@ export function TopRiskUsers({
   const [sortBy, setSortBy] = useState<'risk' | 'anomalies' | 'last_seen'>('risk');
   const [sortDesc, setSortDesc] = useState(true);
 
-  const sortedUsers = [...users].sort((a, b) => {
-    let comparison = 0;
-    switch (sortBy) {
-      case 'risk': {
-        comparison = a.risk_score - b.risk_score;
-        break;
+  // ⚡ Bolt Optimization: Memoize the sorting of the users array.
+  // 🎯 Why: Previously, this O(N log N) sort operation was executing on every render,
+  // potentially causing main thread blocking or jank if the users list is large.
+  // 📊 Impact: Reduces unnecessary CPU cycles during irrelevant re-renders (e.g., when
+  // only hover states or unrelated parent state changes occur).
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'risk': {
+          comparison = a.risk_score - b.risk_score;
+          break;
+        }
+        case 'anomalies': {
+          comparison = a.anomaly_count - b.anomaly_count;
+          break;
+        }
+        case 'last_seen': {
+          const aTime = a.last_anomaly_time ? new Date(a.last_anomaly_time).getTime() : 0;
+          const bTime = b.last_anomaly_time ? new Date(b.last_anomaly_time).getTime() : 0;
+          comparison = aTime - bTime;
+          break;
+        }
       }
-      case 'anomalies': {
-        comparison = a.anomaly_count - b.anomaly_count;
-        break;
-      }
-      case 'last_seen': {
-        const aTime = a.last_anomaly_time ? new Date(a.last_anomaly_time).getTime() : 0;
-        const bTime = b.last_anomaly_time ? new Date(b.last_anomaly_time).getTime() : 0;
-        comparison = aTime - bTime;
-        break;
-      }
-    }
-    return sortDesc ? -comparison : comparison;
-  });
+      return sortDesc ? -comparison : comparison;
+    });
+  }, [users, sortBy, sortDesc]);
 
   const handleSort = (column: 'risk' | 'anomalies' | 'last_seen') => {
     if (sortBy === column) {
