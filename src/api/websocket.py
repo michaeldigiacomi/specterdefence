@@ -157,6 +157,7 @@ async def alert_websocket(
     token: str | None = Query(None, description="JWT authentication token"),
     severity: str | None = Query(None, description="Filter by severity (comma-separated)"),
     event_types: str | None = Query(None, description="Filter by event types (comma-separated)"),
+    tenant_id: str | None = Query(None, description="Tenant UUID to filter by"),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """WebSocket endpoint for real-time alert streaming.
