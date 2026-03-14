@@ -87,9 +87,9 @@ class CAPolicyModel(Base):
         Text, nullable=True, comment="Policy description"
     )
 
-    # Policy state - use String(50) to accommodate 'enabledForReportingButNotEnforced' (33 chars)
+    # Policy state
     state: Mapped[PolicyState] = mapped_column(
-        String(50),
+        SQLEnum(PolicyState, native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=PolicyState.ENABLED,
         comment="Current state of the policy",
