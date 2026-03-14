@@ -512,11 +512,6 @@ class TestCronJobExecution:
 
         # Execute collector
         async with TenantCollector(test_tenant, db_session) as collector:
-            # Fix: Ensure collection state has timezone-aware datetime
-            state = await collector.get_collection_state()
-            if state.last_collection_time and state.last_collection_time.tzinfo is None:
-                state.last_collection_time = state.last_collection_time.replace(tzinfo=UTC)
-
             result = await collector.collect_all()
 
         # Verify collection results
