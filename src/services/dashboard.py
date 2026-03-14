@@ -288,7 +288,6 @@ class DashboardService:
             func.count(LoginAnalyticsModel.id).label("login_count"),
             func.count(func.distinct(LoginAnalyticsModel.user_email)).label("user_count"),
             func.count(LoginAnalyticsModel.id).label("success_count"),  # All are successful
-            func.literal(0).label("failed_count"),  # None are failed
         ).where(
             and_(
                 LoginAnalyticsModel.login_time >= start_date,
@@ -328,7 +327,7 @@ class DashboardService:
                         user_count=row.user_count,
                         risk_score_avg=0,  # Successful logins have no risk
                         success_count=int(row.success_count or 0),
-                        failed_count=int(row.failed_count or 0),
+                        failed_count=0,  # All logins are successful (query filters by is_success == True)
                     )
                 )
 
