@@ -82,6 +82,7 @@ export interface Tenant {
   created_at: string;
   updated_at: string;
   ms_tenant_name?: string;
+  approved_countries?: string[];
 }
 
 /** Tenant creation request */
@@ -97,6 +98,7 @@ export interface TenantUpdate {
   name?: string;
   is_active?: boolean;
   client_secret?: string;
+  approved_countries?: string[];
 }
 
 /** Tenant list response */

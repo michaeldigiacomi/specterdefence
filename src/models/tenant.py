@@ -57,6 +57,9 @@ class TenantUpdate(BaseModel):
     client_secret: str | None = Field(
         None, min_length=1, max_length=500, description="New Azure AD client secret (optional)"
     )
+    approved_countries: list[str] | None = Field(
+        None, description="List of approved country codes for this tenant"
+    )
 
 
 class TenantResponse(BaseModel):
@@ -77,6 +80,7 @@ class TenantResponse(BaseModel):
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
     ms_tenant_name: str | None = Field(None, description="Microsoft tenant display name")
+    approved_countries: list[str] = Field(default_factory=list, description="Approved country codes")
 
     @field_validator("client_id")
     @classmethod

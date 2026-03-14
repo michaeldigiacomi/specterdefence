@@ -30,6 +30,8 @@ export default function Tenants() {
         tenant_id: tenant.tenant_id,
         client_id: '',
         client_secret: '',
+        is_active: tenant.is_active,
+        approved_countries: tenant.approved_countries || [],
       });
     } else {
       setEditingTenant(null);
@@ -55,6 +57,7 @@ export default function Tenants() {
         const updateData: TenantUpdate = {
           name: formData.name,
           is_active: formData.is_active,
+          approved_countries: formData.approved_countries,
         };
         // Only include client_secret if user entered a new one
         if (formData.client_secret && formData.client_secret.trim()) {
@@ -329,6 +332,22 @@ export default function Tenants() {
                       />
                       <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
                     </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Approved Countries
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.approved_countries?.join(', ') || ''}
+                      onChange={(e) => setFormData({ ...formData, approved_countries: e.target.value.split(',').map(c => c.trim().toUpperCase()).filter(c => c) })}
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white font-mono"
+                      placeholder="US, CA, GB (comma-separated country codes)"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Comma-separated country codes. Logins from non-approved countries will trigger alerts.
+                    </p>
                   </div>
                 </>
               )}

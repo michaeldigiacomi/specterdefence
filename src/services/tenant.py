@@ -375,6 +375,8 @@ class TenantService:
             # Reset connection status since the secret changed
             tenant.connection_status = "unknown"
             tenant.connection_error = None
+        if update_data.approved_countries is not None:
+            tenant.approved_countries = update_data.approved_countries
 
         await self.db.commit()
         await self.db.refresh(tenant)
