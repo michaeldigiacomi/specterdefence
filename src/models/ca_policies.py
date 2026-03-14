@@ -25,6 +25,7 @@ class PolicyState(StrEnum):
     ENABLED = "enabled"
     DISABLED = "disabled"
     REPORT_ONLY = "reportOnly"
+    ENABLED_FOR_REPORTING_ONLY = "enabledForReportingButNotEnforced"
 
 
 class PolicyEffect(StrEnum):
