@@ -43,4 +43,4 @@ router.include_router(ca_policies.router, prefix="/ca-policies", tags=["ca-polic
 router.include_router(mfa_report.router, prefix="/mfa-report", tags=["mfa-report"], dependencies=protected_deps)
 router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"], dependencies=protected_deps)
 router.include_router(settings.router, prefix="/settings", tags=["settings"], dependencies=protected_deps)
-router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
+router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"], dependencies=protected_deps)

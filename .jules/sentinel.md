@@ -1,0 +1,4 @@
+## 2024-03-14 - [CRITICAL] Authentication Bypass on Monitoring Endpoints
+**Vulnerability:** The `/monitoring` API routes (including `/websites`, `/ssl`, and `/domains`) were inadvertently exposed without authentication. They only utilized `Depends(get_authorized_tenant)` for authorization, which checked tenant assignments but did not enforce the presence of an authenticated user token, thus allowing unauthorized access to sensitive infrastructure monitoring data.
+**Learning:** When including API routers in a central application registry (like `src/api/__init__.py`), relying solely on endpoint-level authorization dependencies might lead to authentication bypass if those dependencies do not inherently validate the session.
+**Prevention:** Always enforce base authentication at the router inclusion level using a standard `dependencies` list (e.g., `dependencies=[Depends(get_current_user)]`) for all protected sub-routers to ensure defense-in-depth.
