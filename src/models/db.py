@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, Table, Column, ForeignKey
+from sqlalchemy import Boolean, DateTime, JSON, String, Table, Column, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
@@ -41,6 +41,9 @@ class TenantModel(Base):
         String(500), nullable=False, comment="Encrypted client secret"
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    approved_countries: Mapped[list[str]] = mapped_column(
+        JSON, default=list, nullable=False, comment="List of approved country codes for this tenant"
+    )
     connection_status: Mapped[str] = mapped_column(
         String(20),
         default="unknown",

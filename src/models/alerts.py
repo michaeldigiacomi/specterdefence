@@ -46,6 +46,7 @@ class EventType(StrEnum):
     MULTIPLE_FAILURES = "multiple_failures"
     SUSPICIOUS_LOCATION = "suspicious_location"
     MALICIOUS_IP = "malicious_ip"
+    UNAPPROVED_COUNTRY = "unapproved_country"
 
 
 # Severity colors for Discord embeds

@@ -134,6 +134,22 @@ class LoginAnalyticsService:
                 max_risk_score = max(max_risk_score, result.risk_score)
                 logger.info(f"Anomaly detected for {user_email}: {result.message}")
 
+        # Check for unapproved country (successful login from non-approved country)
+        if is_success and geo.country_code:
+            # Get tenant's approved countries
+            from sqlalchemy import select
+            from src.models.db import TenantModel
+
+            result = await self.db.execute(
+                select(TenantModel.approved_countries).where(TenantModel.id == tenant_id)
+            )
+            tenant = result.scalar_one_or_none()
+
+            if tenant and tenant.approved_countries and geo.country_code.upper() not in [c.upper() for c in tenant.approved_countries]:
+                anomaly_flags.append("unapproved_country")
+                max_risk_score = max(max_risk_score, 80)  # High risk for unapproved country
+                logger.info(f"Unapproved country login for {user_email}: {geo.country_code} not in approved list")
+
         # Create login analytics record
         login_record = LoginAnalyticsModel(
             audit_log_id=audit_log_id,
