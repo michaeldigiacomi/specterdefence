@@ -34,6 +34,11 @@ class Settings(BaseSettings):
         default_factory=list, description="Allowed CORS origins - empty means same-origin only"
     )
 
+    # Trusted Proxies for X-Forwarded-For
+    TRUSTED_PROXIES: list[str] = Field(
+        default_factory=list, description="List of trusted proxy IP addresses"
+    )
+
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/specterdefence"
 
