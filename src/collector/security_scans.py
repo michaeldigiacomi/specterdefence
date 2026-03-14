@@ -30,31 +30,33 @@ async def run_security_scans():
             logger.info(f"Found {len(tenants)} active tenants for security scans")
 
             for tenant in tenants:
+                # Capture tenant name before any operations that might break the session
+                tenant_name = tenant.name
                 try:
-                    logger.info(f"Triggering security scans for tenant {tenant.name}...")
+                    logger.info(f"Triggering security scans for tenant {tenant_name}...")
 
                     # MFA Scan
                     mfa_service = MFAReportService(session)
                     await mfa_service.scan_tenant_mfa(tenant.id)
-                    logger.info(f"✓ MFA scan completed for {tenant.name}")
+                    logger.info(f"✓ MFA scan completed for {tenant_name}")
 
                     # CA Policies Scan
                     ca_service = CAPoliciesService(session)
                     await ca_service.scan_tenant_policies(tenant.id)
-                    logger.info(f"✓ CA policies scan completed for {tenant.name}")
+                    logger.info(f"✓ CA policies scan completed for {tenant_name}")
 
                     # OAuth Apps Scan
                     oauth_service = OAuthAppsService(session)
                     await oauth_service.scan_tenant_oauth_apps(tenant.id)
-                    logger.info(f"✓ OAuth apps scan completed for {tenant.name}")
+                    logger.info(f"✓ OAuth apps scan completed for {tenant_name}")
 
                     # Mailbox Rules Scan
                     mailbox_service = MailboxRuleService(session)
                     await mailbox_service.scan_tenant_mailbox_rules(tenant.id)
-                    logger.info(f"✓ Mailbox rules scan completed for {tenant.name}")
+                    logger.info(f"✓ Mailbox rules scan completed for {tenant_name}")
 
                 except Exception as scan_err:
-                    logger.error(f"Failed to run security scans for tenant {tenant.name}: {scan_err}")
+                    logger.error(f"Failed to run security scans for tenant {tenant_name}: {scan_err}")
 
             await session.commit()
         except Exception:

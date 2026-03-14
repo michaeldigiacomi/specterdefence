@@ -90,6 +90,7 @@ class CAPolicyModel(Base):
     # Policy state
     state: Mapped[PolicyState] = mapped_column(
         SQLEnum(PolicyState, native_enum=False, values_callable=lambda x: [e.value for e in x]),
+        String(50),
         nullable=False,
         default=PolicyState.ENABLED,
         comment="Current state of the policy",
