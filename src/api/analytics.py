@@ -356,7 +356,7 @@ async def process_audit_logs(
 async def get_recent_anomalies(
     tenant_id: str | list[str] | None = Depends(get_authorized_tenant),
     hours: int = Query(24, ge=1, le=168, description="Look back period in hours"),
-    min_risk_score: int = Query(50, ge=0, le=100, description="Minimum risk score"),
+    min_risk_score: int = Query(0, ge=0, le=100, description="Minimum risk score"),
     limit: int = Query(50, ge=1, le=100, description="Maximum results"),
     service: LoginAnalyticsService = Depends(get_analytics_service),
 ) -> list[AnomalyDetail]:
