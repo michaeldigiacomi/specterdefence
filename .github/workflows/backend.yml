@@ -36,22 +36,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Set up virtual environment
         run: |
+          python3 -m venv venv
+          source venv/bin/activate
           pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-cov httpx faker black ruff mypy
 
       - name: Run Ruff (linter)
-        run: ruff check src/ || echo "Lint issues found (non-blocking)"
+        run: |
+          source venv/bin/activate
+          ruff check src/ || echo "Lint issues found (non-blocking)"
 
       - name: Run Black (format check)
-        run: black --check src/ || echo "Format issues found (non-blocking)"
+        run: |
+          source venv/bin/activate
+          black --check src/ || echo "Format issues found (non-blocking)"
 
       - name: Run MyPy (type check)
-        run: mypy src/ || echo "Type issues found (non-blocking)"
+        run: |
+          source venv/bin/activate
+          mypy src/ || echo "Type issues found (non-blocking)"
 
       - name: Run tests
-        run: pytest tests/ -v --cov=src --cov-report=xml --cov-report=term || echo "Tests failed (non-blocking)"
+        run: |
+          source venv/bin/activate
+          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term || echo "Tests failed (non-blocking)"
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
