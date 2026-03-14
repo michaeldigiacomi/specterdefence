@@ -26,7 +26,7 @@ RUN npm run build:docker
 # ============================================
 # Stage 2: Production image
 # ============================================
-FROM python:3.12-slim AS production
+FROM python:3.13-slim AS production
 
 ARG GIT_SHA=dev
 
@@ -68,7 +68,7 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
 # ============================================
 # Stage 3: Development image
 # ============================================
-FROM python:3.12-slim AS development
+FROM python:3.13-slim AS development
 
 WORKDIR /app
 
