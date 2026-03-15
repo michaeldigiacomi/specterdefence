@@ -499,17 +499,19 @@ class LoginAnalyticsService:
                 # Determine success/failure
                 is_success = True
                 failure_reason = None
+                generic_failure_reason = None
 
                 # Check for failure conditions - O365 uses "ResultStatus": "Success" to mean
                 # the API request was processed, NOT that the login was successful.
                 # The actual login status is determined by Operation, ErrorNumber, and LogonError.
-                
+
                 # Check if this is a failed login operation
                 operation = raw_data.get("Operation", "")
                 if "UserLoginFailed" in operation or "Failed" in operation:
                     is_success = False
-                    failure_reason = raw_data.get("LogonError") or f"Error: {raw_data.get('ErrorNumber', 'Unknown')}"
-                
+                    # Prefer explicit LogonError here; defer generic fallbacks until later
+                    failure_reason = raw_data.get("LogonError")
+
                 # Also check ErrorNumber - any non-zero value indicates a failure
                 error_number_raw = raw_data.get("ErrorNumber", 0)
                 try:
@@ -519,8 +521,9 @@ class LoginAnalyticsService:
                 if error_number not in (None, 0):
                     is_success = False
                     if not failure_reason:
-                        failure_reason = f"Error: {error_number}"
-                
+                        # Record a generic failure reason candidate; apply after extended lookups
+                        generic_failure_reason = f"Error: {error_number}"
+
                 # Check for LogonError - indicates specific login issues
                 if raw_data.get("LogonError"):
                     is_success = False
@@ -540,6 +543,10 @@ class LoginAnalyticsService:
                         is_success = status.get("ErrorCode") == 0
                         if not is_success:
                             failure_reason = status.get("FailureReason") or status.get("AdditionalDetails")
+
+                # Apply generic fallback only if no more specific failure reason was found
+                if not failure_reason and generic_failure_reason:
+                    failure_reason = generic_failure_reason
 
                 # Process the login event
                 await self.process_login_event(
