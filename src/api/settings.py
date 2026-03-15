@@ -3,6 +3,9 @@
 from typing import Any
 
 import uuid
+import ipaddress
+import socket
+from urllib.parse import urlparse
 from src.api.auth_local import get_authorized_tenant
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -558,6 +561,62 @@ async def revoke_api_key(
 # ========== Webhook Test Endpoint ==========
 
 
+def _is_safe_webhook_url(url: str) -> tuple[bool, str | None]:
+    """
+    Validate that the given URL is safe to call from the server.
+
+    The URL must:
+      - Use http or https.
+      - Resolve only to public, non-loopback, non-private addresses.
+    Returns (True, None) if safe, otherwise (False, reason).
+    """
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return False, "Invalid URL format"
+
+    if not parsed.scheme or not parsed.netloc:
+        return False, "Webhook URL must include scheme and host"
+
+    if parsed.scheme not in ("http", "https"):
+        return False, "Only http and https webhook URLs are allowed"
+
+    hostname = parsed.hostname
+    if not hostname:
+        return False, "Webhook URL must include a valid host"
+
+    try:
+        addrinfos = socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        return False, "Unable to resolve webhook host"
+
+    for family, _, _, _, sockaddr in addrinfos:
+        ip_str = None
+        if family == socket.AF_INET:
+            ip_str = sockaddr[0]
+        elif family == socket.AF_INET6:
+            ip_str = sockaddr[0]
+
+        if not ip_str:
+            continue
+
+        try:
+            ip_obj = ipaddress.ip_address(ip_str)
+        except ValueError:
+            return False, "Resolved webhook IP address is invalid"
+
+        if (
+            ip_obj.is_loopback
+            or ip_obj.is_private
+            or ip_obj.is_link_local
+            or ip_obj.is_multicast
+            or not ip_obj.is_global
+        ):
+            return False, "Webhook URL resolves to a disallowed internal or non-global address"
+
+    return True, None
+
+
 @router.post(
     "/webhooks/test",
     response_model=WebhookTestResponse,
@@ -569,6 +628,14 @@ async def send_test_webhook(request: WebhookTestRequest) -> WebhookTestResponse:
     from datetime import datetime
 
     import aiohttp
+
+    # Validate the webhook URL to mitigate SSRF risks.
+    is_safe, reason = _is_safe_webhook_url(request.webhook_url)
+    if not is_safe:
+        return WebhookTestResponse(
+            success=False,
+            message=f"Invalid webhook URL: {reason}",
+        )
 
     start_time = datetime.now()
 
