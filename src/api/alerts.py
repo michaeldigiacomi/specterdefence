@@ -422,10 +422,55 @@ async def get_rule(
     summary="Update alert rule",
     description="Update an existing alert rule.",
 )
-async def update_rule(
+async def update_rule_put(
     rule_id: UUID, updates: RuleUpdate, service: AlertRuleService = Depends(get_rule_service)
 ) -> RuleResponse:
-    """Update an alert rule.
+    """Update an alert rule (PUT - full replacement).
+
+    Args:
+        rule_id: Rule UUID
+        updates: Fields to update
+        service: Alert rule service
+
+    Returns:
+        Updated rule details
+
+    Raises:
+        HTTPException: If rule not found
+    """
+    update_dict = updates.model_dump(exclude_unset=True)
+
+    if not update_dict:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
+
+    updated = await service.update_rule(rule_id, update_dict)
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Rule with ID {rule_id} not found"
+        )
+
+    return RuleResponse(
+        id=updated.id,
+        name=updated.name,
+        event_types=updated.event_types,
+        min_severity=updated.min_severity.value,
+        cooldown_minutes=updated.cooldown_minutes,
+        is_active=updated.is_active,
+        created_at=updated.created_at.isoformat(),
+        updated_at=updated.updated_at.isoformat(),
+    )
+
+
+@router.patch(
+    "/rules/{rule_id}",
+    response_model=RuleResponse,
+    summary="Patch alert rule",
+    description="Partially update an existing alert rule.",
+)
+async def update_rule_patch(
+    rule_id: UUID, updates: RuleUpdate, service: AlertRuleService = Depends(get_rule_service)
+) -> RuleResponse:
+    """Partially update an alert rule (PATCH - partial update).
 
     Args:
         rule_id: Rule UUID
