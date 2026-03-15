@@ -77,7 +77,7 @@ export function TopRiskUsers({
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
         <div className="animate-pulse">
           <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
-          {[1, 2, 3, 4, 5].map((i) => (
+          {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
           ))}
         </div>
@@ -92,9 +92,7 @@ export function TopRiskUsers({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <User className="w-5 h-5 text-red-500" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Top Risk Users
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Top Risk Users</h3>
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -115,18 +113,16 @@ export function TopRiskUsers({
           className="col-span-2 flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
         >
           Risk Score
-          {sortBy === 'risk' && (
-            sortDesc ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
-          )}
+          {sortBy === 'risk' &&
+            (sortDesc ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
         </button>
         <button
           onClick={() => handleSort('anomalies')}
           className="col-span-2 flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
         >
           Anomalies
-          {sortBy === 'anomalies' && (
-            sortDesc ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
-          )}
+          {sortBy === 'anomalies' &&
+            (sortDesc ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
         </button>
         <div className="col-span-2">Types</div>
         <button
@@ -134,16 +130,15 @@ export function TopRiskUsers({
           className="col-span-2 flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
         >
           Last Seen
-          {sortBy === 'last_seen' && (
-            sortDesc ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
-          )}
+          {sortBy === 'last_seen' &&
+            (sortDesc ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
         </button>
       </div>
 
       {/* User List */}
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         {sortedUsers.length > 0 ? (
-          sortedUsers.map((user) => (
+          sortedUsers.map(user => (
             <Link
               key={user.user_email}
               to={`/analytics?user=${encodeURIComponent(user.user_email)}`}
@@ -183,15 +178,13 @@ export function TopRiskUsers({
 
               {/* Anomaly Count */}
               <div className="col-span-2 flex items-center">
-                <span className="text-sm text-gray-900 dark:text-white">
-                  {user.anomaly_count}
-                </span>
+                <span className="text-sm text-gray-900 dark:text-white">{user.anomaly_count}</span>
               </div>
 
               {/* Anomaly Types */}
               <div className="col-span-2">
                 <div className="flex flex-wrap gap-1">
-                  {user.top_anomaly_types.slice(0, 2).map((type) => (
+                  {user.top_anomaly_types.slice(0, 2).map(type => (
                     <span
                       key={type}
                       className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"

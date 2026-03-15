@@ -57,11 +57,11 @@ export default function Sidebar() {
 
   useEffect(() => {
     fetch('/api/v1/version')
-      .then((res) => {
+      .then(res => {
         if (!res.ok) throw new Error('not ok');
         return res.json();
       })
-      .then((data) => setBackendSha(data.git_sha || 'unknown'))
+      .then(data => setBackendSha(data.git_sha || 'unknown'))
       .catch(() => setBackendSha('unknown'));
   }, []);
 
@@ -69,7 +69,7 @@ export default function Sidebar() {
     logoutMutation.mutate();
   };
 
-  const shortSha = (sha: string) => sha.length > 7 ? sha.substring(0, 7) : sha;
+  const shortSha = (sha: string) => (sha.length > 7 ? sha.substring(0, 7) : sha);
 
   return (
     <aside
@@ -79,7 +79,10 @@ export default function Sidebar() {
       )}
     >
       {/* Logo Section */}
-      <div className="flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700" style={{ minHeight: sidebarOpen ? '4.5rem' : '4rem' }}>
+      <div
+        className="flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700"
+        style={{ minHeight: sidebarOpen ? '4.5rem' : '4rem' }}
+      >
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="flex-shrink-0 w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
             <Shield className="w-5 h-5 text-white" />
@@ -106,7 +109,7 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 py-4 overflow-y-auto">
         <ul className="space-y-1 px-2">
-          {navItems.map((item) => (
+          {navItems.map(item => (
             <li key={item.path}>
               <NavLink
                 to={item.path}
@@ -195,10 +198,12 @@ export default function Sidebar() {
           className="flex items-center gap-3 w-full px-3 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors mt-1"
           title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
         >
-          <Menu className={cn(
-            'w-5 h-5 flex-shrink-0 transition-transform duration-300',
-            sidebarOpen && 'rotate-180'
-          )} />
+          <Menu
+            className={cn(
+              'w-5 h-5 flex-shrink-0 transition-transform duration-300',
+              sidebarOpen && 'rotate-180'
+            )}
+          />
           <span
             className={cn(
               'whitespace-nowrap transition-opacity duration-300',
@@ -218,9 +223,25 @@ export default function Sidebar() {
         >
           {logoutMutation.isPending ? (
             <>
-              <svg className="animate-spin h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin h-5 w-5 flex-shrink-0"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               <span
                 className={cn(

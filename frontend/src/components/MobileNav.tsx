@@ -133,11 +133,7 @@ export function MobileNav() {
               className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             >
-              {theme === 'light' ? (
-                <Moon className="w-5 h-5" />
-              ) : (
-                <Sun className="w-5 h-5" />
-              )}
+              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
             </button>
 
             {/* Menu Toggle */}
@@ -189,7 +185,7 @@ export function MobileNav() {
 
           {/* Navigation Links */}
           <nav className="p-4 space-y-1">
-            {navItems.map((item) => (
+            {navItems.map(item => (
               <NavLink
                 key={item.path}
                 to={item.path}
@@ -206,9 +202,7 @@ export function MobileNav() {
                   <item.icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
                 </div>
-                {item.badge && (
-                  <span className="w-2 h-2 bg-red-500 rounded-full" />
-                )}
+                {item.badge && <span className="w-2 h-2 bg-red-500 rounded-full" />}
                 <ChevronRight className="w-4 h-4 opacity-50" />
               </NavLink>
             ))}
@@ -219,15 +213,11 @@ export function MobileNav() {
 
           {/* Secondary Actions */}
           <div className="p-4 space-y-1">
-            <button
-              className="flex items-center gap-3 w-full px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
-            >
+            <button className="flex items-center gap-3 w-full px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
               <Settings className="w-5 h-5" />
               <span className="font-medium">Settings</span>
             </button>
-            <button
-              className="flex items-center gap-3 w-full px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
-            >
+            <button className="flex items-center gap-3 w-full px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
               <User className="w-5 h-5" />
               <span className="font-medium">Profile</span>
             </button>
@@ -245,9 +235,8 @@ export function MobileNav() {
       {/* Bottom Navigation Bar */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 safe-area-bottom">
         <div className="flex items-center justify-around h-16 pb-safe">
-          {bottomNavItems.map((item) => {
-            const isActive = location.pathname === item.path ||
-              (item.path === '/more' && isOpen);
+          {bottomNavItems.map(item => {
+            const isActive = location.pathname === item.path || (item.path === '/more' && isOpen);
 
             if (item.path === '/more') {
               return (
@@ -274,9 +263,7 @@ export function MobileNav() {
                 className={({ isActive: active }) =>
                   cn(
                     'flex flex-col items-center justify-center flex-1 h-full relative transition-colors',
-                    active
-                      ? 'text-blue-600 dark:text-blue-400'
-                      : 'text-gray-500 dark:text-gray-400'
+                    active ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
                   )
                 }
               >

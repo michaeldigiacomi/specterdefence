@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import {
-  Plus, Edit2, Trash2, Save, X, Bell, AlertTriangle,
-  Shield, Globe, Lock, Clock
+  Plus,
+  Edit2,
+  Trash2,
+  Save,
+  X,
+  Bell,
+  AlertTriangle,
+  Shield,
+  Globe,
+  Lock,
+  Clock,
 } from 'lucide-react';
 import {
   useAlertRules,
   useCreateAlertRule,
   useUpdateAlertRule,
-  useDeleteAlertRule
+  useDeleteAlertRule,
 } from '@/hooks/useSettings';
 import { useTenants } from '@/hooks/useApi';
 import { AlertRule, EventType, SeverityLevel } from '@/types';
@@ -19,50 +28,75 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const EVENT_TYPES: { value: EventType; label: string; icon: React.ReactNode; description: string }[] = [
+const EVENT_TYPES: {
+  value: EventType;
+  label: string;
+  icon: React.ReactNode;
+  description: string;
+}[] = [
   {
     value: 'impossible_travel',
     label: 'Impossible Travel',
     icon: <Globe className="w-4 h-4" />,
-    description: 'Logins from geographically distant locations'
+    description: 'Logins from geographically distant locations',
   },
   {
     value: 'new_country',
     label: 'New Country',
     icon: <Globe className="w-4 h-4" />,
-    description: 'First login from a new country'
+    description: 'First login from a new country',
   },
   {
     value: 'brute_force',
     label: 'Brute Force',
     icon: <Lock className="w-4 h-4" />,
-    description: 'Multiple failed login attempts'
+    description: 'Multiple failed login attempts',
   },
   {
     value: 'new_ip',
     label: 'New IP Address',
     icon: <Shield className="w-4 h-4" />,
-    description: 'First login from a new IP'
+    description: 'First login from a new IP',
   },
   {
     value: 'multiple_failures',
     label: 'Multiple Failures',
     icon: <AlertTriangle className="w-4 h-4" />,
-    description: 'User with repeated auth failures'
+    description: 'User with repeated auth failures',
   },
   {
     value: 'admin_action',
     label: 'Admin Action',
     icon: <Shield className="w-4 h-4" />,
-    description: 'Administrative actions'
+    description: 'Administrative actions',
   },
 ];
 
 const SEVERITY_LEVELS: { value: SeverityLevel; label: string; color: string; bgColor: string }[] = [
-  { value: 'LOW', label: 'Low', color: 'text-green-700', bgColor: 'bg-green-100 dark:bg-green-900/30' },
-  { value: 'MEDIUM', label: 'Medium', color: 'text-yellow-700', bgColor: 'bg-yellow-100 dark:bg-yellow-900/30' },
-  { value: 'HIGH', label: 'High', color: 'text-orange-700', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
-  { value: 'CRITICAL', label: 'Critical', color: 'text-red-700', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+  {
+    value: 'LOW',
+    label: 'Low',
+    color: 'text-green-700',
+    bgColor: 'bg-green-100 dark:bg-green-900/30',
+  },
+  {
+    value: 'MEDIUM',
+    label: 'Medium',
+    color: 'text-yellow-700',
+    bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+  },
+  {
+    value: 'HIGH',
+    label: 'High',
+    color: 'text-orange-700',
+    bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+  },
+  {
+    value: 'CRITICAL',
+    label: 'Critical',
+    color: 'text-red-700',
+    bgColor: 'bg-red-100 dark:bg-red-900/30',
+  },
 ];
 
 export default function AlertRuleBuilder() {
@@ -116,7 +150,7 @@ export default function AlertRuleBuilder() {
       ...prev,
       event_types: prev.event_types?.includes(eventType)
         ? prev.event_types.filter(et => et !== eventType)
-        : [...(prev.event_types || []), eventType]
+        : [...(prev.event_types || []), eventType],
     }));
   };
 
@@ -138,7 +172,7 @@ export default function AlertRuleBuilder() {
             min_severity: formData.min_severity,
             cooldown_minutes: formData.cooldown_minutes,
             is_active: formData.is_active,
-          }
+          },
         });
         toast.success('Alert rule updated');
       } else {
@@ -210,33 +244,39 @@ export default function AlertRuleBuilder() {
             </button>
           </div>
         ) : (
-          rules?.map((rule) => (
+          rules?.map(rule => (
             <div
               key={rule.id}
               className={cn(
-                "bg-white dark:bg-gray-800 rounded-lg border p-4 transition-all",
+                'bg-white dark:bg-gray-800 rounded-lg border p-4 transition-all',
                 rule.is_active
-                  ? "border-gray-200 dark:border-gray-700"
-                  : "border-gray-200 dark:border-gray-700 opacity-60"
+                  ? 'border-gray-200 dark:border-gray-700'
+                  : 'border-gray-200 dark:border-gray-700 opacity-60'
               )}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4">
-                  <div className={cn(
-                    "p-2 rounded-lg",
-                    rule.is_active ? "bg-primary-100 dark:bg-primary-900/30" : "bg-gray-100 dark:bg-gray-700"
-                  )}>
+                  <div
+                    className={cn(
+                      'p-2 rounded-lg',
+                      rule.is_active
+                        ? 'bg-primary-100 dark:bg-primary-900/30'
+                        : 'bg-gray-100 dark:bg-gray-700'
+                    )}
+                  >
                     <Bell className="w-5 h-5 text-primary-500" />
                   </div>
 
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="font-semibold text-gray-900 dark:text-white">{rule.name}</h4>
-                      <span className={cn(
-                        "text-xs font-medium px-2 py-0.5 rounded-full",
-                        SEVERITY_LEVELS.find(s => s.value === rule.min_severity)?.bgColor,
-                        SEVERITY_LEVELS.find(s => s.value === rule.min_severity)?.color
-                      )}>
+                      <span
+                        className={cn(
+                          'text-xs font-medium px-2 py-0.5 rounded-full',
+                          SEVERITY_LEVELS.find(s => s.value === rule.min_severity)?.bgColor,
+                          SEVERITY_LEVELS.find(s => s.value === rule.min_severity)?.color
+                        )}
+                      >
                         {rule.min_severity}
                       </span>
                       {!rule.is_active && (
@@ -247,7 +287,7 @@ export default function AlertRuleBuilder() {
                     </div>
 
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {rule.event_types.map((et) => {
+                      {rule.event_types.map(et => {
                         const eventType = EVENT_TYPES.find(e => e.value === et);
                         return (
                           <span
@@ -268,7 +308,9 @@ export default function AlertRuleBuilder() {
                       </span>
                       {rule.tenant_id && (
                         <span>
-                          Tenant: {tenantsData?.items?.find(t => t.id === rule.tenant_id)?.name || rule.tenant_id}
+                          Tenant:{' '}
+                          {tenantsData?.items?.find(t => t.id === rule.tenant_id)?.name ||
+                            rule.tenant_id}
                         </span>
                       )}
                     </div>
@@ -323,7 +365,7 @@ export default function AlertRuleBuilder() {
                   type="text"
                   required
                   value={formData.name || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                   placeholder="e.g., High Risk Travel Alerts"
                 />
@@ -335,14 +377,14 @@ export default function AlertRuleBuilder() {
                   Event Types *
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {EVENT_TYPES.map((et) => (
+                  {EVENT_TYPES.map(et => (
                     <label
                       key={et.value}
                       className={cn(
-                        "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                        'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all',
                         formData.event_types?.includes(et.value)
-                          ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                       )}
                     >
                       <input
@@ -354,7 +396,9 @@ export default function AlertRuleBuilder() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           {et.icon}
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">{et.label}</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {et.label}
+                          </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">{et.description}</p>
                       </div>
@@ -369,16 +413,16 @@ export default function AlertRuleBuilder() {
                   Minimum Severity
                 </label>
                 <div className="flex gap-2">
-                  {SEVERITY_LEVELS.map((sev) => (
+                  {SEVERITY_LEVELS.map(sev => (
                     <button
                       key={sev.value}
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, min_severity: sev.value }))}
                       className={cn(
-                        "flex-1 py-2 px-3 text-sm font-medium rounded-lg border transition-all",
+                        'flex-1 py-2 px-3 text-sm font-medium rounded-lg border transition-all',
                         formData.min_severity === sev.value
-                          ? cn("border-transparent", sev.bgColor, sev.color)
-                          : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300"
+                          ? cn('border-transparent', sev.bgColor, sev.color)
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
                       )}
                     >
                       {sev.label}
@@ -398,7 +442,9 @@ export default function AlertRuleBuilder() {
                     min={0}
                     max={1440}
                     value={formData.cooldown_minutes || 30}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cooldown_minutes: parseInt(e.target.value) }))}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, cooldown_minutes: parseInt(e.target.value) }))
+                    }
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                   />
                   <p className="mt-1 text-xs text-gray-500">Time before duplicate alerts</p>
@@ -411,12 +457,16 @@ export default function AlertRuleBuilder() {
                   </label>
                   <select
                     value={formData.tenant_id || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, tenant_id: e.target.value || undefined }))}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, tenant_id: e.target.value || undefined }))
+                    }
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                   >
                     <option value="">All Tenants</option>
-                                        {tenantsData?.items?.map((tenant) => (
-                      <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+                    {tenantsData?.items?.map(tenant => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {tenant.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -427,7 +477,7 @@ export default function AlertRuleBuilder() {
                 <input
                   type="checkbox"
                   checked={formData.is_active !== false}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                  onChange={e => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
                   className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
                 />
                 <span className="text-sm text-gray-700 dark:text-gray-300">Rule is active</span>
@@ -448,7 +498,11 @@ export default function AlertRuleBuilder() {
                   className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <Save className="w-4 h-4" />
-                  {createRule.isPending || updateRule.isPending ? 'Saving...' : (editingRule ? 'Update' : 'Create')}
+                  {createRule.isPending || updateRule.isPending
+                    ? 'Saving...'
+                    : editingRule
+                      ? 'Update'
+                      : 'Create'}
                 </button>
               </div>
             </form>

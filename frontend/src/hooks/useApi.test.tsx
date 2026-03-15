@@ -24,11 +24,7 @@ const createWrapper = () => {
   });
 
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 };
 
@@ -50,10 +46,7 @@ describe('Tenant API Hooks', () => {
     it('handles error state', async () => {
       server.use(
         http.get('/api/v1/tenants', () => {
-          return HttpResponse.json(
-            { detail: 'Failed to fetch tenants' },
-            { status: 500 }
-          );
+          return HttpResponse.json({ detail: 'Failed to fetch tenants' }, { status: 500 });
         })
       );
 
@@ -90,10 +83,7 @@ describe('Tenant API Hooks', () => {
     it('handles creation error', async () => {
       server.use(
         http.post('/api/v1/tenants', () => {
-          return HttpResponse.json(
-            { detail: 'Tenant already exists' },
-            { status: 409 }
-          );
+          return HttpResponse.json({ detail: 'Tenant already exists' }, { status: 409 });
         })
       );
 
@@ -133,10 +123,7 @@ describe('Tenant API Hooks', () => {
     it('handles not found error', async () => {
       server.use(
         http.patch('/api/v1/tenants/:id', () => {
-          return HttpResponse.json(
-            { detail: 'Tenant not found' },
-            { status: 404 }
-          );
+          return HttpResponse.json({ detail: 'Tenant not found' }, { status: 404 });
         })
       );
 
@@ -168,10 +155,7 @@ describe('Tenant API Hooks', () => {
     it('handles delete error for non-existent tenant', async () => {
       server.use(
         http.delete('/api/v1/tenants/:id', () => {
-          return HttpResponse.json(
-            { detail: 'Tenant not found' },
-            { status: 404 }
-          );
+          return HttpResponse.json({ detail: 'Tenant not found' }, { status: 404 });
         })
       );
 

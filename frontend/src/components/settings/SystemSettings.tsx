@@ -78,7 +78,7 @@ export default function SystemSettings() {
               min={1}
               max={3650}
               value={currentSettings.audit_log_retention_days || 90}
-              onChange={(e) => handleChange('audit_log_retention_days', parseInt(e.target.value))}
+              onChange={e => handleChange('audit_log_retention_days', parseInt(e.target.value))}
               className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
             />
             <p className="mt-1 text-xs text-gray-500">Days to keep audit logs</p>
@@ -93,7 +93,7 @@ export default function SystemSettings() {
               min={1}
               max={3650}
               value={currentSettings.login_history_retention_days || 365}
-              onChange={(e) => handleChange('login_history_retention_days', parseInt(e.target.value))}
+              onChange={e => handleChange('login_history_retention_days', parseInt(e.target.value))}
               className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
             />
             <p className="mt-1 text-xs text-gray-500">Days to keep login history</p>
@@ -108,7 +108,7 @@ export default function SystemSettings() {
               min={1}
               max={3650}
               value={currentSettings.alert_history_retention_days || 180}
-              onChange={(e) => handleChange('alert_history_retention_days', parseInt(e.target.value))}
+              onChange={e => handleChange('alert_history_retention_days', parseInt(e.target.value))}
               className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
             />
             <p className="mt-1 text-xs text-gray-500">Days to keep alert history</p>
@@ -120,10 +120,12 @@ export default function SystemSettings() {
             <input
               type="checkbox"
               checked={currentSettings.auto_cleanup_enabled !== false}
-              onChange={(e) => handleChange('auto_cleanup_enabled', e.target.checked)}
+              onChange={e => handleChange('auto_cleanup_enabled', e.target.checked)}
               className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Enable automatic cleanup</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              Enable automatic cleanup
+            </span>
           </label>
         </div>
       </div>
@@ -145,7 +147,7 @@ export default function SystemSettings() {
               min={10}
               max={10000}
               value={currentSettings.api_rate_limit || 1000}
-              onChange={(e) => handleChange('api_rate_limit', parseInt(e.target.value))}
+              onChange={e => handleChange('api_rate_limit', parseInt(e.target.value))}
               className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
             />
           </div>
@@ -159,7 +161,7 @@ export default function SystemSettings() {
               min={100}
               max={100000}
               value={currentSettings.max_export_rows || 10000}
-              onChange={(e) => handleChange('max_export_rows', parseInt(e.target.value))}
+              onChange={e => handleChange('max_export_rows', parseInt(e.target.value))}
               className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
             />
           </div>
@@ -174,18 +176,20 @@ export default function SystemSettings() {
         </div>
 
         <div className="space-y-3">
-          {LOG_LEVELS.map((level) => (
+          {LOG_LEVELS.map(level => (
             <label key={level.value} className="flex items-start gap-3 cursor-pointer">
               <input
                 type="radio"
                 name="log_level"
                 value={level.value}
                 checked={(currentSettings.log_level || 'INFO') === level.value}
-                onChange={(e) => handleChange('log_level', e.target.value)}
+                onChange={e => handleChange('log_level', e.target.value)}
                 className="mt-1 w-4 h-4 text-primary-500 border-gray-300 focus:ring-primary-500"
               />
               <div>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{level.label}</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {level.label}
+                </span>
                 <p className="text-xs text-gray-500">{level.description}</p>
               </div>
             </label>
@@ -207,7 +211,7 @@ export default function SystemSettings() {
           <input
             type="text"
             value={currentSettings.cleanup_schedule || '0 2 * * *'}
-            onChange={(e) => handleChange('cleanup_schedule', e.target.value)}
+            onChange={e => handleChange('cleanup_schedule', e.target.value)}
             placeholder="0 2 * * *"
             className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white font-mono"
           />

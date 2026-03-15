@@ -6,7 +6,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -77,9 +77,7 @@ export function LoginTimelineChart({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Login Activity
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Login Activity</h3>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-sm text-gray-500 dark:text-gray-400">
               {totalSuccessful.toLocaleString()} successful, {totalFailed.toLocaleString()} failed
@@ -91,8 +89,8 @@ export function LoginTimelineChart({
                   changePercent > 0
                     ? 'text-green-600 dark:text-green-400'
                     : changePercent < 0
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-gray-500 dark:text-gray-400'
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-gray-500 dark:text-gray-400'
                 )}
               >
                 {changePercent > 0 ? (
@@ -111,7 +109,7 @@ export function LoginTimelineChart({
         <div className="flex items-center gap-2">
           {/* Time Range Selector */}
           <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-            {timeRangeOptions.map((option) => (
+            {timeRangeOptions.map(option => (
               <button
                 key={option.value}
                 onClick={() => onTimeRangeChange(option.value)}

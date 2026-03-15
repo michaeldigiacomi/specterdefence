@@ -55,8 +55,8 @@ export function useOffline(): UseOfflineReturn {
   const [isOnline, setIsOnline] = useState<boolean>(() => navigator.onLine);
   const [wasOffline, setWasOffline] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [lastOnlineTime, setLastOnlineTime] = useState<Date | null>(
-    () => navigator.onLine ? new Date() : null
+  const [lastOnlineTime, setLastOnlineTime] = useState<Date | null>(() =>
+    navigator.onLine ? new Date() : null
   );
   const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
 
@@ -115,15 +115,15 @@ export function useOffline(): UseOfflineReturn {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/service-worker.js')
-        .then((registration) => {
+        .then(registration => {
           console.log('[useOffline] Service Worker registered:', registration.scope);
 
           // Check for push subscription
-          registration.pushManager.getSubscription().then((subscription) => {
+          registration.pushManager.getSubscription().then(subscription => {
             setPushSubscription(subscription);
           });
         })
-        .catch((error) => {
+        .catch(error => {
           console.error('[useOffline] Service Worker registration failed:', error);
         });
     }
@@ -165,14 +165,17 @@ export function useOffline(): UseOfflineReturn {
   }, []);
 
   // Set cached data
-  const setCachedData = useCallback(<T>(key: string, data: T) => {
-    cacheRef.current.set(key, {
-      data,
-      timestamp: Date.now(),
-      isStale: false,
-    });
-    saveCache();
-  }, [saveCache]);
+  const setCachedData = useCallback(
+    <T>(key: string, data: T) => {
+      cacheRef.current.set(key, {
+        data,
+        timestamp: Date.now(),
+        isStale: false,
+      });
+      saveCache();
+    },
+    [saveCache]
+  );
 
   // Queue an action for sync
   const queueForSync = useCallback(
@@ -190,7 +193,7 @@ export function useOffline(): UseOfflineReturn {
 
       // Try to trigger background sync if available
       if ('serviceWorker' in navigator && 'SyncManager' in window) {
-        navigator.serviceWorker.ready.then((registration) => {
+        navigator.serviceWorker.ready.then(registration => {
           // @ts-expect-error - BackgroundSync not fully typed
           registration.sync.register('sync-alerts').catch(() => {
             // Fallback: will sync when online event fires
@@ -290,7 +293,11 @@ export function useOffline(): UseOfflineReturn {
       try {
         const response = await apiService.client.post('/push/subscribe', subscription);
         if (response.status !== 200 && response.status !== 201) {
-          console.warn('[useOffline] Push subscribe endpoint returned:', response.status, '- push notifications may not be fully configured on the server');
+          console.warn(
+            '[useOffline] Push subscribe endpoint returned:',
+            response.status,
+            '- push notifications may not be fully configured on the server'
+          );
         }
       } catch (pushError) {
         console.warn('[useOffline] Push subscribe endpoint unavailable:', pushError);
@@ -323,7 +330,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = window.atob(base64);
-  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
 }
 
 export default useOffline;

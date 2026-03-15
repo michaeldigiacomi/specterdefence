@@ -56,12 +56,11 @@ export interface UseWebSocketReturn {
 // Derive WebSocket URL from current page origin so it works in production
 function getWsBaseUrl(): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  
+
   // Connect directly to the unified API entrypoint instead of falling back to a build environment config.
   // In development, the vite.config.ts proxy will handle routing /api to the backend.
   return `${protocol}//${window.location.host}/api/v1/ws/alerts`;
 }
-
 
 const RECONNECT_INTERVAL = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -85,7 +84,10 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [isPaused, setIsPaused] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [connectionStats, setConnectionStats] = useState<{ connectedClients: number; timestamp?: string }>({ connectedClients: 0 });
+  const [connectionStats, setConnectionStats] = useState<{
+    connectedClients: number;
+    timestamp?: string;
+  }>({ connectedClients: 0 });
 
   const ws = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
@@ -140,7 +142,7 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
         }
       };
 
-      ws.current.onmessage = (event) => {
+      ws.current.onmessage = event => {
         try {
           const data = JSON.parse(event.data) as WebSocketMessage;
           handleMessage(data);
@@ -154,7 +156,7 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
         attemptReconnect();
       };
 
-      ws.current.onerror = (err) => {
+      ws.current.onerror = err => {
         setConnectionStatus('error');
         setError('WebSocket connection error');
         console.error('WebSocket error:', err);
@@ -184,65 +186,68 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
     }, RECONNECT_INTERVAL * reconnectAttempts.current);
   }, [connect]);
 
-  const handleMessage = useCallback((data: WebSocketMessage) => {
-    switch (data.type) {
-      case 'connection':
-        console.log('WebSocket connected:', data);
-        break;
+  const handleMessage = useCallback(
+    (data: WebSocketMessage) => {
+      switch (data.type) {
+        case 'connection':
+          console.log('WebSocket connected:', data);
+          break;
 
-      case 'initial_alerts': {
-        const initialAlerts = (data.alerts as Alert[]) || [];
-        setAlerts(initialAlerts);
-        break;
-      }
-
-      case 'new_alert': {
-        const newAlert = data.alert as Alert;
-        if (isPaused) {
-          pendingAlerts.current.unshift(newAlert);
-        } else {
-          setAlerts(prev => [newAlert, ...prev].slice(0, 100));
+        case 'initial_alerts': {
+          const initialAlerts = (data.alerts as Alert[]) || [];
+          setAlerts(initialAlerts);
+          break;
         }
-        break;
+
+        case 'new_alert': {
+          const newAlert = data.alert as Alert;
+          if (isPaused) {
+            pendingAlerts.current.unshift(newAlert);
+          } else {
+            setAlerts(prev => [newAlert, ...prev].slice(0, 100));
+          }
+          break;
+        }
+
+        case 'acknowledged': {
+          const ackId = data.alert_id as string;
+          setAlerts(prev =>
+            prev.map(a =>
+              a.id === ackId
+                ? { ...a, status: 'acknowledged', acknowledged_by: data.acknowledged_by as string }
+                : a
+            )
+          );
+          break;
+        }
+
+        case 'dismissed': {
+          const dismissId = data.alert_id as string;
+          setAlerts(prev => prev.filter(a => a.id !== dismissId));
+          break;
+        }
+
+        case 'stats':
+          setConnectionStats({
+            connectedClients: (data.connected_clients as number) || 0,
+            timestamp: data.timestamp as string,
+          });
+          break;
+
+        case 'pong':
+          // Keepalive response
+          break;
+
+        case 'error':
+          setError(data.message as string);
+          break;
+
+        default:
+          console.log('Unknown message type:', data.type);
       }
-
-      case 'acknowledged': {
-        const ackId = data.alert_id as string;
-        setAlerts(prev =>
-          prev.map(a =>
-            a.id === ackId
-              ? { ...a, status: 'acknowledged', acknowledged_by: data.acknowledged_by as string }
-              : a
-          )
-        );
-        break;
-      }
-
-      case 'dismissed': {
-        const dismissId = data.alert_id as string;
-        setAlerts(prev => prev.filter(a => a.id !== dismissId));
-        break;
-      }
-
-      case 'stats':
-        setConnectionStats({
-          connectedClients: (data.connected_clients as number) || 0,
-          timestamp: data.timestamp as string,
-        });
-        break;
-
-      case 'pong':
-        // Keepalive response
-        break;
-
-      case 'error':
-        setError(data.message as string);
-        break;
-
-      default:
-        console.log('Unknown message type:', data.type);
-    }
-  }, [isPaused]);
+    },
+    [isPaused]
+  );
 
   const sendMessage = useCallback((message: unknown) => {
     if (ws.current?.readyState === WebSocket.OPEN) {
@@ -252,19 +257,25 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
     }
   }, []);
 
-  const acknowledgeAlert = useCallback((alertId: string) => {
-    sendMessage({
-      type: 'acknowledge',
-      alert_id: alertId,
-    });
-  }, [sendMessage]);
+  const acknowledgeAlert = useCallback(
+    (alertId: string) => {
+      sendMessage({
+        type: 'acknowledge',
+        alert_id: alertId,
+      });
+    },
+    [sendMessage]
+  );
 
-  const dismissAlert = useCallback((alertId: string) => {
-    sendMessage({
-      type: 'dismiss',
-      alert_id: alertId,
-    });
-  }, [sendMessage]);
+  const dismissAlert = useCallback(
+    (alertId: string) => {
+      sendMessage({
+        type: 'dismiss',
+        alert_id: alertId,
+      });
+    },
+    [sendMessage]
+  );
 
   const pauseStream = useCallback(() => {
     setIsPaused(true);
@@ -284,14 +295,17 @@ export function useWebSocket(initialFilters?: WebSocketFilters): UseWebSocketRet
     pendingAlerts.current = [];
   }, []);
 
-  const updateFilters = useCallback((newFilters: WebSocketFilters) => {
-    filters.current = newFilters;
-    // Reconnect with new filters
-    if (ws.current) {
-      ws.current.close();
-    }
-    connect();
-  }, [connect]);
+  const updateFilters = useCallback(
+    (newFilters: WebSocketFilters) => {
+      filters.current = newFilters;
+      // Reconnect with new filters
+      if (ws.current) {
+        ws.current.close();
+      }
+      connect();
+    },
+    [connect]
+  );
 
   // Keepalive ping
   useEffect(() => {

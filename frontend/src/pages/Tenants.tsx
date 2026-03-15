@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Building2, Plus, Edit2, Trash2, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-import { useTenants, useCreateTenant, useUpdateTenant, useDeleteTenant, useValidateTenant } from '@/hooks/useApi';
+import {
+  useTenants,
+  useCreateTenant,
+  useUpdateTenant,
+  useDeleteTenant,
+  useValidateTenant,
+} from '@/hooks/useApi';
 import { Tenant, TenantCreate, TenantUpdate } from '@/types';
 import toast from 'react-hot-toast';
 import { clsx, type ClassValue } from 'clsx';
@@ -121,7 +127,9 @@ export default function Tenants() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">Total Tenants</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{tenantsData?.total || 0}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {tenantsData?.total || 0}
+          </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">Active</p>
@@ -143,22 +151,42 @@ export default function Tenants() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Created</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Tenant ID
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Created
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {isLoading ? (
-                [1, 2, 3].map((i) => (
+                [1, 2, 3].map(i => (
                   <tr key={i} className="animate-pulse">
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-48"></div></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 ml-auto"></div></td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 ml-auto"></div>
+                    </td>
                   </tr>
                 ))
               ) : tenantsData?.items?.length === 0 ? (
@@ -175,7 +203,7 @@ export default function Tenants() {
                   </td>
                 </tr>
               ) : (
-                                tenantsData?.items?.map((tenant) => (
+                tenantsData?.items?.map(tenant => (
                   <tr key={tenant.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4">
                       <div>
@@ -186,19 +214,27 @@ export default function Tenants() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <code className="text-sm text-gray-600 dark:text-gray-400 font-mono">{tenant.tenant_id}</code>
+                      <code className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                        {tenant.tenant_id}
+                      </code>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cn(
-                        'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium',
-                        tenant.is_active
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
-                      )}>
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium',
+                          tenant.is_active
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+                        )}
+                      >
                         {tenant.is_active ? (
-                          <><CheckCircle className="w-3 h-3" /> Active</>
+                          <>
+                            <CheckCircle className="w-3 h-3" /> Active
+                          </>
                         ) : (
-                          <><XCircle className="w-3 h-3" /> Inactive</>
+                          <>
+                            <XCircle className="w-3 h-3" /> Inactive
+                          </>
                         )}
                       </span>
                     </td>
@@ -250,7 +286,7 @@ export default function Tenants() {
                   type="text"
                   required
                   value={formData.name || ''}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                   placeholder="e.g., Contoso Production"
                 />
@@ -266,7 +302,7 @@ export default function Tenants() {
                       type="text"
                       required
                       value={formData.tenant_id || ''}
-                      onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value })}
+                      onChange={e => setFormData({ ...formData, tenant_id: e.target.value })}
                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white font-mono"
                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                     />
@@ -283,7 +319,7 @@ export default function Tenants() {
                       type="text"
                       required
                       value={formData.client_id || ''}
-                      onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                      onChange={e => setFormData({ ...formData, client_id: e.target.value })}
                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white font-mono"
                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                     />
@@ -297,7 +333,7 @@ export default function Tenants() {
                       type="password"
                       required
                       value={formData.client_secret || ''}
-                      onChange={(e) => setFormData({ ...formData, client_secret: e.target.value })}
+                      onChange={e => setFormData({ ...formData, client_secret: e.target.value })}
                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                       placeholder="Enter client secret"
                     />
@@ -314,7 +350,7 @@ export default function Tenants() {
                     <input
                       type="password"
                       value={formData.client_secret || ''}
-                      onChange={(e) => setFormData({ ...formData, client_secret: e.target.value })}
+                      onChange={e => setFormData({ ...formData, client_secret: e.target.value })}
                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                       placeholder="Leave blank to keep current secret"
                     />
@@ -327,7 +363,7 @@ export default function Tenants() {
                       <input
                         type="checkbox"
                         checked={formData.is_active !== false}
-                        onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                        onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
                         className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
                       />
                       <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
@@ -341,12 +377,21 @@ export default function Tenants() {
                     <input
                       type="text"
                       value={formData.approved_countries?.join(', ') || ''}
-                      onChange={(e) => setFormData({ ...formData, approved_countries: e.target.value.split(',').map(c => c.trim().toUpperCase()).filter(c => c) })}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          approved_countries: e.target.value
+                            .split(',')
+                            .map(c => c.trim().toUpperCase())
+                            .filter(c => c),
+                        })
+                      }
                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white font-mono"
                       placeholder="US, CA, GB (comma-separated country codes)"
                     />
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Comma-separated country codes. Logins from non-approved countries will trigger alerts.
+                      Comma-separated country codes. Logins from non-approved countries will trigger
+                      alerts.
                     </p>
                   </div>
                 </>
@@ -376,8 +421,10 @@ export default function Tenants() {
                       <RefreshCw className="w-4 h-4 animate-spin" />
                       {editingTenant ? 'Updating...' : 'Creating...'}
                     </span>
+                  ) : editingTenant ? (
+                    'Update Tenant'
                   ) : (
-                    editingTenant ? 'Update Tenant' : 'Add Tenant'
+                    'Add Tenant'
                   )}
                 </button>
               </div>

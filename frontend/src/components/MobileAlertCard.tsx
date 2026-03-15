@@ -11,7 +11,7 @@ import {
   User,
   Building2,
   ChevronRight,
-  Bell
+  Bell,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -62,12 +62,7 @@ const severityConfig = {
 // Swipe threshold in pixels
 const SWIPE_THRESHOLD = 100;
 
-export function MobileAlertCard({
-  alert,
-  onAcknowledge,
-  onDismiss,
-  onView
-}: MobileAlertCardProps) {
+export function MobileAlertCard({ alert, onAcknowledge, onDismiss, onView }: MobileAlertCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -146,8 +141,9 @@ export function MobileAlertCard({
   };
 
   // Format location data
-  const location = (alert.metadata?.current_location as { city?: string; country?: string } | undefined)
-    || (alert.metadata?.location as { city?: string; country?: string } | undefined);
+  const location =
+    (alert.metadata?.current_location as { city?: string; country?: string } | undefined) ||
+    (alert.metadata?.location as { city?: string; country?: string } | undefined);
   const ipAddress = alert.metadata?.ip_address as string | undefined;
 
   // Calculate swipe background color
@@ -170,19 +166,23 @@ export function MobileAlertCard({
         )}
       >
         {/* Right swipe - Acknowledge */}
-        <div className={cn(
-          'flex items-center gap-2 text-white transition-opacity duration-200',
-          swipeOffset > 0 ? 'opacity-100' : 'opacity-0'
-        )}>
+        <div
+          className={cn(
+            'flex items-center gap-2 text-white transition-opacity duration-200',
+            swipeOffset > 0 ? 'opacity-100' : 'opacity-0'
+          )}
+        >
           <Check className="w-6 h-6" />
           <span className="font-medium">Acknowledge</span>
         </div>
 
         {/* Left swipe - Dismiss */}
-        <div className={cn(
-          'flex items-center gap-2 text-white transition-opacity duration-200',
-          swipeOffset < 0 ? 'opacity-100' : 'opacity-0'
-        )}>
+        <div
+          className={cn(
+            'flex items-center gap-2 text-white transition-opacity duration-200',
+            swipeOffset < 0 ? 'opacity-100' : 'opacity-0'
+          )}
+        >
           <span className="font-medium">Dismiss</span>
           <X className="w-6 h-6" />
         </div>
@@ -209,11 +209,13 @@ export function MobileAlertCard({
           {/* Header Row */}
           <div className="flex items-start gap-3">
             {/* Icon */}
-            <div className={cn(
-              'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
-              'bg-white dark:bg-gray-700 shadow-sm',
-              config.iconColor
-            )}>
+            <div
+              className={cn(
+                'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
+                'bg-white dark:bg-gray-700 shadow-sm',
+                config.iconColor
+              )}
+            >
               <Icon className="w-5 h-5" />
             </div>
 
@@ -221,10 +223,12 @@ export function MobileAlertCard({
             <div className="flex-1 min-w-0">
               {/* Badge and Time */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={cn(
-                  'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider',
-                  config.badgeColor
-                )}>
+                <span
+                  className={cn(
+                    'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider',
+                    config.badgeColor
+                  )}
+                >
                   {config.label}
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -244,10 +248,12 @@ export function MobileAlertCard({
             </div>
 
             {/* Chevron */}
-            <ChevronRight className={cn(
-              'w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200',
-              expanded && 'rotate-90'
-            )} />
+            <ChevronRight
+              className={cn(
+                'w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200',
+                expanded && 'rotate-90'
+              )}
+            />
           </div>
 
           {/* Meta Info Row */}

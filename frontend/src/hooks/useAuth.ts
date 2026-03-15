@@ -15,12 +15,12 @@ export const queryKeys = {
 export function useLogin() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const login = useAppStore((state) => state.login);
-  const setUser = useAppStore((state) => state.setUser);
+  const login = useAppStore(state => state.login);
+  const setUser = useAppStore(state => state.setUser);
 
   return useMutation({
     mutationFn: (data: LoginRequest) => apiService.login(data),
-    onSuccess: async (data) => {
+    onSuccess: async data => {
       // Store token in app state
       login(data.access_token);
 
@@ -52,7 +52,7 @@ export function useLogin() {
 export function useLogout() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const logout = useAppStore((state) => state.logout);
+  const logout = useAppStore(state => state.logout);
 
   return useMutation({
     mutationFn: () => apiService.logout(),
@@ -76,9 +76,9 @@ export function useLogout() {
 }
 
 export function useAuthCheck() {
-  const setUser = useAppStore((state) => state.setUser);
-  const logout = useAppStore((state) => state.logout);
-  const token = useAppStore((state) => state.token);
+  const setUser = useAppStore(state => state.setUser);
+  const logout = useAppStore(state => state.logout);
+  const token = useAppStore(state => state.token);
 
   return useQuery({
     queryKey: queryKeys.auth(),
@@ -115,8 +115,13 @@ export function useCurrentUser() {
 
 export function useChangePassword() {
   return useMutation({
-    mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
-      apiService.changePassword(currentPassword, newPassword),
+    mutationFn: ({
+      currentPassword,
+      newPassword,
+    }: {
+      currentPassword: string;
+      newPassword: string;
+    }) => apiService.changePassword(currentPassword, newPassword),
     onSuccess: () => {
       toast.success('Password changed successfully!');
     },

@@ -11,8 +11,8 @@ export const useAppStore = create<AppState>()(
       token: null,
       isAuthenticated: false,
       setTheme: (theme: Theme) => set({ theme }),
-      toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
-      toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+      toggleTheme: () => set(state => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
+      toggleSidebar: () => set(state => ({ sidebarOpen: !state.sidebarOpen })),
       setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
       setUser: (user: User | null) => set({ user }),
       setToken: (token: string | null) => set({ token }),
@@ -21,7 +21,11 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'specterdefence-storage',
-      partialize: (state) => ({ theme: state.theme, token: state.token, isAuthenticated: state.isAuthenticated }),
+      partialize: state => ({
+        theme: state.theme,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
   )
 );

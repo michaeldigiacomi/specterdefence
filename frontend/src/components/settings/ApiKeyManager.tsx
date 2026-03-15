@@ -1,13 +1,6 @@
 import { useState } from 'react';
-import {
-  Plus, Copy, Trash2, X, Key,
-  Clock, Shield, CheckCircle, Save
-} from 'lucide-react';
-import {
-  useApiKeys,
-  useCreateApiKey,
-  useRevokeApiKey,
-} from '@/hooks/useSettings';
+import { Plus, Copy, Trash2, X, Key, Clock, Shield, CheckCircle, Save } from 'lucide-react';
+import { useApiKeys, useCreateApiKey, useRevokeApiKey } from '@/hooks/useSettings';
 import { useTenants } from '@/hooks/useApi';
 import type { ApiKeyCreate } from '@/types';
 import toast from 'react-hot-toast';
@@ -19,7 +12,11 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const AVAILABLE_SCOPES = [
-  { value: 'read:analytics', label: 'Read Analytics', description: 'Access login analytics and data' },
+  {
+    value: 'read:analytics',
+    label: 'Read Analytics',
+    description: 'Access login analytics and data',
+  },
   { value: 'read:alerts', label: 'Read Alerts', description: 'View alerts and alert history' },
   { value: 'write:alerts', label: 'Manage Alerts', description: 'Create and manage alert rules' },
   { value: 'read:tenants', label: 'Read Tenants', description: 'View tenant configurations' },
@@ -36,7 +33,9 @@ export default function ApiKeyManager() {
   const revokeApiKey = useRevokeApiKey();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showNewKey, setShowNewKey] = useState<{ id: string; key: string; name: string } | null>(null);
+  const [showNewKey, setShowNewKey] = useState<{ id: string; key: string; name: string } | null>(
+    null
+  );
   const [copiedKey, setCopiedKey] = useState(false);
   const [formData, setFormData] = useState<Partial<ApiKeyCreate>>({
     name: '',
@@ -76,7 +75,8 @@ export default function ApiKeyManager() {
   };
 
   const handleRevoke = async (keyId: string) => {
-    if (!confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) return;
+    if (!confirm('Are you sure you want to revoke this API key? This action cannot be undone.'))
+      return;
 
     try {
       await revokeApiKey.mutateAsync(keyId);
@@ -100,7 +100,7 @@ export default function ApiKeyManager() {
       ...prev,
       scopes: prev.scopes?.includes(scope)
         ? prev.scopes.filter(s => s !== scope)
-        : [...(prev.scopes || []), scope]
+        : [...(prev.scopes || []), scope],
     }));
   };
 
@@ -143,8 +143,8 @@ export default function ApiKeyManager() {
         <div>
           <h4 className="font-medium text-amber-900 dark:text-amber-400">Security Notice</h4>
           <p className="text-sm text-amber-700 dark:text-amber-500">
-            API keys provide full access to your SpecterDefence data. Store them securely and never commit them to version control.
-            Keys are only shown once upon creation.
+            API keys provide full access to your SpecterDefence data. Store them securely and never
+            commit them to version control. Keys are only shown once upon creation.
           </p>
         </div>
       </div>
@@ -163,22 +163,26 @@ export default function ApiKeyManager() {
             </button>
           </div>
         ) : (
-          apiKeys?.map((key) => (
+          apiKeys?.map(key => (
             <div
               key={key.id}
               className={cn(
-                "bg-white dark:bg-gray-800 rounded-lg border p-4 transition-all",
+                'bg-white dark:bg-gray-800 rounded-lg border p-4 transition-all',
                 key.is_active
-                  ? "border-gray-200 dark:border-gray-700"
-                  : "border-gray-200 dark:border-gray-700 opacity-60"
+                  ? 'border-gray-200 dark:border-gray-700'
+                  : 'border-gray-200 dark:border-gray-700 opacity-60'
               )}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4">
-                  <div className={cn(
-                    "p-2 rounded-lg",
-                    key.is_active ? "bg-primary-100 dark:bg-primary-900/30" : "bg-gray-100 dark:bg-gray-700"
-                  )}>
+                  <div
+                    className={cn(
+                      'p-2 rounded-lg',
+                      key.is_active
+                        ? 'bg-primary-100 dark:bg-primary-900/30'
+                        : 'bg-gray-100 dark:bg-gray-700'
+                    )}
+                  >
                     <Key className="w-5 h-5 text-primary-500" />
                   </div>
 
@@ -199,7 +203,7 @@ export default function ApiKeyManager() {
                     </div>
 
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {key.scopes.map((scope) => (
+                      {key.scopes.map(scope => (
                         <span
                           key={scope}
                           className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded"
@@ -214,12 +218,8 @@ export default function ApiKeyManager() {
                         <Clock className="w-3 h-3" />
                         Created {formatDate(key.created_at)}
                       </span>
-                      {key.expires_at && (
-                        <span>Expires {formatDate(key.expires_at)}</span>
-                      )}
-                      {key.last_used_at && (
-                        <span>Last used {formatDate(key.last_used_at)}</span>
-                      )}
+                      {key.expires_at && <span>Expires {formatDate(key.expires_at)}</span>}
+                      {key.last_used_at && <span>Last used {formatDate(key.last_used_at)}</span>}
                     </div>
                   </div>
                 </div>
@@ -244,7 +244,9 @@ export default function ApiKeyManager() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Create API Key</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Create API Key
+              </h2>
               <button
                 onClick={handleCloseModal}
                 className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -263,7 +265,7 @@ export default function ApiKeyManager() {
                   type="text"
                   required
                   value={formData.name || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                   placeholder="e.g., Production API Access"
                 />
@@ -275,14 +277,14 @@ export default function ApiKeyManager() {
                   Permissions *
                 </label>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {AVAILABLE_SCOPES.map((scope) => (
+                  {AVAILABLE_SCOPES.map(scope => (
                     <label
                       key={scope.value}
                       className={cn(
-                        "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                        'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all',
                         formData.scopes?.includes(scope.value)
-                          ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                       )}
                     >
                       <input
@@ -292,7 +294,9 @@ export default function ApiKeyManager() {
                         className="mt-0.5 w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
                       />
                       <div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{scope.label}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {scope.label}
+                        </span>
                         <p className="text-xs text-gray-500">{scope.description}</p>
                       </div>
                     </label>
@@ -310,10 +314,12 @@ export default function ApiKeyManager() {
                   min={1}
                   max={365}
                   value={formData.expires_days || ''}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    expires_days: e.target.value ? parseInt(e.target.value) : undefined
-                  }))}
+                  onChange={e =>
+                    setFormData(prev => ({
+                      ...prev,
+                      expires_days: e.target.value ? parseInt(e.target.value) : undefined,
+                    }))
+                  }
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                   placeholder="Never expires"
                 />
@@ -326,12 +332,16 @@ export default function ApiKeyManager() {
                 </label>
                 <select
                   value={formData.tenant_id || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, tenant_id: e.target.value || undefined }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, tenant_id: e.target.value || undefined }))
+                  }
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                 >
                   <option value="">All Tenants</option>
-                                    {tenantsData?.items?.map((tenant) => (
-                    <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+                  {tenantsData?.items?.map(tenant => (
+                    <option key={tenant.id} value={tenant.id}>
+                      {tenant.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -364,7 +374,9 @@ export default function ApiKeyManager() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">API Key Created</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                API Key Created
+              </h2>
             </div>
 
             <div className="p-6 space-y-6">
@@ -374,7 +386,8 @@ export default function ApiKeyManager() {
                   <div>
                     <h4 className="font-medium text-green-900 dark:text-green-400">Success!</h4>
                     <p className="text-sm text-green-700 dark:text-green-500">
-                      Your API key "{showNewKey.name}" has been created. Copy it now - you won't be able to see it again.
+                      Your API key "{showNewKey.name}" has been created. Copy it now - you won't be
+                      able to see it again.
                     </p>
                   </div>
                 </div>
@@ -399,7 +412,9 @@ export default function ApiKeyManager() {
               </div>
 
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-sm text-amber-700 dark:text-amber-500">
-                <p>Store this key securely. For security reasons, it will not be displayed again.</p>
+                <p>
+                  Store this key securely. For security reasons, it will not be displayed again.
+                </p>
               </div>
 
               <button

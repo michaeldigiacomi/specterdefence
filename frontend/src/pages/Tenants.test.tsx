@@ -23,27 +23,27 @@ describe('Tenants Page', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     (useApiModule.useTenants as vi.Mock).mockReturnValue({
       data: { items: mockTenants, total: mockTenants.length },
       isLoading: false,
     });
-    
+
     (useApiModule.useCreateTenant as vi.Mock).mockReturnValue({
       mutateAsync: mockCreateMutateAsync,
       isPending: false,
     });
-    
+
     (useApiModule.useUpdateTenant as vi.Mock).mockReturnValue({
       mutateAsync: mockUpdateMutateAsync,
       isPending: false,
     });
-    
+
     (useApiModule.useDeleteTenant as vi.Mock).mockReturnValue({
       mutateAsync: mockDeleteMutateAsync,
       isPending: false,
     });
-    
+
     (useApiModule.useValidateTenant as vi.Mock).mockReturnValue({
       mutateAsync: mockValidateMutateAsync,
       isPending: false,
@@ -204,7 +204,10 @@ describe('Tenants Page', () => {
 
   it('calls delete mutation when delete is confirmed', async () => {
     mockDeleteMutateAsync.mockResolvedValue({});
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true)
+    );
 
     renderWithProviders(<Tenants />);
     const user = userEvent.setup();

@@ -33,10 +33,7 @@ const COLORS = [
   '#6b7280', // Gray
 ];
 
-export function AnomalyBreakdownChart({
-  data,
-  isLoading = false,
-}: AnomalyBreakdownChartProps) {
+export function AnomalyBreakdownChart({ data, isLoading = false }: AnomalyBreakdownChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const totalCount = data.reduce((sum, item) => sum + item.count, 0);
@@ -67,9 +64,7 @@ export function AnomalyBreakdownChart({
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <PieChartIcon className="w-5 h-5 text-amber-500" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Anomaly Types
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Anomaly Types</h3>
         </div>
         <span className="text-sm text-gray-500 dark:text-gray-400">
           {totalCount.toLocaleString()} total
@@ -150,9 +145,7 @@ export function AnomalyBreakdownChart({
                     style={{ backgroundColor: item.color }}
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {item.name}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{item.name}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       Avg risk: {item.avgRiskScore.toFixed(1)}
                     </p>

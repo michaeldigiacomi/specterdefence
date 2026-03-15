@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-
   Bar,
   XAxis,
   YAxis,
@@ -9,7 +8,7 @@ import {
   ResponsiveContainer,
   Legend,
   Line,
-  ComposedChart
+  ComposedChart,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react';
@@ -109,9 +108,7 @@ export function AnomalyTrendChart({
         <div>
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-500" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Anomaly Trends
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Anomaly Trends</h3>
           </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -129,8 +126,8 @@ export function AnomalyTrendChart({
                   changePercent > 0
                     ? 'text-red-600 dark:text-red-400'
                     : changePercent < 0
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-gray-500 dark:text-gray-400'
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-gray-500 dark:text-gray-400'
                 )}
               >
                 {changePercent > 0 ? (
@@ -149,7 +146,7 @@ export function AnomalyTrendChart({
         <div className="flex items-center gap-2">
           {/* Time Range Selector */}
           <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-            {timeRangeOptions.map((option) => (
+            {timeRangeOptions.map(option => (
               <button
                 key={option.value}
                 onClick={() => onTimeRangeChange(option.value)}
@@ -170,7 +167,7 @@ export function AnomalyTrendChart({
       {/* Type Legend */}
       {typesList.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
-          {typesList.map((type) => (
+          {typesList.map(type => (
             <button
               key={type}
               onClick={() => {
@@ -184,9 +181,7 @@ export function AnomalyTrendChart({
               }}
               className={clsx(
                 'flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-opacity',
-                selectedTypes.has(type)
-                  ? 'opacity-40'
-                  : 'opacity-100'
+                selectedTypes.has(type) ? 'opacity-40' : 'opacity-100'
               )}
               style={{
                 backgroundColor: `${anomalyTypeColors[type] || anomalyTypeColors.default}20`,
@@ -239,11 +234,7 @@ export function AnomalyTrendChart({
                         {payload.map((entry, index) => {
                           if (entry.dataKey === 'date' || entry.dataKey === 'total') return null;
                           return (
-                            <p
-                              key={index}
-                              className="text-sm"
-                              style={{ color: entry.color }}
-                            >
+                            <p key={index} className="text-sm" style={{ color: entry.color }}>
                               {formatAnomalyType(entry.dataKey as string)}: {entry.value}
                             </p>
                           );
@@ -273,7 +264,7 @@ export function AnomalyTrendChart({
               />
 
               {/* Stacked bars for each type */}
-              {typesList.map((type) => (
+              {typesList.map(type => (
                 <Bar
                   key={type}
                   dataKey={type}

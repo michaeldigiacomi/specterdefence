@@ -14,26 +14,20 @@ describe('ChangePasswordDialog', () => {
   });
 
   it('does not render when isOpen is false', () => {
-    renderWithProviders(
-      <ChangePasswordDialog isOpen={false} onClose={mockOnClose} />
-    );
+    renderWithProviders(<ChangePasswordDialog isOpen={false} onClose={mockOnClose} />);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('renders correctly when isOpen is true', () => {
-    renderWithProviders(
-      <ChangePasswordDialog isOpen={true} onClose={mockOnClose} />
-    );
+    renderWithProviders(<ChangePasswordDialog isOpen={true} onClose={mockOnClose} />);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Change Password')).toBeInTheDocument();
   });
 
   it('closes dialog when cancel button is clicked', async () => {
-    renderWithProviders(
-      <ChangePasswordDialog isOpen={true} onClose={mockOnClose} />
-    );
+    renderWithProviders(<ChangePasswordDialog isOpen={true} onClose={mockOnClose} />);
     const user = userEvent.setup();
 
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
@@ -43,9 +37,7 @@ describe('ChangePasswordDialog', () => {
   });
 
   it('closes dialog when close icon button is clicked', async () => {
-    renderWithProviders(
-      <ChangePasswordDialog isOpen={true} onClose={mockOnClose} />
-    );
+    renderWithProviders(<ChangePasswordDialog isOpen={true} onClose={mockOnClose} />);
     const user = userEvent.setup();
 
     // Find the X button by its icon container
@@ -57,9 +49,7 @@ describe('ChangePasswordDialog', () => {
   });
 
   it('shows error when new password is less than 8 characters', async () => {
-    renderWithProviders(
-      <ChangePasswordDialog isOpen={true} onClose={mockOnClose} />
-    );
+    renderWithProviders(<ChangePasswordDialog isOpen={true} onClose={mockOnClose} />);
     const user = userEvent.setup();
 
     const inputs = screen.getAllByRole('textbox');
@@ -79,9 +69,7 @@ describe('ChangePasswordDialog', () => {
   });
 
   it('shows error when new passwords do not match', async () => {
-    renderWithProviders(
-      <ChangePasswordDialog isOpen={true} onClose={mockOnClose} />
-    );
+    renderWithProviders(<ChangePasswordDialog isOpen={true} onClose={mockOnClose} />);
     const user = userEvent.setup();
 
     const inputs = screen.getAllByRole('textbox');
@@ -100,9 +88,7 @@ describe('ChangePasswordDialog', () => {
   });
 
   it('shows error when new password is same as current password', async () => {
-    renderWithProviders(
-      <ChangePasswordDialog isOpen={true} onClose={mockOnClose} />
-    );
+    renderWithProviders(<ChangePasswordDialog isOpen={true} onClose={mockOnClose} />);
     const user = userEvent.setup();
 
     const inputs = screen.getAllByRole('textbox');
@@ -121,9 +107,7 @@ describe('ChangePasswordDialog', () => {
   });
 
   it('closes dialog and resets form on successful password change', async () => {
-    renderWithProviders(
-      <ChangePasswordDialog isOpen={true} onClose={mockOnClose} />
-    );
+    renderWithProviders(<ChangePasswordDialog isOpen={true} onClose={mockOnClose} />);
     const user = userEvent.setup();
 
     const inputs = screen.getAllByRole('textbox');
@@ -142,9 +126,7 @@ describe('ChangePasswordDialog', () => {
   });
 
   it('displays password requirements hint', () => {
-    renderWithProviders(
-      <ChangePasswordDialog isOpen={true} onClose={mockOnClose} />
-    );
+    renderWithProviders(<ChangePasswordDialog isOpen={true} onClose={mockOnClose} />);
 
     expect(screen.getByText(/password must be at least 8 characters long/i)).toBeInTheDocument();
   });

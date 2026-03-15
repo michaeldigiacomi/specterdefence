@@ -48,7 +48,7 @@ export default function StatsCard({
   icon: Icon,
   trend,
   color = 'blue',
-  loading = false
+  loading = false,
 }: StatsCardProps) {
   const colors = colorVariants[color];
 
@@ -75,11 +75,16 @@ export default function StatsCard({
               ) : (
                 <TrendingDown className="w-4 h-4 text-red-500" />
               )}
-              <span className={cn(
-                'text-sm font-medium',
-                trend.positive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-              )}>
-                {trend.value > 0 ? '+' : ''}{trend.value}%
+              <span
+                className={cn(
+                  'text-sm font-medium',
+                  trend.positive
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-600 dark:text-red-400'
+                )}
+              >
+                {trend.value > 0 ? '+' : ''}
+                {trend.value}%
               </span>
               <span className="text-sm text-gray-500 dark:text-gray-400">{trend.label}</span>
             </div>

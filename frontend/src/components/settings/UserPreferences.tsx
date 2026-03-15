@@ -41,7 +41,11 @@ function SunIcon() {
   return (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <circle cx="12" cy="12" r="5" strokeWidth="2" />
-      <path strokeWidth="2" strokeLinecap="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+      <path
+        strokeWidth="2"
+        strokeLinecap="round"
+        d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+      />
     </svg>
   );
 }
@@ -49,7 +53,12 @@ function SunIcon() {
 function MoonIcon() {
   return (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      <path
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+      />
     </svg>
   );
 }
@@ -137,7 +146,7 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
               Theme
             </label>
             <div className="grid grid-cols-3 gap-3">
-              {THEMES.map((theme) => {
+              {THEMES.map(theme => {
                 const Icon = theme.icon;
                 return (
                   <button
@@ -151,7 +160,9 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
                     }`}
                   >
                     <Icon />
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{theme.label}</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {theme.label}
+                    </span>
                   </button>
                 );
               })}
@@ -165,17 +176,18 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
             </label>
             <select
               value={currentPrefs.date_format || 'ISO'}
-              onChange={(e) => handleChange('date_format', e.target.value)}
+              onChange={e => handleChange('date_format', e.target.value)}
               className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
             >
-              {DATE_FORMATS.map((format) => (
+              {DATE_FORMATS.map(format => (
                 <option key={format.value} value={format.value}>
                   {format.label}
                 </option>
               ))}
             </select>
             <p className="mt-1 text-xs text-gray-500">
-              Example: {DATE_FORMATS.find(f => f.value === (currentPrefs.date_format || 'ISO'))?.example}
+              Example:{' '}
+              {DATE_FORMATS.find(f => f.value === (currentPrefs.date_format || 'ISO'))?.example}
             </p>
           </div>
         </div>
@@ -190,11 +202,13 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
 
         <select
           value={currentPrefs.timezone || 'UTC'}
-          onChange={(e) => handleChange('timezone', e.target.value)}
+          onChange={e => handleChange('timezone', e.target.value)}
           className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
         >
-          {TIMEZONES.map((tz) => (
-            <option key={tz.value} value={tz.value}>{tz.label}</option>
+          {TIMEZONES.map(tz => (
+            <option key={tz.value} value={tz.value}>
+              {tz.label}
+            </option>
           ))}
         </select>
         <p className="mt-2 text-sm text-gray-500">
@@ -214,11 +228,13 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
             <input
               type="checkbox"
               checked={currentPrefs.email_notifications !== false}
-              onChange={(e) => handleChange('email_notifications', e.target.checked)}
+              onChange={e => handleChange('email_notifications', e.target.checked)}
               className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
             />
             <div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Email Notifications</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                Email Notifications
+              </span>
               <p className="text-xs text-gray-500">Receive alerts via email</p>
             </div>
           </label>
@@ -227,11 +243,13 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
             <input
               type="checkbox"
               checked={currentPrefs.discord_notifications !== false}
-              onChange={(e) => handleChange('discord_notifications', e.target.checked)}
+              onChange={e => handleChange('discord_notifications', e.target.checked)}
               className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
             />
             <div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Discord Notifications</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                Discord Notifications
+              </span>
               <p className="text-xs text-gray-500">Receive alerts via Discord</p>
             </div>
           </label>
@@ -241,7 +259,7 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
               Minimum Severity
             </label>
             <div className="flex gap-3">
-              {SEVERITY_OPTIONS.map((sev) => (
+              {SEVERITY_OPTIONS.map(sev => (
                 <button
                   key={sev.value}
                   type="button"
@@ -279,11 +297,12 @@ export default function UserPreferences({ userEmail }: UserPreferencesProps) {
             min={10}
             max={3600}
             value={currentPrefs.refresh_interval_seconds || 60}
-            onChange={(e) => handleChange('refresh_interval_seconds', parseInt(e.target.value))}
+            onChange={e => handleChange('refresh_interval_seconds', parseInt(e.target.value))}
             className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
           />
           <p className="mt-1 text-xs text-gray-500">
-            Dashboard will automatically refresh every {currentPrefs.refresh_interval_seconds || 60} seconds
+            Dashboard will automatically refresh every {currentPrefs.refresh_interval_seconds || 60}{' '}
+            seconds
           </p>
         </div>
       </div>

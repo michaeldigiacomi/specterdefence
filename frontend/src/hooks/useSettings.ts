@@ -83,7 +83,8 @@ export function useUpdateDetectionThresholds(tenantId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: DetectionThresholdsUpdate) => apiService.updateDetectionThresholds(data, tenantId),
+    mutationFn: (data: DetectionThresholdsUpdate) =>
+      apiService.updateDetectionThresholds(data, tenantId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsQueryKeys.detectionThresholds(tenantId) });
     },

@@ -19,16 +19,13 @@ const API_BASE = '/api/v1';
 export const authHandlers = [
   // Login - Support both /auth/login and /auth/local/login
   http.post(`${API_BASE}/auth/local/login`, async ({ request }) => {
-    const body = await request.json() as { username: string; password: string };
-    
+    const body = (await request.json()) as { username: string; password: string };
+
     if (body.username === 'admin' && body.password === 'admin123') {
       return HttpResponse.json(mockLoginResponse);
     }
-    
-    return HttpResponse.json(
-      { detail: 'Invalid credentials' },
-      { status: 401 }
-    );
+
+    return HttpResponse.json({ detail: 'Invalid credentials' }, { status: 401 });
   }),
 
   // Logout
@@ -39,43 +36,34 @@ export const authHandlers = [
   // Check Auth
   http.get(`${API_BASE}/auth/local/check`, ({ request }) => {
     const authHeader = request.headers.get('Authorization');
-    
+
     if (authHeader?.includes('mock-jwt-token')) {
       return HttpResponse.json(mockAuthCheckResponse);
     }
-    
-    return HttpResponse.json(
-      { authenticated: false },
-      { status: 401 }
-    );
+
+    return HttpResponse.json({ authenticated: false }, { status: 401 });
   }),
 
   // Get Current User
   http.get(`${API_BASE}/auth/local/me`, ({ request }) => {
     const authHeader = request.headers.get('Authorization');
-    
+
     if (authHeader?.includes('mock-jwt-token')) {
       return HttpResponse.json(mockUser);
     }
-    
-    return HttpResponse.json(
-      { detail: 'Unauthorized' },
-      { status: 401 }
-    );
+
+    return HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 });
   }),
 
   // Change Password
   http.post(`${API_BASE}/auth/local/change-password`, async ({ request }) => {
-    const body = await request.json() as { current_password: string; new_password: string };
-    
+    const body = (await request.json()) as { current_password: string; new_password: string };
+
     if (body.current_password === 'admin123') {
       return HttpResponse.json({ message: 'Password changed successfully' });
     }
-    
-    return HttpResponse.json(
-      { detail: 'Current password is incorrect' },
-      { status: 400 }
-    );
+
+    return HttpResponse.json({ detail: 'Current password is incorrect' }, { status: 400 });
   }),
 ];
 
@@ -92,15 +80,12 @@ export const tenantHandlers = [
   // Get Single Tenant
   http.get(`${API_BASE}/tenants/:id`, ({ params }) => {
     const tenant = mockTenants.find(t => t.id === params.id);
-    
+
     if (tenant) {
       return HttpResponse.json(tenant);
     }
-    
-    return HttpResponse.json(
-      { detail: 'Tenant not found' },
-      { status: 404 }
-    );
+
+    return HttpResponse.json({ detail: 'Tenant not found' }, { status: 404 });
   }),
 
   // Create Tenant
@@ -113,7 +98,7 @@ export const tenantHandlers = [
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    
+
     return HttpResponse.json(newTenant, { status: 201 });
   }),
 
@@ -126,30 +111,28 @@ export const tenantHandlers = [
       return HttpResponse.json({ ...tenant, ...body });
     }
 
-    return HttpResponse.json(
-      { detail: 'Tenant not found' },
-      { status: 404 }
-    );
+    return HttpResponse.json({ detail: 'Tenant not found' }, { status: 404 });
   }),
 
   // Delete Tenant
   http.delete(`${API_BASE}/tenants/:id`, ({ params }) => {
     const tenant = mockTenants.find(t => t.id === params.id);
-    
+
     if (tenant) {
       return HttpResponse.json({ message: 'Tenant deleted' });
     }
-    
-    return HttpResponse.json(
-      { detail: 'Tenant not found' },
-      { status: 404 }
-    );
+
+    return HttpResponse.json({ detail: 'Tenant not found' }, { status: 404 });
   }),
 
   // Validate Tenant
   http.post(`${API_BASE}/tenants/validate`, async ({ request }) => {
-    const body = await request.json() as { tenant_id: string; client_id: string; client_secret: string };
-    
+    const body = (await request.json()) as {
+      tenant_id: string;
+      client_id: string;
+      client_secret: string;
+    };
+
     // Simulate validation
     if (body.tenant_id && body.client_id && body.client_secret) {
       return HttpResponse.json({
@@ -157,7 +140,7 @@ export const tenantHandlers = [
         tenant_name: 'Validated Tenant',
       });
     }
-    
+
     return HttpResponse.json({
       valid: false,
       message: 'Invalid credentials provided',
@@ -174,7 +157,7 @@ export const dashboardHandlers = [
   http.get(`${API_BASE}/dashboard`, ({ request }) => {
     const url = new URL(request.url);
     const timeRange = url.searchParams.get('time_range') || '30d';
-    
+
     return HttpResponse.json({
       ...mockDashboardData,
       time_range: timeRange,
@@ -184,17 +167,23 @@ export const dashboardHandlers = [
   // Export Dashboard
   http.get(`${API_BASE}/dashboard/export/download/:format`, async ({ params }) => {
     const format = params.format as string;
-    
+
     // Return a mock blob
-    const blob = new Blob(['mock export data'], { 
-      type: format === 'csv' ? 'text/csv' : format === 'json' ? 'application/json' : 'application/pdf' 
+    const blob = new Blob(['mock export data'], {
+      type:
+        format === 'csv' ? 'text/csv' : format === 'json' ? 'application/json' : 'application/pdf',
     });
-    
+
     const arrayBuffer = await blob.arrayBuffer();
-    
+
     return HttpResponse.arrayBuffer(arrayBuffer, {
       headers: {
-        'Content-Type': format === 'csv' ? 'text/csv' : format === 'json' ? 'application/json' : 'application/pdf',
+        'Content-Type':
+          format === 'csv'
+            ? 'text/csv'
+            : format === 'json'
+              ? 'application/json'
+              : 'application/pdf',
         'Content-Disposition': `attachment; filename="dashboard-export.${format}"`,
       },
     });
@@ -210,7 +199,7 @@ export const alertHandlers = [
   http.get(`${API_BASE}/alerts/history`, ({ request }) => {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
-    
+
     return HttpResponse.json({
       items: mockAlertHistory.slice(0, limit),
       total: mockAlertHistory.length,
@@ -247,7 +236,7 @@ export const loginHandlers = [
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '1');
     const pageSize = parseInt(url.searchParams.get('page_size') || '20');
-    
+
     return HttpResponse.json({
       logins: mockLoginRecords,
       total: mockLoginRecords.length,

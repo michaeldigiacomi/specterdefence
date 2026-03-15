@@ -11,7 +11,7 @@ import {
   ChevronUp,
   MapPin,
   User,
-  Building2
+  Building2,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -60,12 +60,7 @@ const severityConfig = {
   },
 };
 
-export function AlertCard({
-  alert,
-  onAcknowledge,
-  onDismiss,
-  compact = false
-}: AlertCardProps) {
+export function AlertCard({ alert, onAcknowledge, onDismiss, compact = false }: AlertCardProps) {
   const [expanded, setExpanded] = useState(false);
   const config = severityConfig[alert.severity];
   const Icon = config.icon;
@@ -83,8 +78,9 @@ export function AlertCard({
   const toggleExpand = () => setExpanded(!expanded);
 
   // Format location data if available
-  const location = (alert.metadata?.current_location as { city?: string; country?: string } | undefined)
-    || (alert.metadata?.location as { city?: string; country?: string } | undefined);
+  const location =
+    (alert.metadata?.current_location as { city?: string; country?: string } | undefined) ||
+    (alert.metadata?.location as { city?: string; country?: string } | undefined);
   const ipAddress = alert.metadata?.ip_address as string | undefined;
 
   if (compact) {
@@ -100,10 +96,7 @@ export function AlertCard({
         <Icon className={cn('w-5 h-5 flex-shrink-0', config.iconColor)} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className={cn(
-              'text-xs font-medium px-2 py-0.5 rounded-full',
-              config.badgeColor
-            )}>
+            <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', config.badgeColor)}>
               {alert.severity}
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -135,24 +128,25 @@ export function AlertCard({
       )}
     >
       {/* Header */}
-      <div
-        className="p-4 cursor-pointer"
-        onClick={toggleExpand}
-      >
+      <div className="p-4 cursor-pointer" onClick={toggleExpand}>
         <div className="flex items-start gap-3">
-          <div className={cn(
-            'p-2 rounded-full bg-white dark:bg-gray-800 flex-shrink-0',
-            config.iconColor
-          )}>
+          <div
+            className={cn(
+              'p-2 rounded-full bg-white dark:bg-gray-800 flex-shrink-0',
+              config.iconColor
+            )}
+          >
             <Icon className="w-5 h-5" />
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={cn(
-                'text-xs font-semibold px-2 py-1 rounded-full uppercase tracking-wide',
-                config.badgeColor
-              )}>
+              <span
+                className={cn(
+                  'text-xs font-semibold px-2 py-1 rounded-full uppercase tracking-wide',
+                  config.badgeColor
+                )}
+              >
                 {alert.severity}
               </span>
               <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -181,9 +175,7 @@ export function AlertCard({
                   {location.city || location.country || 'Unknown location'}
                 </span>
               )}
-              {ipAddress && (
-                <span className="font-mono">{ipAddress}</span>
-              )}
+              {ipAddress && <span className="font-mono">{ipAddress}</span>}
               <span className="flex items-center gap-1 ml-auto">
                 {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}
               </span>
@@ -217,12 +209,13 @@ export function AlertCard({
                 <X className="w-4 h-4" />
               </button>
             )}
-            <button className="p-2 text-gray-400">
-              {expanded ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
+            <button
+              className="p-2 text-gray-400"
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Collapse details' : 'Expand details'}
+              title={expanded ? 'Collapse details' : 'Expand details'}
+            >
+              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -260,8 +253,7 @@ export function AlertCard({
                   <span>
                     Acknowledged by {alert.acknowledged_by} at{' '}
                     {alert.acknowledged_at &&
-                      formatDistanceToNow(new Date(alert.acknowledged_at), { addSuffix: true })
-                    }
+                      formatDistanceToNow(new Date(alert.acknowledged_at), { addSuffix: true })}
                   </span>
                 )}
               </div>

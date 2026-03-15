@@ -78,17 +78,21 @@ export default function AnomalyCard({ anomaly, compact = false }: AnomalyCardPro
 
   if (compact) {
     return (
-      <div className={cn(
-        'flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-sm',
-        colors.bg,
-        colors.border
-      )}>
+      <div
+        className={cn(
+          'flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-sm',
+          colors.bg,
+          colors.border
+        )}
+      >
         <Icon className={cn('w-5 h-5', colors.icon)} />
         <div className="flex-1 min-w-0">
           <p className={cn('text-sm font-medium truncate', colors.text)}>{typeLabel}</p>
           <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{anomaly.user}</p>
         </div>
-        <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full', colors.bg, colors.text)}>
+        <span
+          className={cn('text-xs font-semibold px-2 py-0.5 rounded-full', colors.bg, colors.text)}
+        >
           {anomaly.risk_score}
         </span>
       </div>
@@ -96,9 +100,11 @@ export default function AnomalyCard({ anomaly, compact = false }: AnomalyCardPro
   }
 
   return (
-    <div className={cn(
-      'bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 transition-all hover:shadow-md'
-    )}>
+    <div
+      className={cn(
+        'bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 transition-all hover:shadow-md'
+      )}
+    >
       <div className="flex items-start gap-4">
         <div className={cn('p-3 rounded-lg', colors.bg)}>
           <Icon className={cn('w-6 h-6', colors.icon)} />
@@ -110,11 +116,13 @@ export default function AnomalyCard({ anomaly, compact = false }: AnomalyCardPro
               <h3 className="font-semibold text-gray-900 dark:text-white">{typeLabel}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{anomaly.user}</p>
             </div>
-            <span className={cn(
-              'px-2.5 py-1 rounded-full text-xs font-semibold',
-              colors.bg,
-              colors.text
-            )}>
+            <span
+              className={cn(
+                'px-2.5 py-1 rounded-full text-xs font-semibold',
+                colors.bg,
+                colors.text
+              )}
+            >
               Risk: {anomaly.risk_score}
             </span>
           </div>

@@ -1,13 +1,10 @@
 import { useState } from 'react';
-import {
-  Download, Upload, Trash2, FileJson, AlertTriangle,
-  X, Clock
-} from 'lucide-react';
+import { Download, Upload, Trash2, FileJson, AlertTriangle, X, Clock } from 'lucide-react';
 import {
   useConfigurationBackups,
   useExportConfiguration,
   useImportConfiguration,
-  useDeleteConfigurationBackup
+  useDeleteConfigurationBackup,
 } from '@/hooks/useSettings';
 import toast from 'react-hot-toast';
 import { clsx, type ClassValue } from 'clsx';
@@ -19,7 +16,11 @@ function cn(...inputs: ClassValue[]) {
 
 const CONFIG_CATEGORIES = [
   { value: 'system', label: 'System Settings', description: 'Data retention, API limits, logging' },
-  { value: 'detection', label: 'Detection Thresholds', description: 'Anomaly detection sensitivity' },
+  {
+    value: 'detection',
+    label: 'Detection Thresholds',
+    description: 'Anomaly detection sensitivity',
+  },
   { value: 'alert_rules', label: 'Alert Rules', description: 'Alert rule configurations' },
   { value: 'webhooks', label: 'Webhooks', description: 'Webhook endpoints (URLs excluded)' },
 ];
@@ -41,9 +42,7 @@ export default function ConfigImportExport() {
 
   const handleToggleCategory = (category: string) => {
     setSelectedCategories(prev =>
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
+      prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
     );
   };
 
@@ -103,7 +102,9 @@ export default function ConfigImportExport() {
       setImportFile(null);
       setImportOverwrite(false);
     } catch (err) {
-      toast.error('Failed to import configuration: ' + (err instanceof Error ? err.message : 'Invalid JSON'));
+      toast.error(
+        'Failed to import configuration: ' + (err instanceof Error ? err.message : 'Invalid JSON')
+      );
     }
   };
 
@@ -193,7 +194,7 @@ export default function ConfigImportExport() {
           </div>
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {backups?.map((backup) => (
+            {backups?.map(backup => (
               <div key={backup.id} className="px-6 py-4 flex items-center justify-between">
                 <div className="flex items-start gap-3">
                   <FileJson className="w-5 h-5 text-gray-400 mt-0.5" />
@@ -239,7 +240,9 @@ export default function ConfigImportExport() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Export Configuration</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Export Configuration
+              </h2>
               <button
                 onClick={() => setExportModalOpen(false)}
                 className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -254,14 +257,14 @@ export default function ConfigImportExport() {
                   Categories to Export
                 </label>
                 <div className="space-y-2">
-                  {CONFIG_CATEGORIES.map((cat) => (
+                  {CONFIG_CATEGORIES.map(cat => (
                     <label
                       key={cat.value}
                       className={cn(
-                        "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                        'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all',
                         selectedCategories.includes(cat.value)
-                          ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                       )}
                     >
                       <input
@@ -271,7 +274,9 @@ export default function ConfigImportExport() {
                         className="mt-0.5 w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
                       />
                       <div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{cat.label}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {cat.label}
+                        </span>
                         <p className="text-xs text-gray-500">{cat.description}</p>
                       </div>
                     </label>
@@ -287,7 +292,7 @@ export default function ConfigImportExport() {
                   type="text"
                   required
                   value={exportName}
-                  onChange={(e) => setExportName(e.target.value)}
+                  onChange={e => setExportName(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                   placeholder="e.g., Pre-Migration Backup"
                 />
@@ -299,7 +304,7 @@ export default function ConfigImportExport() {
                 </label>
                 <textarea
                   value={exportDescription}
-                  onChange={(e) => setExportDescription(e.target.value)}
+                  onChange={e => setExportDescription(e.target.value)}
                   rows={2}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                   placeholder="Notes about this backup..."
@@ -333,7 +338,9 @@ export default function ConfigImportExport() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Import Configuration</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Import Configuration
+              </h2>
               <button
                 onClick={() => setImportModalOpen(false)}
                 className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -349,7 +356,8 @@ export default function ConfigImportExport() {
                   <div>
                     <h4 className="font-medium text-amber-900 dark:text-amber-400">Warning</h4>
                     <p className="text-sm text-amber-700 dark:text-amber-500">
-                      Importing configuration will overwrite existing settings. Make sure to backup your current configuration first.
+                      Importing configuration will overwrite existing settings. Make sure to backup
+                      your current configuration first.
                     </p>
                   </div>
                 </div>
@@ -381,14 +389,16 @@ export default function ConfigImportExport() {
                   <div className="w-full border-t border-gray-300 dark:border-gray-600" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">Or paste JSON</span>
+                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">
+                    Or paste JSON
+                  </span>
                 </div>
               </div>
 
               <div>
                 <textarea
                   value={importJson}
-                  onChange={(e) => {
+                  onChange={e => {
                     setImportJson(e.target.value);
                     setImportFile(null);
                   }}
@@ -402,10 +412,12 @@ export default function ConfigImportExport() {
                 <input
                   type="checkbox"
                   checked={importOverwrite}
-                  onChange={(e) => setImportOverwrite(e.target.checked)}
+                  onChange={e => setImportOverwrite(e.target.checked)}
                   className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Overwrite existing settings</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Overwrite existing settings
+                </span>
               </label>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">

@@ -83,7 +83,7 @@ describe('ProtectedRoute', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/protected"]}>
+        <MemoryRouter initialEntries={['/protected']}>
           <Routes>
             <Route path="/login" element={<MockLogin />} />
             <Route

@@ -37,7 +37,8 @@ export default function Dashboard() {
   const [isExporting, setIsExporting] = useState(false);
 
   const { data, isLoading, refetch, isRefetching } = useDashboardData(timeRange);
-  const { data: successfulLoginLocations, isLoading: isLoadingSuccessful } = useSuccessfulLoginLocations(timeRange);
+  const { data: successfulLoginLocations, isLoading: isLoadingSuccessful } =
+    useSuccessfulLoginLocations(timeRange);
 
   const handleExport = async (format: 'csv' | 'json' | 'pdf') => {
     setIsExporting(true);
@@ -68,9 +69,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Security Dashboard
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Security Dashboard</h1>
           <p className="mt-1 text-gray-500 dark:text-gray-400">
             Monitor security events, anomalies, and user activity across all tenants
           </p>
@@ -79,7 +78,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           {/* Time Range Selector */}
           <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-            {(['7d', '30d', '90d'] as TimeRange[]).map((range) => (
+            {(['7d', '30d', '90d'] as TimeRange[]).map(range => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
@@ -145,9 +144,13 @@ export default function Dashboard() {
           loading={isLoading}
           trend={
             summary && {
-              value: Math.round(((summary.total_logins_24h - summary.failed_logins_24h) / (summary.total_logins_24h || 1)) * 100),
+              value: Math.round(
+                ((summary.total_logins_24h - summary.failed_logins_24h) /
+                  (summary.total_logins_24h || 1)) *
+                  100
+              ),
               label: 'success rate',
-              positive: summary.failed_logins_24h < summary.total_logins_24h * 0.1
+              positive: summary.failed_logins_24h < summary.total_logins_24h * 0.1,
             }
           }
         />
@@ -181,8 +184,8 @@ export default function Dashboard() {
             (summary?.avg_risk_score || 0) >= 70
               ? 'red'
               : (summary?.avg_risk_score || 0) >= 40
-              ? 'amber'
-              : 'green'
+                ? 'amber'
+                : 'green'
           }
           loading={isLoading}
         />
@@ -199,13 +202,21 @@ export default function Dashboard() {
             title="MFA Compliance"
             value={`${summary?.mfa_compliance_rate || 0}%`}
             icon={Shield}
-            color={(summary?.mfa_compliance_rate || 0) > 90 ? 'green' : (summary?.mfa_compliance_rate || 0) > 70 ? 'amber' : 'red'}
+            color={
+              (summary?.mfa_compliance_rate || 0) > 90
+                ? 'green'
+                : (summary?.mfa_compliance_rate || 0) > 70
+                  ? 'amber'
+                  : 'red'
+            }
             loading={isLoading}
-            trend={summary && {
-              value: summary.total_protected_users,
-              label: 'users',
-              positive: true
-            }}
+            trend={
+              summary && {
+                value: summary.total_protected_users,
+                label: 'users',
+                positive: true,
+              }
+            }
           />
           <StatsCard
             title="High Risk OAuth"
@@ -295,10 +306,7 @@ export default function Dashboard() {
         </div>
 
         {/* Anomaly Breakdown */}
-        <AnomalyBreakdownChart
-          data={data?.anomaly_breakdown || []}
-          isLoading={isLoading}
-        />
+        <AnomalyBreakdownChart data={data?.anomaly_breakdown || []} isLoading={isLoading} />
       </div>
 
       {/* Last Updated */}

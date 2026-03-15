@@ -22,13 +22,10 @@ describe('Authentication Flow Integration', () => {
 
   it('shows error on failed login', async () => {
     const user = userEvent.setup();
-    
+
     server.use(
       http.post('/api/v1/auth/login', () => {
-        return HttpResponse.json(
-          { detail: 'Invalid credentials' },
-          { status: 401 }
-        );
+        return HttpResponse.json({ detail: 'Invalid credentials' }, { status: 401 });
       })
     );
 
@@ -43,7 +40,9 @@ describe('Authentication Flow Integration', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/network error|login failed|invalid credentials/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/network error|login failed|invalid credentials/i)
+      ).toBeInTheDocument();
     });
   });
 });

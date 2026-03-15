@@ -14,7 +14,7 @@ const createAuthAxios = (): AxiosInstance => {
 
   // Add request interceptor to include auth token
   client.interceptors.request.use(
-    (config) => {
+    config => {
       const token = localStorage.getItem('specterdefence-storage');
       if (token) {
         try {
@@ -28,7 +28,7 @@ const createAuthAxios = (): AxiosInstance => {
       }
       return config;
     },
-    (error) => Promise.reject(error)
+    error => Promise.reject(error)
   );
 
   return client;
@@ -122,38 +122,64 @@ const buildParams = (tenantId?: string, extra?: Record<string, unknown>) => {
 
 // Website API
 export const websiteApi = {
-  list: (tenantId?: string) => authAxios.get<Website[]>('/websites', { params: buildParams(tenantId) }),
-  get: (id: string, tenantId?: string) => authAxios.get<Website>(`/websites/${id}`, { params: buildParams(tenantId) }),
-  create: (data: { name: string; url: string; check_interval_minutes?: number }, tenantId?: string) =>
-    authAxios.post<Website>('/websites', data, { params: buildParams(tenantId) }),
-  delete: (id: string, tenantId?: string) => authAxios.delete(`/websites/${id}`, { params: buildParams(tenantId) }),
-  check: (id: string, tenantId?: string) => authAxios.post<Website>(`/websites/${id}/check`, null, { params: buildParams(tenantId) }),
-  checkAll: (tenantId?: string) => authAxios.post<{ checked: number }>('/websites/check-all', null, { params: buildParams(tenantId) }),
-  stats: (tenantId?: string) => authAxios.get<WebsiteStats>('/websites/stats', { params: buildParams(tenantId) }),
+  list: (tenantId?: string) =>
+    authAxios.get<Website[]>('/websites', { params: buildParams(tenantId) }),
+  get: (id: string, tenantId?: string) =>
+    authAxios.get<Website>(`/websites/${id}`, { params: buildParams(tenantId) }),
+  create: (
+    data: { name: string; url: string; check_interval_minutes?: number },
+    tenantId?: string
+  ) => authAxios.post<Website>('/websites', data, { params: buildParams(tenantId) }),
+  delete: (id: string, tenantId?: string) =>
+    authAxios.delete(`/websites/${id}`, { params: buildParams(tenantId) }),
+  check: (id: string, tenantId?: string) =>
+    authAxios.post<Website>(`/websites/${id}/check`, null, { params: buildParams(tenantId) }),
+  checkAll: (tenantId?: string) =>
+    authAxios.post<{ checked: number }>('/websites/check-all', null, {
+      params: buildParams(tenantId),
+    }),
+  stats: (tenantId?: string) =>
+    authAxios.get<WebsiteStats>('/websites/stats', { params: buildParams(tenantId) }),
 };
 
 // SSL API
 export const sslApi = {
-  list: (tenantId?: string) => authAxios.get<SslCertificate[]>('/ssl', { params: buildParams(tenantId) }),
-  get: (id: string, tenantId?: string) => authAxios.get<SslCertificate>(`/ssl/${id}`, { params: buildParams(tenantId) }),
+  list: (tenantId?: string) =>
+    authAxios.get<SslCertificate[]>('/ssl', { params: buildParams(tenantId) }),
+  get: (id: string, tenantId?: string) =>
+    authAxios.get<SslCertificate>(`/ssl/${id}`, { params: buildParams(tenantId) }),
   create: (data: { domain: string; port?: number }, tenantId?: string) =>
     authAxios.post<SslCertificate>('/ssl', data, { params: buildParams(tenantId) }),
-  delete: (id: string, tenantId?: string) => authAxios.delete(`/ssl/${id}`, { params: buildParams(tenantId) }),
-  check: (id: string, tenantId?: string) => authAxios.post<SslCertificate>(`/ssl/${id}/check`, null, { params: buildParams(tenantId) }),
-  checkAll: (tenantId?: string) => authAxios.post<{ checked: number }>('/ssl/check-all', null, { params: buildParams(tenantId) }),
-  stats: (tenantId?: string) => authAxios.get<SslStats>('/ssl/stats', { params: buildParams(tenantId) }),
-  expiring: (days?: number, tenantId?: string) => authAxios.get<SslCertificate[]>('/ssl/expiring', { params: buildParams(tenantId, { days }) }),
+  delete: (id: string, tenantId?: string) =>
+    authAxios.delete(`/ssl/${id}`, { params: buildParams(tenantId) }),
+  check: (id: string, tenantId?: string) =>
+    authAxios.post<SslCertificate>(`/ssl/${id}/check`, null, { params: buildParams(tenantId) }),
+  checkAll: (tenantId?: string) =>
+    authAxios.post<{ checked: number }>('/ssl/check-all', null, { params: buildParams(tenantId) }),
+  stats: (tenantId?: string) =>
+    authAxios.get<SslStats>('/ssl/stats', { params: buildParams(tenantId) }),
+  expiring: (days?: number, tenantId?: string) =>
+    authAxios.get<SslCertificate[]>('/ssl/expiring', { params: buildParams(tenantId, { days }) }),
 };
 
 // Domain API
 export const domainApi = {
-  list: (tenantId?: string) => authAxios.get<Domain[]>('/domains', { params: buildParams(tenantId) }),
-  get: (id: string, tenantId?: string) => authAxios.get<Domain>(`/domains/${id}`, { params: buildParams(tenantId) }),
+  list: (tenantId?: string) =>
+    authAxios.get<Domain[]>('/domains', { params: buildParams(tenantId) }),
+  get: (id: string, tenantId?: string) =>
+    authAxios.get<Domain>(`/domains/${id}`, { params: buildParams(tenantId) }),
   create: (data: { domain: string }, tenantId?: string) =>
     authAxios.post<Domain>('/domains', data, { params: buildParams(tenantId) }),
-  delete: (id: string, tenantId?: string) => authAxios.delete(`/domains/${id}`, { params: buildParams(tenantId) }),
-  check: (id: string, tenantId?: string) => authAxios.post<Domain>(`/domains/${id}/check`, null, { params: buildParams(tenantId) }),
-  checkAll: (tenantId?: string) => authAxios.post<{ checked: number }>('/domains/check-all', null, { params: buildParams(tenantId) }),
-  stats: (tenantId?: string) => authAxios.get<DomainStats>('/domains/stats', { params: buildParams(tenantId) }),
-  expiring: (days?: number, tenantId?: string) => authAxios.get<Domain[]>('/domains/expiring', { params: buildParams(tenantId, { days }) }),
+  delete: (id: string, tenantId?: string) =>
+    authAxios.delete(`/domains/${id}`, { params: buildParams(tenantId) }),
+  check: (id: string, tenantId?: string) =>
+    authAxios.post<Domain>(`/domains/${id}/check`, null, { params: buildParams(tenantId) }),
+  checkAll: (tenantId?: string) =>
+    authAxios.post<{ checked: number }>('/domains/check-all', null, {
+      params: buildParams(tenantId),
+    }),
+  stats: (tenantId?: string) =>
+    authAxios.get<DomainStats>('/domains/stats', { params: buildParams(tenantId) }),
+  expiring: (days?: number, tenantId?: string) =>
+    authAxios.get<Domain[]>('/domains/expiring', { params: buildParams(tenantId, { days }) }),
 };

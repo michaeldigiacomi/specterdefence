@@ -134,6 +134,10 @@ describe('Dashboard Page', () => {
     renderWithProviders(<Dashboard />);
 
     // Check that charts are rendered (they will have their own test files)
-    expect(document.querySelector('.recharts-wrapper') || document.querySelector('[data-testid*="chart"]') || true).toBeTruthy();
+    expect(
+      document.querySelector('.recharts-wrapper') ||
+        document.querySelector('[data-testid*="chart"]') ||
+        true
+    ).toBeTruthy();
   });
 });

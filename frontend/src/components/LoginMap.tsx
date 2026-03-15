@@ -101,8 +101,12 @@ export default function LoginMap({ logins, loading = false, height = '500px' }: 
       >
         <div className="text-center">
           <MapPin className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No location data</h3>
-          <p className="text-gray-500 dark:text-gray-400">No logins with geographic coordinates found.</p>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
+            No location data
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400">
+            No logins with geographic coordinates found.
+          </p>
         </div>
       </div>
     );
@@ -121,7 +125,7 @@ export default function LoginMap({ logins, loading = false, height = '500px' }: 
           <input
             type="checkbox"
             checked={showSuccess}
-            onChange={(e) => setShowSuccess(e.target.checked)}
+            onChange={e => setShowSuccess(e.target.checked)}
             className="w-4 h-4 text-green-500 rounded border-gray-300 focus:ring-green-500"
           />
           <span className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
@@ -134,7 +138,7 @@ export default function LoginMap({ logins, loading = false, height = '500px' }: 
           <input
             type="checkbox"
             checked={showFailed}
-            onChange={(e) => setShowFailed(e.target.checked)}
+            onChange={e => setShowFailed(e.target.checked)}
             className="w-4 h-4 text-red-500 rounded border-gray-300 focus:ring-red-500"
           />
           <span className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
@@ -147,7 +151,7 @@ export default function LoginMap({ logins, loading = false, height = '500px' }: 
           <input
             type="checkbox"
             checked={showAnomalies}
-            onChange={(e) => setShowAnomalies(e.target.checked)}
+            onChange={e => setShowAnomalies(e.target.checked)}
             className="w-4 h-4 text-amber-500 rounded border-gray-300 focus:ring-amber-500"
           />
           <span className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
@@ -174,16 +178,12 @@ export default function LoginMap({ logins, loading = false, height = '500px' }: 
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {validLogins.map((login) => {
+          {validLogins.map(login => {
             const hasAnomaly = login.anomaly_flags.length > 0;
             const icon = hasAnomaly ? anomalyIcon : login.is_success ? successIcon : failedIcon;
 
             return (
-              <Marker
-                key={login.id}
-                position={[login.latitude!, login.longitude!]}
-                icon={icon}
-              >
+              <Marker key={login.id} position={[login.latitude!, login.longitude!]} icon={icon}>
                 <Popup>
                   <div className="min-w-[200px]">
                     <div className="flex items-center gap-2 mb-2">
@@ -239,13 +239,18 @@ export default function LoginMap({ logins, loading = false, height = '500px' }: 
                       )}
 
                       <div className="mt-2">
-                        <span className={cn(
-                          'px-2 py-0.5 rounded text-xs font-medium',
-                          login.risk_score >= 80 ? 'bg-red-100 text-red-700'
-                          : login.risk_score >= 60 ? 'bg-orange-100 text-orange-700'
-                          : login.risk_score >= 40 ? 'bg-amber-100 text-amber-700'
-                          : 'bg-green-100 text-green-700'
-                        )}>
+                        <span
+                          className={cn(
+                            'px-2 py-0.5 rounded text-xs font-medium',
+                            login.risk_score >= 80
+                              ? 'bg-red-100 text-red-700'
+                              : login.risk_score >= 60
+                                ? 'bg-orange-100 text-orange-700'
+                                : login.risk_score >= 40
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-green-100 text-green-700'
+                          )}
+                        >
                           Risk Score: {login.risk_score}
                         </span>
                       </div>

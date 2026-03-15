@@ -1,16 +1,26 @@
 import { useState, useEffect } from 'react';
-import { 
-  Globe, 
-  Shield, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle, 
-  Plus, 
+import {
+  Globe,
+  Shield,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Plus,
   RefreshCw,
   Search,
-  Trash2
+  Trash2,
 } from 'lucide-react';
-import { websiteApi, sslApi, domainApi, Website, SslCertificate, Domain, WebsiteStats, SslStats, DomainStats } from '../services/monitoring';
+import {
+  websiteApi,
+  sslApi,
+  domainApi,
+  Website,
+  SslCertificate,
+  Domain,
+  WebsiteStats,
+  SslStats,
+  DomainStats,
+} from '../services/monitoring';
 import { apiService } from '../services/api';
 import type { Tenant } from '../types';
 
@@ -27,7 +37,7 @@ export default function Monitoring() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', url: '', domain: '', port: 443 });
-  
+
   // Tenant selection
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string>('');
@@ -55,21 +65,21 @@ export default function Monitoring() {
       if (activeTab === 'websites') {
         const [listRes, statsRes] = await Promise.all([
           websiteApi.list(selectedTenant),
-          websiteApi.stats(selectedTenant)
+          websiteApi.stats(selectedTenant),
         ]);
         setWebsites(listRes.data);
         setWebsiteStats(statsRes.data);
       } else if (activeTab === 'ssl') {
         const [listRes, statsRes] = await Promise.all([
           sslApi.list(selectedTenant),
-          sslApi.stats(selectedTenant)
+          sslApi.stats(selectedTenant),
         ]);
         setSslCerts(listRes.data);
         setSslStats(statsRes.data);
       } else if (activeTab === 'domains') {
         const [listRes, statsRes] = await Promise.all([
           domainApi.list(selectedTenant),
-          domainApi.stats(selectedTenant)
+          domainApi.stats(selectedTenant),
         ]);
         setDomains(listRes.data);
         setDomainStats(statsRes.data);
@@ -149,19 +159,27 @@ export default function Monitoring() {
 
   const getStatusColor = (status: string | null) => {
     switch (status) {
-      case 'up': return 'text-green-500';
-      case 'down': return 'text-red-500';
-      case 'error': return 'text-yellow-500';
-      default: return 'text-gray-500';
+      case 'up':
+        return 'text-green-500';
+      case 'down':
+        return 'text-red-500';
+      case 'error':
+        return 'text-yellow-500';
+      default:
+        return 'text-gray-500';
     }
   };
 
   const getStatusIcon = (status: string | null) => {
     switch (status) {
-      case 'up': return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'down': return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'error': return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
-      default: return <span className="w-5 h-5 text-gray-400">?</span>;
+      case 'up':
+        return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case 'down':
+        return <XCircle className="w-5 h-5 text-red-500" />;
+      case 'error':
+        return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
+      default:
+        return <span className="w-5 h-5 text-gray-400">?</span>;
     }
   };
 
@@ -202,38 +220,55 @@ export default function Monitoring() {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">URL</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Response</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Uptime</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Name
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                URL
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Response
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Uptime
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {websites.map((site) => (
+            {websites.map(site => (
               <tr key={site.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {getStatusIcon(site.last_status)}
-                </td>
+                <td className="px-6 py-4 whitespace-nowrap">{getStatusIcon(site.last_status)}</td>
                 <td className="px-6 py-4 whitespace-nowrap font-medium">{site.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-500">{site.url}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {site.last_response_code ? (
-                    <span className={site.last_response_code >= 400 ? 'text-red-500' : 'text-green-500'}>
+                    <span
+                      className={site.last_response_code >= 400 ? 'text-red-500' : 'text-green-500'}
+                    >
                       {site.last_response_code}
                     </span>
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}
                   {site.last_response_time_ms && (
-                    <span className="ml-2 text-gray-400">{site.last_response_time_ms.toFixed(0)}ms</span>
+                    <span className="ml-2 text-gray-400">
+                      {site.last_response_time_ms.toFixed(0)}ms
+                    </span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                      <div className="bg-green-500 h-2 rounded-full" style={{ width: `${site.uptime_percentage}%` }}></div>
+                      <div
+                        className="bg-green-500 h-2 rounded-full"
+                        style={{ width: `${site.uptime_percentage}%` }}
+                      ></div>
                     </div>
                     <span className="text-sm">{site.uptime_percentage.toFixed(1)}%</span>
                   </div>
@@ -300,15 +335,25 @@ export default function Monitoring() {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Domain</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Issuer</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expires</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Domain
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Issuer
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Expires
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {sslCerts.map((cert) => (
+            {sslCerts.map(cert => (
               <tr key={cert.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {cert.has_errors ? (
@@ -320,10 +365,14 @@ export default function Monitoring() {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap font-medium">{cert.domain}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-500 text-sm">{cert.issuer || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-500 text-sm">
+                  {cert.issuer || '-'}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {cert.days_until_expiry !== null ? (
-                    <span className={cert.days_until_expiry <= 30 ? 'text-red-500 font-medium' : ''}>
+                    <span
+                      className={cert.days_until_expiry <= 30 ? 'text-red-500 font-medium' : ''}
+                    >
                       {cert.days_until_expiry} days
                     </span>
                   ) : (
@@ -392,15 +441,25 @@ export default function Monitoring() {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Domain</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Registrar</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expires</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Domain
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Registrar
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Expires
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {domains.map((domain) => (
+            {domains.map(domain => (
               <tr key={domain.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {domain.whois_error ? (
@@ -412,10 +471,14 @@ export default function Monitoring() {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap font-medium">{domain.domain}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-500 text-sm">{domain.registrar || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-500 text-sm">
+                  {domain.registrar || '-'}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {domain.days_until_expiry !== null ? (
-                    <span className={domain.days_until_expiry <= 30 ? 'text-red-500 font-medium' : ''}>
+                    <span
+                      className={domain.days_until_expiry <= 30 ? 'text-red-500 font-medium' : ''}
+                    >
                       {domain.days_until_expiry} days
                     </span>
                   ) : (
@@ -459,10 +522,10 @@ export default function Monitoring() {
           {tenants.length > 0 && (
             <select
               value={selectedTenant}
-              onChange={(e) => setSelectedTenant(e.target.value)}
+              onChange={e => setSelectedTenant(e.target.value)}
               className="ml-4 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm"
             >
-              {tenants.map((tenant) => (
+              {tenants.map(tenant => (
                 <option key={tenant.id} value={tenant.id}>
                   {tenant.name}
                 </option>
@@ -475,7 +538,8 @@ export default function Monitoring() {
           className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
         >
           <Plus className="w-5 h-5 mr-2" />
-          Add {activeTab === 'websites' ? 'Website' : activeTab === 'ssl' ? 'Certificate' : 'Domain'}
+          Add{' '}
+          {activeTab === 'websites' ? 'Website' : activeTab === 'ssl' ? 'Certificate' : 'Domain'}
         </button>
       </div>
 
@@ -535,26 +599,35 @@ export default function Monitoring() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">
-              Add {activeTab === 'websites' ? 'Website' : activeTab === 'ssl' ? 'SSL Certificate' : 'Domain'}
+              Add{' '}
+              {activeTab === 'websites'
+                ? 'Website'
+                : activeTab === 'ssl'
+                  ? 'SSL Certificate'
+                  : 'Domain'}
             </h2>
             {activeTab === 'websites' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Name
+                  </label>
                   <input
                     type="text"
                     value={newItem.name}
-                    onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                    onChange={e => setNewItem({ ...newItem, name: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:border-gray-600"
                     placeholder="My Website"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">URL</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    URL
+                  </label>
                   <input
                     type="text"
                     value={newItem.url}
-                    onChange={(e) => setNewItem({ ...newItem, url: e.target.value })}
+                    onChange={e => setNewItem({ ...newItem, url: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:border-gray-600"
                     placeholder="https://example.com"
                   />
@@ -578,21 +651,25 @@ export default function Monitoring() {
             {activeTab === 'ssl' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Domain</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Domain
+                  </label>
                   <input
                     type="text"
                     value={newItem.domain}
-                    onChange={(e) => setNewItem({ ...newItem, domain: e.target.value })}
+                    onChange={e => setNewItem({ ...newItem, domain: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:border-gray-600"
                     placeholder="example.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Port</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Port
+                  </label>
                   <input
                     type="number"
                     value={newItem.port}
-                    onChange={(e) => setNewItem({ ...newItem, port: parseInt(e.target.value) })}
+                    onChange={e => setNewItem({ ...newItem, port: parseInt(e.target.value) })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:border-gray-600"
                   />
                 </div>
@@ -615,11 +692,13 @@ export default function Monitoring() {
             {activeTab === 'domains' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Domain</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Domain
+                  </label>
                   <input
                     type="text"
                     value={newItem.domain}
-                    onChange={(e) => setNewItem({ ...newItem, domain: e.target.value })}
+                    onChange={e => setNewItem({ ...newItem, domain: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:border-gray-600"
                     placeholder="example.com"
                   />

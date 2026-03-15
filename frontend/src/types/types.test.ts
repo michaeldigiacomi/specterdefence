@@ -12,7 +12,7 @@ describe('Types', () => {
       city: 'New York',
       region: 'NY',
       latitude: 40.7128,
-      longitude: -74.0060,
+      longitude: -74.006,
       login_time: '2024-01-01T12:00:00Z',
       is_success: true,
       failure_reason: undefined,

@@ -39,31 +39,29 @@ export default function Anomalies() {
 
   const toggleType = (type: EventType) => {
     setSelectedTypes(prev =>
-      prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     );
   };
 
   const toggleSeverity = (severity: SeverityLevel) => {
     setSelectedSeverities(prev =>
-      prev.includes(severity)
-        ? prev.filter(s => s !== severity)
-        : [...prev, severity]
+      prev.includes(severity) ? prev.filter(s => s !== severity) : [...prev, severity]
     );
   };
 
   // Filter anomalies client-side
   const filteredAnomalies = anomalies?.filter(anomaly => {
-    const matchesType = selectedTypes.length === 0 || selectedTypes.some(t =>
-      anomaly.type.toLowerCase().includes(t.toLowerCase())
-    );
-    const matchesSeverity = selectedSeverities.length === 0 || selectedSeverities.some(s => {
-      if (s === 'CRITICAL') return anomaly.risk_score >= 80;
-      if (s === 'HIGH') return anomaly.risk_score >= 60 && anomaly.risk_score < 80;
-      if (s === 'MEDIUM') return anomaly.risk_score >= 40 && anomaly.risk_score < 60;
-      return anomaly.risk_score < 40;
-    });
+    const matchesType =
+      selectedTypes.length === 0 ||
+      selectedTypes.some(t => anomaly.type.toLowerCase().includes(t.toLowerCase()));
+    const matchesSeverity =
+      selectedSeverities.length === 0 ||
+      selectedSeverities.some(s => {
+        if (s === 'CRITICAL') return anomaly.risk_score >= 80;
+        if (s === 'HIGH') return anomaly.risk_score >= 60 && anomaly.risk_score < 80;
+        if (s === 'MEDIUM') return anomaly.risk_score >= 40 && anomaly.risk_score < 60;
+        return anomaly.risk_score < 40;
+      });
     return matchesType && matchesSeverity;
   });
 
@@ -84,7 +82,7 @@ export default function Anomalies() {
         <div className="flex items-center gap-2">
           <select
             value={filters.hours}
-            onChange={(e) => setFilters({ ...filters, hours: parseInt(e.target.value) })}
+            onChange={e => setFilters({ ...filters, hours: parseInt(e.target.value) })}
             className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 dark:text-white"
           >
             <option value={1}>Last Hour</option>
@@ -94,12 +92,14 @@ export default function Anomalies() {
 
           <select
             value={filters.tenant_id || ''}
-            onChange={(e) => setFilters({ ...filters, tenant_id: e.target.value || undefined })}
+            onChange={e => setFilters({ ...filters, tenant_id: e.target.value || undefined })}
             className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 dark:text-white"
           >
             <option value="">All Tenants</option>
-                        {tenantsData?.items?.map((tenant) => (
-              <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+            {tenantsData?.items?.map(tenant => (
+              <option key={tenant.id} value={tenant.id}>
+                {tenant.name}
+              </option>
             ))}
           </select>
         </div>
@@ -109,7 +109,9 @@ export default function Anomalies() {
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center gap-2 mb-3">
           <Filter className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by Type</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Filter by Type
+          </span>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -132,7 +134,9 @@ export default function Anomalies() {
 
         <div className="flex items-center gap-2 mt-4 mb-3">
           <Flame className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by Severity</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Filter by Severity
+          </span>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -158,7 +162,9 @@ export default function Anomalies() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">Total Anomalies</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredAnomalies?.length || 0}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {filteredAnomalies?.length || 0}
+          </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">Critical</p>
@@ -188,7 +194,7 @@ export default function Anomalies() {
 
         <div className="space-y-4">
           {isLoading ? (
-            [1, 2, 3, 4].map((i) => (
+            [1, 2, 3, 4].map(i => (
               <div
                 key={i}
                 className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 animate-pulse"
@@ -203,16 +209,18 @@ export default function Anomalies() {
               </div>
             ))
           ) : filteredAnomalies && filteredAnomalies.length > 0 ? (
-            filteredAnomalies.map((anomaly, idx) => (
-              <AnomalyCard key={idx} anomaly={anomaly} />
-            ))
+            filteredAnomalies.map((anomaly, idx) => <AnomalyCard key={idx} anomaly={anomaly} />)
           ) : (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
               <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Shield className="w-8 h-8 text-green-600 dark:text-green-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No anomalies found</h3>
-              <p className="text-gray-500 dark:text-gray-400">No anomalies match your current filters.</p>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
+                No anomalies found
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                No anomalies match your current filters.
+              </p>
             </div>
           )}
         </div>

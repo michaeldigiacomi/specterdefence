@@ -9,7 +9,7 @@ import {
   WifiOff,
   AlertCircle,
   Volume2,
-  VolumeX
+  VolumeX,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -53,7 +53,7 @@ export function AlertFeed({
   className,
   compact = false,
   maxHeight = '600px',
-  tenantId
+  tenantId,
 }: AlertFeedProps) {
   const {
     alerts,
@@ -131,18 +131,14 @@ export function AlertFeed({
   // Toggle severity selection
   const toggleSeverity = (severity: string) => {
     setSelectedSeverities(prev =>
-      prev.includes(severity)
-        ? prev.filter(s => s !== severity)
-        : [...prev, severity]
+      prev.includes(severity) ? prev.filter(s => s !== severity) : [...prev, severity]
     );
   };
 
   // Toggle event type selection
   const toggleEventType = (eventType: string) => {
     setSelectedEventTypes(prev =>
-      prev.includes(eventType)
-        ? prev.filter(e => e !== eventType)
-        : [...prev, eventType]
+      prev.includes(eventType) ? prev.filter(e => e !== eventType) : [...prev, eventType]
     );
   };
 
@@ -161,10 +157,13 @@ export function AlertFeed({
   };
 
   // Count alerts by severity
-  const alertCounts = alerts.reduce((acc, alert) => {
-    acc[alert.severity] = (acc[alert.severity] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const alertCounts = alerts.reduce(
+    (acc, alert) => {
+      acc[alert.severity] = (acc[alert.severity] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   // Compact mode for sidebar
   if (compact) {
@@ -200,11 +199,7 @@ export function AlertFeed({
         </div>
 
         {/* Alert List */}
-        <div
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto p-2 space-y-2"
-          style={{ maxHeight }}
-        >
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-2 space-y-2" style={{ maxHeight }}>
           {alerts.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -212,14 +207,11 @@ export function AlertFeed({
               <p className="text-xs mt-1">Waiting for new alerts...</p>
             </div>
           ) : (
-            alerts.slice(0, 20).map(alert => (
-              <AlertCard
-                key={alert.id}
-                alert={alert}
-                onDismiss={dismissAlert}
-                compact
-              />
-            ))
+            alerts
+              .slice(0, 20)
+              .map(alert => (
+                <AlertCard key={alert.id} alert={alert} onDismiss={dismissAlert} compact />
+              ))
           )}
         </div>
 
@@ -238,7 +230,12 @@ export function AlertFeed({
 
   // Full mode
   return (
-    <div className={cn('flex flex-col bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700', className)}>
+    <div
+      className={cn(
+        'flex flex-col bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700',
+        className
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3">
@@ -255,19 +252,17 @@ export function AlertFeed({
               Live Alert Feed
             </h2>
             <div className="flex items-center gap-2 mt-0.5">
-              {severityOptions.map(({ value, label, color }) => (
-                alertCounts[value] > 0 && (
-                  <span
-                    key={value}
-                    className={cn(
-                      'text-xs text-white px-1.5 py-0.5 rounded-full',
-                      color
-                    )}
-                  >
-                    {alertCounts[value]} {label}
-                  </span>
-                )
-              ))}
+              {severityOptions.map(
+                ({ value, label, color }) =>
+                  alertCounts[value] > 0 && (
+                    <span
+                      key={value}
+                      className={cn('text-xs text-white px-1.5 py-0.5 rounded-full', color)}
+                    >
+                      {alertCounts[value]} {label}
+                    </span>
+                  )
+              )}
             </div>
           </div>
         </div>
@@ -295,11 +290,7 @@ export function AlertFeed({
             )}
             title={soundEnabled ? 'Sound on' : 'Sound off'}
           >
-            {soundEnabled ? (
-              <Volume2 className="w-4 h-4" />
-            ) : (
-              <VolumeX className="w-4 h-4" />
-            )}
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
 
           {/* Filter button */}
@@ -332,11 +323,7 @@ export function AlertFeed({
             )}
             title={isPaused ? 'Resume stream' : 'Pause stream'}
           >
-            {isPaused ? (
-              <Play className="w-4 h-4" />
-            ) : (
-              <Pause className="w-4 h-4" />
-            )}
+            {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
           </button>
 
           {/* Clear */}
@@ -430,11 +417,7 @@ export function AlertFeed({
       )}
 
       {/* Alert list */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-3"
-        style={{ maxHeight }}
-      >
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3" style={{ maxHeight }}>
         {alerts.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">

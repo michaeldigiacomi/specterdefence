@@ -92,9 +92,7 @@ export function AlertVolumeChart({
         <div>
           <div className="flex items-center gap-2">
             <Bell className="w-5 h-5 text-primary-500" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Alert Volume
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Alert Volume</h3>
           </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -111,7 +109,7 @@ export function AlertVolumeChart({
         <div className="flex items-center gap-2">
           {/* Time Range Selector */}
           <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-            {timeRangeOptions.map((option) => (
+            {timeRangeOptions.map(option => (
               <button
                 key={option.value}
                 onClick={() => onTimeRangeChange(option.value)}
@@ -146,10 +144,7 @@ export function AlertVolumeChart({
               style={{ backgroundColor: `${config.color}15` }}
             >
               <div className="flex items-center gap-1.5">
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: config.color }}
-                />
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }} />
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
                   {config.label}
                 </span>
@@ -212,8 +207,10 @@ export function AlertVolumeChart({
                           {format(parseISO(label as string), 'PPP')}
                         </p>
                         {payload.map((entry, index) => {
-                          if (entry.dataKey === 'timestamp' || entry.dataKey === 'total') return null;
-                          const config = severityConfig[entry.dataKey as keyof typeof severityConfig];
+                          if (entry.dataKey === 'timestamp' || entry.dataKey === 'total')
+                            return null;
+                          const config =
+                            severityConfig[entry.dataKey as keyof typeof severityConfig];
                           return (
                             <p
                               key={index}
@@ -236,21 +233,22 @@ export function AlertVolumeChart({
                 }}
               />
 
-              {Object.entries(severityConfig).map(([severity, config]) => (
-                !hiddenSeverities.has(severity) && (
-                  <Area
-                    key={severity}
-                    type="monotone"
-                    dataKey={severity}
-                    name={config.label}
-                    stroke={config.color}
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill={`url(#color${severity})`}
-                    stackId="1"
-                  />
-                )
-              ))}
+              {Object.entries(severityConfig).map(
+                ([severity, config]) =>
+                  !hiddenSeverities.has(severity) && (
+                    <Area
+                      key={severity}
+                      type="monotone"
+                      dataKey={severity}
+                      name={config.label}
+                      stroke={config.color}
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill={`url(#color${severity})`}
+                      stackId="1"
+                    />
+                  )
+              )}
             </AreaChart>
           </ResponsiveContainer>
         ) : (

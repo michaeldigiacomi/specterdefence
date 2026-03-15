@@ -43,10 +43,7 @@ describe('useLogin', () => {
   it('fails with invalid credentials', async () => {
     server.use(
       http.post('/api/v1/auth/local/login', () => {
-        return HttpResponse.json(
-          { detail: 'Invalid credentials' },
-          { status: 401 }
-        );
+        return HttpResponse.json({ detail: 'Invalid credentials' }, { status: 401 });
       })
     );
 
@@ -95,10 +92,7 @@ describe('useChangePassword', () => {
   it('fails when current password is incorrect', async () => {
     server.use(
       http.post('/api/v1/auth/local/change-password', () => {
-        return HttpResponse.json(
-          { detail: 'Current password is incorrect' },
-          { status: 400 }
-        );
+        return HttpResponse.json({ detail: 'Current password is incorrect' }, { status: 400 });
       })
     );
 
@@ -135,10 +129,7 @@ describe('useAuthCheck', () => {
   it('returns error when token is invalid', async () => {
     server.use(
       http.get('/api/v1/auth/local/check', () => {
-        return HttpResponse.json(
-          { authenticated: false },
-          { status: 401 }
-        );
+        return HttpResponse.json({ authenticated: false }, { status: 401 });
       })
     );
 

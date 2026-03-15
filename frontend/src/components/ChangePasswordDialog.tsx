@@ -61,7 +61,12 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="change-password-title">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="change-password-title"
+    >
       <div className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
@@ -70,7 +75,9 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
               <div className="p-2 bg-white/20 rounded-lg">
                 <KeyRound className="w-5 h-5 text-white" />
               </div>
-              <h2 id="change-password-title" className="text-xl font-semibold text-white">Change Password</h2>
+              <h2 id="change-password-title" className="text-xl font-semibold text-white">
+                Change Password
+              </h2>
             </div>
             <button
               onClick={onClose}
@@ -92,7 +99,10 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
 
           {/* Current Password */}
           <div>
-            <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="current-password"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Current Password
             </label>
             <div className="relative">
@@ -102,7 +112,7 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                 type={showCurrentPassword ? 'text' : 'password'}
                 role="textbox"
                 value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
+                onChange={e => setCurrentPassword(e.target.value)}
                 className="w-full pl-10 pr-10 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 placeholder="Enter current password"
                 required
@@ -119,7 +129,10 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
 
           {/* New Password */}
           <div>
-            <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="new-password"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               New Password
             </label>
             <div className="relative">
@@ -129,7 +142,7 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                 type={showNewPassword ? 'text' : 'password'}
                 role="textbox"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={e => setNewPassword(e.target.value)}
                 className="w-full pl-10 pr-10 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 placeholder="Enter new password (min 8 chars)"
                 required
@@ -147,7 +160,10 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
 
           {/* Confirm Password */}
           <div>
-            <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="confirm-password"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Confirm New Password
             </label>
             <div className="relative">
@@ -157,7 +173,7 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                 type={showConfirmPassword ? 'text' : 'password'}
                 role="textbox"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={e => setConfirmPassword(e.target.value)}
                 className="w-full pl-10 pr-10 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 placeholder="Confirm new password"
                 required
@@ -199,9 +215,25 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
             >
               {changePasswordMutation.isPending ? (
                 <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.04"></path>
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.04"
+                    ></path>
                   </svg>
                   Changing...
                 </span>

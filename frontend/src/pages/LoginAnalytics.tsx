@@ -15,7 +15,7 @@ export default function LoginAnalytics() {
   const [filters, setFilters] = useState<LoginFilters>({
     page: 1,
     page_size: 20,
-    ...(initialUser ? { user: initialUser } : {})
+    ...(initialUser ? { user: initialUser } : {}),
   });
 
   const { data, isLoading, error } = useLoginAnalytics(filters);
@@ -31,28 +31,33 @@ export default function LoginAnalytics() {
   };
 
   // Prepare chart data from logins
-  const chartData = data?.logins.reduce((acc, login) => {
-    const hour = new Date(login.login_time).getHours();
-    const key = `${hour}:00`;
+  const chartData = data?.logins.reduce(
+    (acc, login) => {
+      const hour = new Date(login.login_time).getHours();
+      const key = `${hour}:00`;
 
-    if (!acc[key]) {
-      acc[key] = { time: key, success: 0, failed: 0 };
-    }
+      if (!acc[key]) {
+        acc[key] = { time: key, success: 0, failed: 0 };
+      }
 
-    if (login.is_success) {
-      acc[key].success++;
-    } else {
-      acc[key].failed++;
-    }
+      if (login.is_success) {
+        acc[key].success++;
+      } else {
+        acc[key].failed++;
+      }
 
-    return acc;
-  }, {} as Record<string, { time: string; success: number; failed: number }>);
+      return acc;
+    },
+    {} as Record<string, { time: string; success: number; failed: number }>
+  );
 
-  const chartDataArray = chartData ? Object.values(chartData).sort((a, b) => {
-    const hourA = parseInt(a.time);
-    const hourB = parseInt(b.time);
-    return hourA - hourB;
-  }) : [];
+  const chartDataArray = chartData
+    ? Object.values(chartData).sort((a, b) => {
+        const hourA = parseInt(a.time);
+        const hourB = parseInt(b.time);
+        return hourA - hourB;
+      })
+    : [];
 
   if (error) {
     return (
@@ -104,17 +109,8 @@ export default function LoginAnalytics() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartDataArray}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
-                <XAxis
-                  dataKey="time"
-                  stroke="#6B7280"
-                  fontSize={12}
-                  tickLine={false}
-                />
-                <YAxis
-                  stroke="#6B7280"
-                  fontSize={12}
-                  tickLine={false}
-                />
+                <XAxis dataKey="time" stroke="#6B7280" fontSize={12} tickLine={false} />
+                <YAxis stroke="#6B7280" fontSize={12} tickLine={false} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'rgba(17, 24, 39, 0.9)',
@@ -133,15 +129,13 @@ export default function LoginAnalytics() {
 
       {/* Login Timeline */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Login Timeline
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Login Timeline</h2>
         <LoginTimeline
           logins={data?.logins || []}
           total={data?.total || 0}
           page={filters.page || 1}
           pageSize={filters.page_size || 20}
-          onPageChange={(page) => setFilters({ ...filters, page })}
+          onPageChange={page => setFilters({ ...filters, page })}
           loading={isLoading}
         />
       </div>

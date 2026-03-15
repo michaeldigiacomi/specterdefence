@@ -1,6 +1,24 @@
 import { useState } from 'react';
-import { Users as UsersIcon, Plus, Edit2, Shield, ShieldAlert, CheckCircle, XCircle, Building2, Trash2 } from 'lucide-react';
-import { useUsers, useCreateUser, useUpdateUser, useUserTenants, useTenants, useAssignUserTenant, useUnassignUserTenant } from '@/hooks/useApi';
+import {
+  Users as UsersIcon,
+  Plus,
+  Edit2,
+  Shield,
+  ShieldAlert,
+  CheckCircle,
+  XCircle,
+  Building2,
+  Trash2,
+} from 'lucide-react';
+import {
+  useUsers,
+  useCreateUser,
+  useUpdateUser,
+  useUserTenants,
+  useTenants,
+  useAssignUserTenant,
+  useUnassignUserTenant,
+} from '@/hooks/useApi';
 import { UserInternal, UserCreate, UserUpdate, Tenant } from '@/types';
 import toast from 'react-hot-toast';
 import { clsx, type ClassValue } from 'clsx';
@@ -15,10 +33,10 @@ export default function Users() {
   const [showTenantModal, setShowTenantModal] = useState(false);
   const [editingUser, setEditingUser] = useState<UserInternal | null>(null);
   const [formData, setFormData] = useState<Partial<UserCreate> & Partial<UserUpdate>>({});
-  
+
   const { data: usersData, isLoading: usersLoading } = useUsers();
   const { data: allTenantsData } = useTenants();
-  
+
   const createUser = useCreateUser();
   const updateUser = useUpdateUser(editingUser?.id || 0);
   const assignTenant = useAssignUserTenant();
@@ -119,79 +137,113 @@ export default function Users() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Username</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Login</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Username
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Role
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Last Login
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {usersLoading ? (
-                [1, 2, 3].map((i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-48"></div></td>
-                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 ml-auto"></div></td>
-                  </tr>
-                ))
-              ) : usersData?.items?.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-sm uppercase">
-                        {user.username.charAt(0)}
-                      </div>
-                      <span className="font-medium text-gray-900 dark:text-white">{user.username}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={cn(
-                      'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium',
-                      user.is_admin
-                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
-                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                    )}>
-                      {user.is_admin ? <ShieldAlert className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
-                      {user.is_admin ? 'Admin' : 'User'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={cn(
-                      'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium',
-                      user.is_active
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
-                    )}>
-                      {user.is_active ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                      {user.is_active ? 'Active' : 'Disabled'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleOpenTenantModal(user)}
-                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
-                        title="Manage Tenants"
-                      >
-                        <Building2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenModal(user)}
-                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
-                        title="Edit User"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {usersLoading
+                ? [1, 2, 3].map(i => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 ml-auto"></div>
+                      </td>
+                    </tr>
+                  ))
+                : usersData?.items?.map(user => (
+                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-sm uppercase">
+                            {user.username.charAt(0)}
+                          </div>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {user.username}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium',
+                            user.is_admin
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                          )}
+                        >
+                          {user.is_admin ? (
+                            <ShieldAlert className="w-3 h-3" />
+                          ) : (
+                            <Shield className="w-3 h-3" />
+                          )}
+                          {user.is_admin ? 'Admin' : 'User'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium',
+                            user.is_active
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+                          )}
+                        >
+                          {user.is_active ? (
+                            <CheckCircle className="w-3 h-3" />
+                          ) : (
+                            <XCircle className="w-3 h-3" />
+                          )}
+                          {user.is_active ? 'Active' : 'Disabled'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenTenantModal(user)}
+                            className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                            title="Manage Tenants"
+                          >
+                            <Building2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenModal(user)}
+                            className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                            title="Edit User"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
             </tbody>
           </table>
         </div>
@@ -217,7 +269,7 @@ export default function Users() {
                     type="text"
                     required
                     value={formData.username || ''}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    onChange={e => setFormData({ ...formData, username: e.target.value })}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                     placeholder="e.g. jdoe"
                   />
@@ -232,7 +284,7 @@ export default function Users() {
                   type="password"
                   required={!editingUser}
                   value={formData.password || ''}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                   placeholder={editingUser ? '••••••••' : 'Enter password'}
                 />
@@ -243,19 +295,23 @@ export default function Users() {
                   <input
                     type="checkbox"
                     checked={formData.is_admin}
-                    onChange={(e) => setFormData({ ...formData, is_admin: e.target.checked })}
+                    onChange={e => setFormData({ ...formData, is_admin: e.target.checked })}
                     className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Administrator access</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Administrator access
+                  </span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
                     className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-500"
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Account enabled</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Account enabled
+                  </span>
                 </label>
               </div>
 
@@ -294,14 +350,14 @@ export default function Users() {
   );
 }
 
-function TenantAssignmentModal({ 
-  user, 
-  allTenants, 
+function TenantAssignmentModal({
+  user,
+  allTenants,
   onClose,
   onAssign,
-  onUnassign
-}: { 
-  user: UserInternal; 
+  onUnassign,
+}: {
+  user: UserInternal;
   allTenants: Tenant[];
   onClose: () => void;
   onAssign: (id: string) => Promise<void>;
@@ -311,7 +367,7 @@ function TenantAssignmentModal({
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const assignedIds = new Set(userTenants?.map(t => t.id) || []);
-  
+
   const handleToggle = async (tenant: Tenant) => {
     setIsProcessing(tenant.id);
     try {
@@ -340,44 +396,61 @@ function TenantAssignmentModal({
         <div className="p-6 max-h-[60vh] overflow-y-auto">
           {isLoading ? (
             <div className="space-y-3">
-              {[1, 2, 3].map(i => <div key={i} className="h-12 bg-gray-100 dark:bg-gray-700 animate-pulse rounded-lg" />)}
+              {[1, 2, 3].map(i => (
+                <div
+                  key={i}
+                  className="h-12 bg-gray-100 dark:bg-gray-700 animate-pulse rounded-lg"
+                />
+              ))}
             </div>
           ) : (
             <div className="space-y-2">
-              {allTenants.map((tenant) => (
-                <div 
+              {allTenants.map(tenant => (
+                <div
                   key={tenant.id}
                   className={cn(
-                    "flex items-center justify-between p-3 rounded-lg border transition-all",
+                    'flex items-center justify-between p-3 rounded-lg border transition-all',
                     assignedIds.has(tenant.id)
-                      ? "bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800"
-                      : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                      ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-lg flex items-center justify-center",
-                      assignedIds.has(tenant.id) ? "bg-primary-100 text-primary-600" : "bg-gray-100 text-gray-400"
-                    )}>
+                    <div
+                      className={cn(
+                        'w-10 h-10 rounded-lg flex items-center justify-center',
+                        assignedIds.has(tenant.id)
+                          ? 'bg-primary-100 text-primary-600'
+                          : 'bg-gray-100 text-gray-400'
+                      )}
+                    >
                       <Building2 className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{tenant.name}</p>
-                      <p className="text-xs text-gray-500 font-mono truncate max-w-[200px]">{tenant.tenant_id}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {tenant.name}
+                      </p>
+                      <p className="text-xs text-gray-500 font-mono truncate max-w-[200px]">
+                        {tenant.tenant_id}
+                      </p>
                     </div>
                   </div>
-                  
+
                   <button
                     onClick={() => handleToggle(tenant)}
                     disabled={!!isProcessing}
                     className={cn(
-                      "px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors",
+                      'px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors',
                       assignedIds.has(tenant.id)
-                        ? "bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400"
-                        : "bg-primary-50 text-primary-600 hover:bg-primary-100 dark:bg-primary-900/20 dark:text-primary-400"
+                        ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400'
+                        : 'bg-primary-50 text-primary-600 hover:bg-primary-100 dark:bg-primary-900/20 dark:text-primary-400'
                     )}
                   >
-                    {isProcessing === tenant.id ? "..." : assignedIds.has(tenant.id) ? "Remove" : "Assign"}
+                    {isProcessing === tenant.id
+                      ? '...'
+                      : assignedIds.has(tenant.id)
+                        ? 'Remove'
+                        : 'Assign'}
                   </button>
                 </div>
               ))}

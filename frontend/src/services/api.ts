@@ -51,7 +51,7 @@ import type {
   AnomalyTrendData,
   TopRiskUsersData,
   AlertVolumeData,
-  AnomalyBreakdownItem
+  AnomalyBreakdownItem,
 } from '@/hooks/useDashboard';
 
 const API_BASE_URL = '/api/v1';
@@ -70,7 +70,7 @@ class ApiService {
 
     // Add request interceptor to include auth token
     this.client.interceptors.request.use(
-      (config) => {
+      config => {
         const token = localStorage.getItem('specterdefence-storage');
         if (token) {
           try {
@@ -84,12 +84,12 @@ class ApiService {
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      error => Promise.reject(error)
     );
 
     // Add response interceptor for error handling
     this.client.interceptors.response.use(
-      (response) => response,
+      response => response,
       (error: AxiosError) => {
         if (error.response) {
           // Handle 401 Unauthorized - redirect to login
@@ -119,7 +119,8 @@ class ApiService {
     if (filters.country) params.append('country', filters.country);
     if (filters.country_code) params.append('country_code', filters.country_code);
     if (filters.status) params.append('status', filters.status);
-    if (filters.has_anomaly !== undefined) params.append('has_anomaly', String(filters.has_anomaly));
+    if (filters.has_anomaly !== undefined)
+      params.append('has_anomaly', String(filters.has_anomaly));
     if (filters.anomaly_type) params.append('anomaly_type', filters.anomaly_type);
     if (filters.min_risk_score) params.append('min_risk_score', String(filters.min_risk_score));
     if (filters.page) params.append('page', String(filters.page));
@@ -130,7 +131,9 @@ class ApiService {
   }
 
   async getUserLoginSummary(userEmail: string, tenantId: string): Promise<UserLoginSummary> {
-    const response = await this.client.get(`/analytics/logins/${encodeURIComponent(userEmail)}/summary?tenant_id=${tenantId}`);
+    const response = await this.client.get(
+      `/analytics/logins/${encodeURIComponent(userEmail)}/summary?tenant_id=${tenantId}`
+    );
     return response.data;
   }
 
@@ -280,12 +283,17 @@ class ApiService {
     return response.data;
   }
 
-  async getSuccessfulLoginLocations(timeRange: TimeRange, tenantId?: string): Promise<GeoHeatmapData> {
+  async getSuccessfulLoginLocations(
+    timeRange: TimeRange,
+    tenantId?: string
+  ): Promise<GeoHeatmapData> {
     const params = new URLSearchParams();
     params.append('time_range', timeRange);
     if (tenantId) params.append('tenant_id', tenantId);
 
-    const response = await this.client.get(`/dashboard/successful-login-locations?${params.toString()}`);
+    const response = await this.client.get(
+      `/dashboard/successful-login-locations?${params.toString()}`
+    );
     return response.data;
   }
 
@@ -316,7 +324,10 @@ class ApiService {
     return response.data;
   }
 
-  async getAnomalyBreakdown(timeRange: TimeRange, tenantId?: string): Promise<AnomalyBreakdownItem[]> {
+  async getAnomalyBreakdown(
+    timeRange: TimeRange,
+    tenantId?: string
+  ): Promise<AnomalyBreakdownItem[]> {
     const params = new URLSearchParams();
     params.append('time_range', timeRange);
     if (tenantId) params.append('tenant_id', tenantId);
@@ -325,15 +336,22 @@ class ApiService {
     return response.data;
   }
 
-  async exportDashboard(format: 'csv' | 'json' | 'pdf', timeRange: TimeRange, tenantId?: string): Promise<Blob> {
+  async exportDashboard(
+    format: 'csv' | 'json' | 'pdf',
+    timeRange: TimeRange,
+    tenantId?: string
+  ): Promise<Blob> {
     const params = new URLSearchParams();
     params.append('format', format);
     params.append('time_range', timeRange);
     if (tenantId) params.append('tenant_id', tenantId);
 
-    const response = await this.client.get(`/dashboard/export/download/${format}?${params.toString()}`, {
-      responseType: 'blob',
-    });
+    const response = await this.client.get(
+      `/dashboard/export/download/${format}?${params.toString()}`,
+      {
+        responseType: 'blob',
+      }
+    );
     return response.data;
   }
 
@@ -369,12 +387,20 @@ class ApiService {
 
   // User Preferences
   async getUserPreferences(userEmail: string): Promise<UserPreferences> {
-    const response = await this.client.get(`/settings/preferences/${encodeURIComponent(userEmail)}`);
+    const response = await this.client.get(
+      `/settings/preferences/${encodeURIComponent(userEmail)}`
+    );
     return response.data;
   }
 
-  async updateUserPreferences(userEmail: string, data: UserPreferencesUpdate): Promise<UserPreferences> {
-    const response = await this.client.patch(`/settings/preferences/${encodeURIComponent(userEmail)}`, data);
+  async updateUserPreferences(
+    userEmail: string,
+    data: UserPreferencesUpdate
+  ): Promise<UserPreferences> {
+    const response = await this.client.patch(
+      `/settings/preferences/${encodeURIComponent(userEmail)}`,
+      data
+    );
     return response.data;
   }
 
@@ -386,7 +412,10 @@ class ApiService {
     return response.data;
   }
 
-  async updateDetectionThresholds(data: DetectionThresholdsUpdate, tenantId?: string): Promise<DetectionThresholds> {
+  async updateDetectionThresholds(
+    data: DetectionThresholdsUpdate,
+    tenantId?: string
+  ): Promise<DetectionThresholds> {
     const params = new URLSearchParams();
     if (tenantId) params.append('tenant_id', tenantId);
     const response = await this.client.patch(`/settings/detection?${params.toString()}`, data);
@@ -522,7 +551,10 @@ class ApiService {
     return response.data;
   }
 
-  async changePassword(current_password: string, new_password: string): Promise<{ message: string }> {
+  async changePassword(
+    current_password: string,
+    new_password: string
+  ): Promise<{ message: string }> {
     const response = await this.client.post('/auth/local/change-password', {
       current_password,
       new_password,
@@ -542,14 +574,17 @@ class ApiService {
     const searchParams = new URLSearchParams();
     if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
     if (params?.state) searchParams.append('state', params.state);
-    if (params?.is_baseline_policy !== undefined) searchParams.append('is_baseline_policy', String(params.is_baseline_policy));
+    if (params?.is_baseline_policy !== undefined)
+      searchParams.append('is_baseline_policy', String(params.is_baseline_policy));
     if (params?.limit) searchParams.append('limit', String(params.limit));
     if (params?.offset) searchParams.append('offset', String(params.offset));
     const response = await this.client.get(`/ca-policies/?${searchParams.toString()}`);
     return response.data;
   }
 
-  async getCAPolicySummary(tenantId: string): Promise<import('@/types/securityTypes').CAPolicySummary> {
+  async getCAPolicySummary(
+    tenantId: string
+  ): Promise<import('@/types/securityTypes').CAPolicySummary> {
     const response = await this.client.get(`/ca-policies/tenants/${tenantId}/summary`);
     return response.data;
   }
@@ -578,7 +613,8 @@ class ApiService {
   }): Promise<import('@/types/securityTypes').CAPolicyAlertListResponse> {
     const searchParams = new URLSearchParams();
     if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
-    if (params?.acknowledged !== undefined) searchParams.append('acknowledged', String(params.acknowledged));
+    if (params?.acknowledged !== undefined)
+      searchParams.append('acknowledged', String(params.acknowledged));
     if (params?.severity) searchParams.append('severity', params.severity);
     if (params?.limit) searchParams.append('limit', String(params.limit));
     if (params?.offset) searchParams.append('offset', String(params.offset));
@@ -609,7 +645,9 @@ class ApiService {
     return response.data;
   }
 
-  async getMailboxRuleSummary(tenantId: string): Promise<import('@/types/securityTypes').MailboxRuleSummary> {
+  async getMailboxRuleSummary(
+    tenantId: string
+  ): Promise<import('@/types/securityTypes').MailboxRuleSummary> {
     const response = await this.client.get(`/mailbox-rules/tenants/${tenantId}/summary`);
     return response.data;
   }
@@ -623,7 +661,8 @@ class ApiService {
   }): Promise<import('@/types/securityTypes').MailboxRuleAlertListResponse> {
     const searchParams = new URLSearchParams();
     if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
-    if (params?.acknowledged !== undefined) searchParams.append('acknowledged', String(params.acknowledged));
+    if (params?.acknowledged !== undefined)
+      searchParams.append('acknowledged', String(params.acknowledged));
     if (params?.severity) searchParams.append('severity', params.severity);
     if (params?.limit) searchParams.append('limit', String(params.limit));
     if (params?.offset) searchParams.append('offset', String(params.offset));
@@ -633,7 +672,9 @@ class ApiService {
 
   // ============== MFA Report ==============
 
-  async getMFASummary(tenantId: string): Promise<import('@/types/securityTypes').MFAEnrollmentSummary> {
+  async getMFASummary(
+    tenantId: string
+  ): Promise<import('@/types/securityTypes').MFAEnrollmentSummary> {
     const response = await this.client.get(`/mfa-report/?tenant_id=${tenantId}`);
     return response.data;
   }
@@ -649,32 +690,45 @@ class ApiService {
   }): Promise<import('@/types/securityTypes').MFAUserListResponse> {
     const searchParams = new URLSearchParams();
     searchParams.append('tenant_id', params.tenant_id);
-    if (params.is_mfa_registered !== undefined) searchParams.append('is_mfa_registered', String(params.is_mfa_registered));
+    if (params.is_mfa_registered !== undefined)
+      searchParams.append('is_mfa_registered', String(params.is_mfa_registered));
     if (params.is_admin !== undefined) searchParams.append('is_admin', String(params.is_admin));
     if (params.mfa_strength) searchParams.append('mfa_strength', params.mfa_strength);
-    if (params.needs_attention !== undefined) searchParams.append('needs_attention', String(params.needs_attention));
+    if (params.needs_attention !== undefined)
+      searchParams.append('needs_attention', String(params.needs_attention));
     if (params.limit) searchParams.append('limit', String(params.limit));
     if (params.offset) searchParams.append('offset', String(params.offset));
     const response = await this.client.get(`/mfa-report/users?${searchParams.toString()}`);
     return response.data;
   }
 
-  async getMFATrends(tenantId: string, days: number = 30): Promise<import('@/types/securityTypes').MFAEnrollmentTrendsResponse> {
+  async getMFATrends(
+    tenantId: string,
+    days: number = 30
+  ): Promise<import('@/types/securityTypes').MFAEnrollmentTrendsResponse> {
     const response = await this.client.get(`/mfa-report/trends?tenant_id=${tenantId}&days=${days}`);
     return response.data;
   }
 
-  async getMFAMethodDistribution(tenantId: string): Promise<import('@/types/securityTypes').MFAMethodsDistributionResponse> {
+  async getMFAMethodDistribution(
+    tenantId: string
+  ): Promise<import('@/types/securityTypes').MFAMethodsDistributionResponse> {
     const response = await this.client.get(`/mfa-report/method-distribution?tenant_id=${tenantId}`);
     return response.data;
   }
 
-  async getMFAStrengthDistribution(tenantId: string): Promise<import('@/types/securityTypes').MFAStrengthDistributionResponse> {
-    const response = await this.client.get(`/mfa-report/strength-distribution?tenant_id=${tenantId}`);
+  async getMFAStrengthDistribution(
+    tenantId: string
+  ): Promise<import('@/types/securityTypes').MFAStrengthDistributionResponse> {
+    const response = await this.client.get(
+      `/mfa-report/strength-distribution?tenant_id=${tenantId}`
+    );
     return response.data;
   }
 
-  async getAdminsWithoutMFA(tenantId: string): Promise<import('@/types/securityTypes').AdminsWithoutMFAResponse> {
+  async getAdminsWithoutMFA(
+    tenantId: string
+  ): Promise<import('@/types/securityTypes').AdminsWithoutMFAResponse> {
     const response = await this.client.get(`/mfa-report/admins-without-mfa?tenant_id=${tenantId}`);
     return response.data;
   }
@@ -696,15 +750,19 @@ class ApiService {
     if (params?.status) searchParams.append('status', params.status);
     if (params?.risk_level) searchParams.append('risk_level', params.risk_level);
     if (params?.publisher_type) searchParams.append('publisher_type', params.publisher_type);
-    if (params?.is_internal !== undefined) searchParams.append('is_internal', String(params.is_internal));
-    if (params?.exclude_microsoft !== undefined) searchParams.append('exclude_microsoft', String(params.exclude_microsoft));
+    if (params?.is_internal !== undefined)
+      searchParams.append('is_internal', String(params.is_internal));
+    if (params?.exclude_microsoft !== undefined)
+      searchParams.append('exclude_microsoft', String(params.exclude_microsoft));
     if (params?.limit) searchParams.append('limit', String(params.limit));
     if (params?.offset) searchParams.append('offset', String(params.offset));
     const response = await this.client.get(`/oauth-apps/?${searchParams.toString()}`);
     return response.data;
   }
 
-  async getOAuthAppSummary(tenantId: string): Promise<import('@/types/securityTypes').OAuthAppsSummary> {
+  async getOAuthAppSummary(
+    tenantId: string
+  ): Promise<import('@/types/securityTypes').OAuthAppsSummary> {
     const response = await this.client.get(`/oauth-apps/tenants/${tenantId}/summary`);
     return response.data;
   }
@@ -718,7 +776,8 @@ class ApiService {
   }): Promise<import('@/types/securityTypes').OAuthAppAlertListResponse> {
     const searchParams = new URLSearchParams();
     if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
-    if (params?.acknowledged !== undefined) searchParams.append('acknowledged', String(params.acknowledged));
+    if (params?.acknowledged !== undefined)
+      searchParams.append('acknowledged', String(params.acknowledged));
     if (params?.severity) searchParams.append('severity', params.severity);
     if (params?.limit) searchParams.append('limit', String(params.limit));
     if (params?.offset) searchParams.append('offset', String(params.offset));

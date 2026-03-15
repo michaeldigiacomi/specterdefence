@@ -90,10 +90,7 @@ describe('Login Page', () => {
   it('displays error message on invalid credentials', async () => {
     server.use(
       http.post('/api/v1/auth/local/login', () => {
-        return HttpResponse.json(
-          { detail: 'Invalid credentials' },
-          { status: 401 }
-        );
+        return HttpResponse.json({ detail: 'Invalid credentials' }, { status: 401 });
       })
     );
 

@@ -72,7 +72,7 @@ export default function SettingsPage() {
         <aside className="w-full lg:w-64 flex-shrink-0">
           <nav className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-              {tabs.map((tab) => {
+              {tabs.map(tab => {
                 const Icon = tab.icon;
                 return (
                   <li key={tab.id}>

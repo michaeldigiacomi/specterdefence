@@ -46,7 +46,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 // Public route that redirects to home if already authenticated
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />;

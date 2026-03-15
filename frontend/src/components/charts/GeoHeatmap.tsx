@@ -74,18 +74,14 @@ export function GeoHeatmap({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {title}
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
           <div className="flex items-center gap-4 mt-1">
             <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
               <Globe className="w-4 h-4" />
               {totalCountries} countries
             </span>
             {topCountry && (
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Top: {topCountry}
-              </span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Top: {topCountry}</span>
             )}
           </div>
         </div>
@@ -110,12 +106,7 @@ export function GeoHeatmap({
       {/* Map */}
       <div className="h-80 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
         {data.length > 0 ? (
-          <MapContainer
-            center={center}
-            zoom={2}
-            scrollWheelZoom={false}
-            className="h-full w-full"
-          >
+          <MapContainer center={center} zoom={2} scrollWheelZoom={false} className="h-full w-full">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -133,9 +124,7 @@ export function GeoHeatmap({
               >
                 <Popup>
                   <div className="p-2 min-w-[200px]">
-                    <h4 className="font-semibold text-gray-900 mb-2">
-                      {location.country_name}
-                    </h4>
+                    <h4 className="font-semibold text-gray-900 mb-2">{location.country_name}</h4>
                     <div className="space-y-1 text-sm">
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-gray-400" />
@@ -147,7 +136,9 @@ export function GeoHeatmap({
                       </div>
                       <div className="flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-gray-400" />
-                        <span>Success: {location.success_count}, Failed: {location.failed_count}</span>
+                        <span>
+                          Success: {location.success_count}, Failed: {location.failed_count}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -182,9 +173,14 @@ export function GeoHeatmap({
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {data.length > 0 
-                ? ((data.reduce((sum, d) => sum + (d.failed_count || 0), 0) / data.reduce((sum, d) => sum + (d.login_count || 0), 0)) * 100).toFixed(1) 
-                : '0.0'}%
+              {data.length > 0
+                ? (
+                    (data.reduce((sum, d) => sum + (d.failed_count || 0), 0) /
+                      data.reduce((sum, d) => sum + (d.login_count || 0), 0)) *
+                    100
+                  ).toFixed(1)
+                : '0.0'}
+              %
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Failed Logins %</p>
           </div>

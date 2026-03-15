@@ -6,13 +6,14 @@ import {
   TenantCreate,
   TenantUpdate,
   UserCreate,
-  UserUpdate
+  UserUpdate,
 } from '@/types';
 
 // Query keys
 export const queryKeys = {
   logins: (filters: LoginFilters) => ['logins', filters] as const,
-  userSummary: (userEmail: string, tenantId: string) => ['userSummary', userEmail, tenantId] as const,
+  userSummary: (userEmail: string, tenantId: string) =>
+    ['userSummary', userEmail, tenantId] as const,
   anomalies: (filters: AlertFilters) => ['anomalies', filters] as const,
   tenants: () => ['tenants'] as const,
   tenant: (id: string) => ['tenant', id] as const,

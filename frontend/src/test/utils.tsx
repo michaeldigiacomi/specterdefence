@@ -72,17 +72,12 @@ function AllProviders({
 }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={initialEntries}>
-        {children}
-      </MemoryRouter>
+      <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
     </QueryClientProvider>
   );
 }
 
-export function renderWithProviders(
-  ui: ReactElement,
-  options: CustomRenderOptions = {}
-) {
+export function renderWithProviders(ui: ReactElement, options: CustomRenderOptions = {}) {
   const {
     route,
     initialEntries = ['/'],
@@ -114,11 +109,7 @@ export function renderWithProviders(
 
 export function renderWithRouter(
   ui: ReactElement,
-  {
-    route = '/',
-    path = '/',
-    ...options
-  }: CustomRenderOptions & { path?: string } = {}
+  { route = '/', path = '/', ...options }: CustomRenderOptions & { path?: string } = {}
 ) {
   const queryClient = createTestQueryClient();
 
@@ -139,24 +130,18 @@ export function renderWithRouter(
 // ============================================
 
 export function waitForMs(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ============================================
 // Element Queries Helpers
 // ============================================
 
-export function getByRoleWithName(
-  container: HTMLElement,
-  role: string,
-  name: string | RegExp
-) {
+export function getByRoleWithName(container: HTMLElement, role: string, name: string | RegExp) {
   const elements = container.querySelectorAll(`[role="${role}"]`);
-  return Array.from(elements).find((el) => {
+  return Array.from(elements).find(el => {
     const text = el.textContent || '';
-    return typeof name === 'string'
-      ? text.includes(name)
-      : name.test(text);
+    return typeof name === 'string' ? text.includes(name) : name.test(text);
   });
 }
 

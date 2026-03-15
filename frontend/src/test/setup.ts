@@ -51,7 +51,7 @@ Object.defineProperty(window.URL, 'revokeObjectURL', {
 });
 
 // Mock react-leaflet
-vi.mock('react-leaflet', async (importOriginal) => {
+vi.mock('react-leaflet', async importOriginal => {
   return {
     ...(await importOriginal<typeof import('react-leaflet')>()),
     MapContainer: vi.fn(({ children }) => {

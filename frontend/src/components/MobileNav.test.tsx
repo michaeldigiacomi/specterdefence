@@ -13,7 +13,7 @@ import { useAppStore } from '@/store/appStore';
 describe('MobileNav', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     (useAppStore as vi.Mock).mockReturnValue({
       sidebarOpen: false,
       toggleSidebar: vi.fn(),

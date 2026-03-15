@@ -3,7 +3,13 @@
 // ============================================
 
 export type PolicyState = 'enabled' | 'disabled' | 'reportOnly';
-export type ChangeType = 'created' | 'updated' | 'deleted' | 'enabled' | 'disabled' | 'baseline_drift';
+export type ChangeType =
+  | 'created'
+  | 'updated'
+  | 'deleted'
+  | 'enabled'
+  | 'disabled'
+  | 'baseline_drift';
 export type CASeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 export interface CAPolicy {
@@ -92,7 +98,14 @@ export interface CAPolicySummary {
 // Mailbox Rules Types
 // ============================================
 
-export type RuleType = 'forwarding' | 'auto_reply' | 'redirect' | 'move_to_folder' | 'delete' | 'mark_as_read' | 'custom';
+export type RuleType =
+  | 'forwarding'
+  | 'auto_reply'
+  | 'redirect'
+  | 'move_to_folder'
+  | 'delete'
+  | 'mark_as_read'
+  | 'custom';
 export type RuleStatus = 'active' | 'suspicious' | 'malicious' | 'benign' | 'disabled';
 export type RuleSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
