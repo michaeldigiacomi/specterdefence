@@ -499,25 +499,54 @@ class LoginAnalyticsService:
                 # Determine success/failure
                 is_success = True
                 failure_reason = None
+                generic_failure_reason = None
 
-                if "ResultStatus" in raw_data:
-                    # Check both ResultStatus and ErrorNumber
-                    # ErrorNumber != "0" indicates failures like account lockouts, policy violations
-                    is_success = raw_data.get("ResultStatus") == "Success" and raw_data.get("ErrorNumber", "0") == "0"
-                    if not is_success:
-                        # Try to find reason in ExtendedProperties
-                        ext_props = raw_data.get("ExtendedProperties", [])
-                        if isinstance(ext_props, list):
-                            for prop in ext_props:
-                                if isinstance(prop, dict) and prop.get("Name") == "ResultStatusDetail":
-                                    failure_reason = prop.get("Value")
-                                    break
+                # Check for failure conditions - O365 uses "ResultStatus": "Success" to mean
+                # the API request was processed, NOT that the login was successful.
+                # The actual login status is determined by Operation, ErrorNumber, and LogonError.
+
+                # Check if this is a failed login operation
+                operation = raw_data.get("Operation", "")
+                if "UserLoginFailed" in operation or "Failed" in operation:
+                    is_success = False
+                    # Prefer explicit LogonError here; defer generic fallbacks until later
+                    failure_reason = raw_data.get("LogonError")
+
+                # Also check ErrorNumber - any non-zero value indicates a failure
+                error_number_raw = raw_data.get("ErrorNumber", 0)
+                try:
+                    error_number = int(error_number_raw)
+                except (TypeError, ValueError):
+                    error_number = None
+                if error_number not in (None, 0):
+                    is_success = False
+                    if not failure_reason:
+                        # Record a generic failure reason candidate; apply after extended lookups
+                        generic_failure_reason = f"Error: {error_number}"
+
+                # Check for LogonError - indicates specific login issues
+                if raw_data.get("LogonError"):
+                    is_success = False
+                    failure_reason = raw_data.get("LogonError")
+
+                # If already marked as failure but no reason found yet, try ExtendedProperties
+                if not is_success and not failure_reason:
+                    ext_props = raw_data.get("ExtendedProperties", [])
+                    if isinstance(ext_props, list):
+                        for prop in ext_props:
+                            if isinstance(prop, dict) and prop.get("Name") == "ResultStatusDetail":
+                                failure_reason = prop.get("Value")
+                                break
                 elif "Status" in raw_data:
                     status = raw_data.get("Status", {})
                     if isinstance(status, dict):
                         is_success = status.get("ErrorCode") == 0
                         if not is_success:
                             failure_reason = status.get("FailureReason") or status.get("AdditionalDetails")
+
+                # Apply generic fallback only if no more specific failure reason was found
+                if not failure_reason and generic_failure_reason:
+                    failure_reason = generic_failure_reason
 
                 # Process the login event
                 await self.process_login_event(
