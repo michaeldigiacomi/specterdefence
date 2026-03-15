@@ -529,7 +529,7 @@ class LoginAnalyticsService:
                     is_success = False
                     failure_reason = raw_data.get("LogonError")
 
-                # If still marked as success, try to find failure reason in ExtendedProperties
+                # If already marked as failure but no reason found yet, try ExtendedProperties
                 if not is_success and not failure_reason:
                     ext_props = raw_data.get("ExtendedProperties", [])
                     if isinstance(ext_props, list):
