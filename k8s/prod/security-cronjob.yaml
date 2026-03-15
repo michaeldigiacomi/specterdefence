@@ -26,7 +26,7 @@ spec:
             - name: ghcr-registry-secret
           containers:
             - name: security-scans
-              image: ghcr.io/digiacomi-shared/specterdefence-backend:latest
+              image: ghcr.io/michaeldigiacomi/specterdefence-backend:latest
               imagePullPolicy: Always
               command: ["python", "-m", "src.collector.security_scans"]
               env:

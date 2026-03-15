@@ -3,7 +3,7 @@ packages = [{ include = "src" }]
 name = "specterdefence"
 version = "0.1.0"
 description = "Microsoft 365 security posture monitoring and management"
-authors = ["DiGiacomi-Shared"]
+authors = ["michaeldigiacomi"]
 license = "MIT"
 
 [tool.poetry.dependencies]

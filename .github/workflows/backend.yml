@@ -24,7 +24,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: digiacomi-shared/specterdefence-backend
+  IMAGE_NAME: michaeldigiacomi/specterdefence-backend
 
 jobs:
   # ============================================
@@ -159,7 +159,7 @@ jobs:
           
           # Update image in deployment
           kubectl set image deployment/specterdefence-backend \
-            specterdefence-backend=ghcr.io/digiacomi-shared/specterdefence-backend:latest \
+            specterdefence-backend=ghcr.io/michaeldigiacomi/specterdefence-backend:latest \
             -n specterdefence
 
       - name: Verify deployment

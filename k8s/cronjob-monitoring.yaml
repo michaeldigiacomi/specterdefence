@@ -23,7 +23,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: monitoring
-            image: ghcr.io/digiacomi-shared/specterdefence-backend:latest
+            image: ghcr.io/michaeldigiacomi/specterdefence-backend:latest
             command: ["python", "-m", "src.collector.monitoring"]
             env:
             - name: DATABASE_URL
@@ -73,7 +73,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: monitoring-ssl
-            image: ghcr.io/digiacomi-shared/specterdefence-backend:latest
+            image: ghcr.io/michaeldigiacomi/specterdefence-backend:latest
             command: ["python", "-m", "src.collector.monitoring", "--no-websites", "--no-domains"]
             env:
             - name: DATABASE_URL
@@ -106,7 +106,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: monitoring-domain
-            image: ghcr.io/digiacomi-shared/specterdefence-backend:latest
+            image: ghcr.io/michaeldigiacomi/specterdefence-backend:latest
             command: ["python", "-m", "src.collector.monitoring", "--no-websites", "--no-ssl"]
             env:
             - name: DATABASE_URL

@@ -341,4 +341,4 @@ If your organization cannot grant Application permissions, SpecterDefence can us
 For questions about permissions or setup:
 - Email: support@specterdefence.io
 - Documentation: https://docs.specterdefence.io
-- GitHub Issues: https://github.com/DiGiacomi-Shared/specterdefence/issues
+- GitHub Issues: https://github.com/michaeldigiacomi/specterdefence/issues
