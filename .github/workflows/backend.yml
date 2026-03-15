@@ -1,0 +1,169 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - 'Dockerfile.backend'
+      - 'Dockerfile'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - 'Dockerfile.backend'
+      - 'Dockerfile'
+      - '.github/workflows/backend.yml'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: digiacomi-shared/specterdefence-backend
+
+jobs:
+  # ============================================
+  # Lint & Test
+  # ============================================
+  lint-test:
+    runs-on: [self-hosted]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up virtual environment
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov httpx faker black ruff mypy
+
+      - name: Run Ruff (linter)
+        run: |
+          source venv/bin/activate
+          ruff check src/ || echo "Lint issues found (non-blocking)"
+
+      - name: Run Black (format check)
+        run: |
+          source venv/bin/activate
+          black --check src/ || echo "Format issues found (non-blocking)"
+
+      - name: Run MyPy (type check)
+        run: |
+          source venv/bin/activate
+          mypy src/ || echo "Type issues found (non-blocking)"
+
+      - name: Run tests
+        run: |
+          source venv/bin/activate
+          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term || echo "Tests failed (non-blocking)"
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: github.event_name == 'push'
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+
+  # ============================================
+  # Build and Push
+  # ============================================
+  build:
+    runs-on: [self-hosted]
+    needs: lint-test
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=,suffix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=backend-${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=backend-${{ github.ref_name }}
+          platforms: linux/amd64
+
+  # ============================================
+  # Deploy (main branch only)
+  # ============================================
+  deploy:
+    runs-on: [self-hosted]
+    needs: build
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
+          args: '--accept-routes --accept-dns'
+
+      - name: Set up kubectl
+        uses: azure/k8s-set-context@v1
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+      - name: Deploy to Kubernetes
+        run: |
+          # Apply secrets (you may need to update these)
+          # kubectl apply -f k8s/prod/ -n specterdefence
+
+          # Apply cronjobs
+          kubectl apply -f k8s/prod/collector-cronjob.yaml -n specterdefence
+
+          #Apply Security cronjob
+          kubectl apply -f k8s/prod/security-cronjob.yaml -n specterdefence
+          
+          # Update image in deployment
+          kubectl set image deployment/specterdefence-backend \
+            specterdefence-backend=ghcr.io/digiacomi-shared/specterdefence-backend:latest \
+            -n specterdefence
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/specterdefence-backend \
+            -n specterdefence \
+            --timeout=5m

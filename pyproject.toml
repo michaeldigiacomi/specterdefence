@@ -1,0 +1,46 @@
+[tool.poetry]
+packages = [{ include = "src" }]
+name = "specterdefence"
+version = "0.1.0"
+description = "Microsoft 365 security posture monitoring and management"
+authors = ["DiGiacomi-Shared"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.3"
+sqlalchemy = "^2.0.30"
+asyncpg = "^0.29.0"
+pydantic = "^2.8.2"
+python-dotenv = "^1.0.1"
+alembic = "^1.13.3"
+pytest = ">=8.2,<10.0.0"
+pytest-asyncio = "^0.24.0"
+httpx = ">=0.27.0"
+python-whois = "^0.9.0"
+cryptography = "^43.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest-cov = "^5.0.0"
+flake8 = "^7.1.0"
+black = "^24.8.0"
+mypy = "^1.11.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = "-v --tb=short"
+env = [
+    "DATABASE_URL=sqlite:///:memory:",
+    "TESTING=true"
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80

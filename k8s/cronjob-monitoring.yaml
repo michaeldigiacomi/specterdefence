@@ -1,0 +1,116 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: specterdefence-monitoring
+  namespace: specterdefence
+  labels:
+    app: specterdefence
+    component: monitoring
+spec:
+  schedule: "0 * * * *"  # Every hour
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: specterdefence
+            component: monitoring
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: monitoring
+            image: ghcr.io/digiacomi-shared/specterdefence-backend:latest
+            command: ["python", "-m", "src.collector.monitoring"]
+            env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: DATABASE_URL
+            - name: AZURE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: AZURE_CLIENT_ID
+            - name: AZURE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: AZURE_CLIENT_SECRET
+            - name: AZURE_TENANT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: AZURE_TENANT_ID
+---
+# Separate cron jobs for different check frequencies
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: specterdefence-monitoring-ssl
+  namespace: specterdefence
+  labels:
+    app: specterdefence
+    component: monitoring-ssl
+spec:
+  schedule: "0 0 * * *"  # Once per day at midnight
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: specterdefence
+            component: monitoring-ssl
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: monitoring-ssl
+            image: ghcr.io/digiacomi-shared/specterdefence-backend:latest
+            command: ["python", "-m", "src.collector.monitoring", "--no-websites", "--no-domains"]
+            env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: DATABASE_URL
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: specterdefence-monitoring-domain
+  namespace: specterdefence
+  labels:
+    app: specterdefence
+    component: monitoring-domain
+spec:
+  schedule: "0 1 * * *"  # Once per day at 1am
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: specterdefence
+            component: monitoring-domain
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: monitoring-domain
+            image: ghcr.io/digiacomi-shared/specterdefence-backend:latest
+            command: ["python", "-m", "src.collector.monitoring", "--no-websites", "--no-ssl"]
+            env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: DATABASE_URL
