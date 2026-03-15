@@ -511,8 +511,12 @@ class LoginAnalyticsService:
                     failure_reason = raw_data.get("LogonError") or f"Error: {raw_data.get('ErrorNumber', 'Unknown')}"
                 
                 # Also check ErrorNumber - any non-zero value indicates a failure
-                error_number = raw_data.get("ErrorNumber", "0")
-                if error_number != "0":
+                error_number_raw = raw_data.get("ErrorNumber", 0)
+                try:
+                    error_number = int(error_number_raw)
+                except (TypeError, ValueError):
+                    error_number = None
+                if error_number not in (None, 0):
                     is_success = False
                     if not failure_reason:
                         failure_reason = f"Error: {error_number}"
