@@ -590,7 +590,7 @@ class TestHealthCheckAPI:
             mock_client_class.return_value = mock_client
 
             response = await async_client_with_mock_db.post(
-                "/api/v1/v1/v1/v1/tenants/test-tenant-uuid/health-check"
+                "/api/v1/tenants/test-tenant-uuid/health-check"
             )
 
             assert response.status_code == 200
@@ -606,7 +606,7 @@ class TestHealthCheckAPI:
         mock_result.scalar_one_or_none.return_value = None
         mock_db.execute.return_value = mock_result
 
-        response = await async_client_with_mock_db.post("/api/v1/v1/v1/v1/tenants/non-existent/health-check")
+        response = await async_client_with_mock_db.post("/api/v1/tenants/non-existent/health-check")
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
@@ -664,7 +664,7 @@ class TestHealthCheckAPI:
             )
             mock_client_class.return_value = mock_client
 
-            response = await async_client_with_mock_db.post("/api/v1/v1/v1/v1/tenants/health-check/all")
+            response = await async_client_with_mock_db.post("/api/v1/tenants/health-check/all")
 
             assert response.status_code == 200
             data = response.json()
@@ -708,7 +708,7 @@ class TestHealthCheckAPI:
             mock_client_class.return_value = mock_client
 
             response = await async_client_with_mock_db.post(
-                "/api/v1/v1/v1/v1/tenants/test-tenant-uuid/health-check",
+                "/api/v1/tenants/test-tenant-uuid/health-check",
                 params={"permissions": ["Custom.Permission"], "timeout": 45.0},
             )
 
@@ -755,7 +755,7 @@ class TestHealthCheckAPI:
             mock_client_class.return_value = mock_client
 
             response = await async_client_with_mock_db.post(
-                "/api/v1/v1/v1/v1/tenants/test-tenant-uuid/health-check", params={"timeout": 60.0}
+                "/api/v1/tenants/test-tenant-uuid/health-check", params={"timeout": 60.0}
             )
 
             assert response.status_code == 200

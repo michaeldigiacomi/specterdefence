@@ -25,7 +25,6 @@ import {
   AnomalyTrendChart,
   AlertVolumeChart,
   TopRiskUsers,
-  AnomalyBreakdownChart,
 } from '@/components/charts';
 import { useDashboardData, TimeRange, useSuccessfulLoginLocations } from '@/hooks/useDashboard';
 import StatsCard from '@/components/StatsCard';
@@ -304,9 +303,6 @@ export default function Dashboard() {
             isLoading={isLoading}
           />
         </div>
-
-        {/* Anomaly Breakdown */}
-        <AnomalyBreakdownChart data={data?.anomaly_breakdown || []} isLoading={isLoading} />
       </div>
 
       {/* Last Updated */}

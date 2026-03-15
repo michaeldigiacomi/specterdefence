@@ -542,7 +542,7 @@ class TestExportEndpoint:
 
         assert result.format == "csv"
         assert "dashboard-export" in result.filename
-        assert result.download_url == "/api/v1/v1/v1/v1/dashboard/export/download/csv"
+        assert result.download_url == "/api/v1/dashboard/export/download/csv"
 
     @pytest.mark.asyncio
     async def test_export_dashboard_json(self, mock_service):

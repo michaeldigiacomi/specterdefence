@@ -49,7 +49,7 @@ class TestWebhookEndpoints:
         # Create request
         request = WebhookCreate(
             name="Test Webhook",
-            webhook_url="https://discord.com/api/v1/v1/v1/webhooks/123/test",
+            webhook_url="https://discord.com/api/webhooks/123/test",
             webhook_type="discord",
         )
 
@@ -82,7 +82,7 @@ class TestWebhookEndpoints:
 
         request = WebhookCreate(
             name="Tenant Webhook",
-            webhook_url="https://discord.com/api/v1/v1/v1/webhooks/123/test",
+            webhook_url="https://discord.com/api/webhooks/123/test",
         )
 
         await alerts_api.create_webhook(
@@ -93,7 +93,7 @@ class TestWebhookEndpoints:
 
         mock_service.create_webhook.assert_called_once_with(
             name="Tenant Webhook",
-            webhook_url="https://discord.com/api/v1/v1/v1/webhooks/123/test",
+            webhook_url="https://discord.com/api/webhooks/123/test",
             webhook_type="discord",
             tenant_id=tenant_id,
         )
@@ -105,7 +105,7 @@ class TestWebhookEndpoints:
 
         request = WebhookCreate(
             name="Test Webhook",
-            webhook_url="https://discord.com/api/v1/v1/v1/webhooks/123/test",
+            webhook_url="https://discord.com/api/webhooks/123/test",
         )
 
         with pytest.raises(HTTPException) as exc_info:
