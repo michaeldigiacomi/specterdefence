@@ -163,7 +163,7 @@ class LoginAnalyticsService:
             from src.models.db import TenantModel
 
             result = await self.db.execute(
-                select(TenantModel.approved_countries).where(TenantModel.id == tenant_id)
+                select(TenantModel).where(TenantModel.id == tenant_id)
             )
             tenant = result.scalar_one_or_none()
 
