@@ -298,3 +298,94 @@ The following ErrorNumbers indicate actual login failures:
 2. **CA Policies** - Reviews Conditional Access policies
 3. **OAuth Apps** - Audits third-party app permissions
 4. **Mailbox Rules** - Detects suspicious inbox rules (forwarding)
+---
+
+## Alerting Flow
+
+```mermaid
+flowchart TD
+    A[Security Issue Detected] --> B{Check Issue Type}
+
+    subgraph Security_Scan_Alerts["Security Scan Alerts"]
+        B --> C1{OAuth App High Risk?}
+        C1 -->|Yes| D1[Call AlertEngine.process_event]
+        
+        B --> C2{Mailbox Rule Suspicious?}
+        C2 -->|Yes| D1
+        
+        B --> C3{CA Policy Issue?}
+        C3 -->|Yes| D1
+        
+        B --> C4{User Without MFA?}
+        C4 -->|Yes| D1
+    end
+
+    subgraph Login_Anomaly_Alerts["Login Anomaly Alerts (Work in Progress)"]
+        B --> C5{Login Anomaly Detected?}
+        C5 -->|Yes| D2[AlertProcessor.process_login_analytics]
+        D2 --> D1
+    end
+
+    D1 --> E[AlertEngine.process_event]
+
+    subgraph Alert_Processing["Alert Processing"]
+        E --> E1[Deduplication Check]
+        E1 --> E2{Alert already exists?}
+        E2 -->|Yes| E3[Skip - already alerted]
+        E2 -->|No| E4[Create Alert History]
+        
+        E4 --> E5[Send Webhook Notifications]
+        E5 --> E6[Discord]
+        E5 --> E7[Custom Webhooks]
+    end
+
+    E3 --> END[End]
+    E6 --> END
+    E7 --> END
+
+    style D1 fill:#ffcccc
+    style E4 fill:#ffcccc
+    style E5 fill:#ffcccc
+```
+
+### Alert Trigger Sources
+
+1. **Security Scans (every 4 hours)**
+   - OAuth Apps: High-risk permissions detected
+   - Mailbox Rules: Suspicious forwarding rules
+   - CA Policies: Policy misconfigurations
+   - MFA Report: Users without MFA enabled
+
+2. **Login Anomalies (work in progress)**
+   - New device detected
+   - New location / country
+   - Impossible travel
+   - Unusual time of day
+   - Multiple failed attempts
+   - Login from unapproved country
+
+### Alert Flow Details
+
+1. **Trigger**: Issue detected in security scan or login processing
+2. **Process Event**: Call `AlertEngine.process_event()` with event details
+3. **Deduplication**: Check if similar alert already exists (based on event signature)
+4. **Create History**: Store alert in alert history table
+5. **Send Notifications**: Send to configured webhooks (Discord, custom)
+
+### Alert Severity Levels
+
+- **Critical**: Account compromise, suspicious mailbox rules
+- **High**: MFA not enabled, high-risk OAuth permissions
+- **Medium**: Policy changes, unusual login patterns
+- **Low**: Informational alerts
+
+### Alert Event Types
+
+- `OAUTH_APP_HIGH_RISK`
+- `MAILBOX_RULE_SUSPICIOUS`
+- `CA_POLICY_ISSUE`
+- `MFA_NOT_ENABLED`
+- `LOGIN_ANOMALY_NEW_DEVICE`
+- `LOGIN_ANOMALY_NEW_LOCATION`
+- `LOGIN_ANOMALY_IMPOSSIBLE_TRAVEL`
+- `LOGIN_ANOMALY_UNAPPROVED_COUNTRY`
