@@ -85,7 +85,7 @@ flowchart TD
                 T2 --> T3
                 T3 --> T4{is_malicious?}
                 T4 -->|Yes| T5[Set threat_score, threat_tags - threat_sources]
-                T4 -->|No| T6[threat_score = 0 - threat_tags = []]
+                T4 -->|No| T6[threat_score = 0 - threat_tags = empty]
             end
 
             J --> K[Run Anomaly Detection]
