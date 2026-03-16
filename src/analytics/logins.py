@@ -16,6 +16,28 @@ from src.models.audit_log import AuditLogModel, LogType
 
 logger = logging.getLogger(__name__)
 
+FAILURE_ERROR_CODES = frozenset(
+    {
+        50053,
+        50074,
+        50076,
+        50126,
+        50127,
+        50133,
+        50134,
+        50135,
+        50136,
+        50144,
+        50146,
+        50147,
+        50148,
+        50149,
+        50150,
+        50151,
+        50152,
+    }
+)
+
 
 class LoginAnalyticsService:
     """Service for processing and analyzing login events."""
@@ -521,8 +543,7 @@ class LoginAnalyticsService:
                     error_number = None
                 
                 # Only treat specific error codes as failures (account locked, password issues, etc.)
-                failure_error_codes = [50053, 50074, 50076, 50126, 50127, 50133, 50134, 50135, 50136, 50144, 50146, 50147, 50148, 50149, 50150, 50151, 50152]
-                if error_number not in (None, 0) and error_number in failure_error_codes:
+                if error_number not in (None, 0) and error_number in FAILURE_ERROR_CODES:
                     is_success = False
                     if not failure_reason:
                         failure_reason = raw_data.get("LogonError") or f"Error: {error_number}"
