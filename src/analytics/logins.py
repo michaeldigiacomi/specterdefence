@@ -512,17 +512,20 @@ class LoginAnalyticsService:
                     # Prefer explicit LogonError here; defer generic fallbacks until later
                     failure_reason = raw_data.get("LogonError")
 
-                # Also check ErrorNumber - any non-zero value indicates a failure
+                # Check ErrorNumber - only certain values indicate actual failures
+                # ErrorNumber 50140 = UserStrongAuthClientAuthNRequiredInterrupt (strong auth required, not a failure)
                 error_number_raw = raw_data.get("ErrorNumber", 0)
                 try:
                     error_number = int(error_number_raw)
                 except (TypeError, ValueError):
                     error_number = None
-                if error_number not in (None, 0):
+                
+                # Only treat specific error codes as failures (account locked, password issues, etc.)
+                failure_error_codes = [50053, 50074, 50076, 50127, 50133, 50134, 50135, 50136, 50144, 50146, 50147, 50148, 50149, 50150, 50151, 50152]
+                if error_number not in (None, 0) and error_number in failure_error_codes:
                     is_success = False
                     if not failure_reason:
-                        # Record a generic failure reason candidate; apply after extended lookups
-                        generic_failure_reason = f"Error: {error_number}"
+                        failure_reason = raw_data.get("LogonError") or f"Error: {error_number}"
 
                 # Check for LogonError - indicates specific login issues
                 if raw_data.get("LogonError"):
@@ -531,11 +534,15 @@ class LoginAnalyticsService:
 
                 # If already marked as failure but no reason found yet, try ExtendedProperties
                 if not is_success and not failure_reason:
+                    # Only get failure reason from ExtendedProperties if nothing else set
                     ext_props = raw_data.get("ExtendedProperties", [])
                     if isinstance(ext_props, list):
                         for prop in ext_props:
                             if isinstance(prop, dict) and prop.get("Name") == "ResultStatusDetail":
-                                failure_reason = prop.get("Value")
+                                val = prop.get("Value")
+                                # Skip "Success" as it's misleading
+                                if val and val != "Success":
+                                    failure_reason = val
                                 break
                 elif "Status" in raw_data:
                     status = raw_data.get("Status", {})
