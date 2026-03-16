@@ -13,7 +13,7 @@ There are two main CronJobs in SpecterDefence:
 
 ```mermaid
 flowchart TD
-    A[Start: Collector CronJob<br/>python -m src.collector.main] --> B[Initialize Database]
+    A[Start: Collector CronJob - python -m src.collector.main] --> B[Initialize Database]
     B --> C[Get Active Tenants]
     C --> D{For each tenant}
 
@@ -22,7 +22,7 @@ flowchart TD
         E --> F[Fetch from O365 Management API]
 
         subgraph Content_Types["Fetch Content Types"]
-            F --> G1[Audit.AzureActiveDirectory<br/>Sign-ins]
+            F --> G1[Audit.AzureActiveDirectory - Sign-ins]
             F --> G2[Audit.Exchange]
             F --> G3[Audit.SharePoint]
             F --> G4[Audit.General]
@@ -35,7 +35,7 @@ flowchart TD
         G4 --> H
         G5 --> H
 
-        H --> I[Process Signin Logs<br/>LoginAnalyticsService.process_audit_log_signins]
+        H --> I[Process Signin Logs - LoginAnalyticsService.process_audit_log_signins]
 
         subgraph Signin_Processing["Signin Processing (per log)"]
             I --> I1[Get unprocessed signin logs]
@@ -47,15 +47,15 @@ flowchart TD
             I4 --> I5{Determine is_success}
 
             subgraph Success_Detection["Success/Failure Detection (PR #20)"]
-                I5 --> S1{Operation contains<br/>'UserLoginFailed'?}
-                S1 -->|Yes| S2[is_success = False<br/>failure_reason = LogonError]
+                I5 --> S1{Operation contains - 'UserLoginFailed'?}
+                S1 -->|Yes| S2[is_success = False - failure_reason = LogonError]
                 S1 -->|No| S3{Check ErrorNumber}
 
-                S3 --> S4{ErrorNumber in<br/>failure_error_codes?}
-                S4 -->|Yes| S5[is_success = False<br/>failure_reason = LogonError<br/>or Error: code]
+                S3 --> S4{ErrorNumber in - failure_error_codes?}
+                S4 -->|Yes| S5[is_success = False - failure_reason = LogonError - or Error: code]
                 S4 -->|No| S6{ErrorNumber = 50140?}
 
-                S6 -->|Yes| S7[is_success = True<br/>Strong auth required<br/>NOT a failure]
+                S6 -->|Yes| S7[is_success = True - Strong auth required - NOT a failure]
                 S6 -->|No| S8{Check LogonError}
 
                 S7 --> S8
@@ -63,11 +63,11 @@ flowchart TD
                 S2 --> S8
 
                 S8 --> S9{LogonError present?}
-                S9 -->|Yes| S10[is_success = False<br/>failure_reason = LogonError]
+                S9 -->|Yes| S10[is_success = False - failure_reason = LogonError]
                 S9 -->|No| S11{Check ExtendedProperties}
 
                 S10 --> S11
-                S11 --> S12{ResultStatusDetail<br/>!= 'Success'?}
+                S11 --> S12{ResultStatusDetail - != 'Success'?}
 
                 S12 -->|Yes| S13[failure_reason = ResultStatusDetail]
                 S12 -->|No| S14[failure_reason = null]
@@ -84,8 +84,8 @@ flowchart TD
                 T1 --> T3[Combine results]
                 T2 --> T3
                 T3 --> T4{is_malicious?]
-                T4 -->|Yes| T5[Set threat_score, threat_tags<br/>threat_sources]
-                T4 -->|No| T6[threat_score = 0<br/>threat_tags = []]
+                T4 -->|Yes| T5[Set threat_score, threat_tags - threat_sources]
+                T4 -->|No| T6[threat_score = 0 - threat_tags = []]
             end
 
             J --> K[Run Anomaly Detection]
@@ -103,17 +103,17 @@ flowchart TD
                 A4 --> A6
                 A5 --> A6
 
-                A6 -->|Yes| A7[Add to anomaly_flags<br/>Calculate risk_score]
+                A6 -->|Yes| A7[Add to anomaly_flags - Calculate risk_score]
                 A6 -->|No| A8[Continue]
             end
 
             K --> L[Check Unapproved Country]
 
             subgraph Unapproved_Country["Unapproved Country Check"]
-                L --> UC1{Login successful?<br/>& geo.country_code exists?}
-                UC1 -->|Yes| UC2{Geo country NOT in<br/>tenant approved_countries?}
+                L --> UC1{Login successful? -  and geo.country_code exists?}
+                UC1 -->|Yes| UC2{Geo country NOT in - tenant approved_countries?}
                 UC1 -->|No| UC6[Skip]
-                UC2 -->|Yes| UC3[Add 'unapproved_country'<br/>risk_score += 80]
+                UC2 -->|Yes| UC3[Add 'unapproved_country' - risk_score += 80]
                 UC2 -->|No| UC4[Continue]
                 UC3 --> UC5[Log warning]
                 UC4 --> UC5[Continue]
@@ -128,19 +128,19 @@ flowchart TD
             S13 --> M
             S14 --> M
 
-            M[Create login_analytics record<br/>with all fields]
+            M[Create login_analytics record - with all fields]
             M --> N[Insert into login_analytics table]
             N --> O[Mark audit_log as processed]
             O --> I2
         end
 
-        I --> P[Process General Logs<br/>LoginAnalyticsService.process_audit_log_general]
-        P --> Q[Mark general audit_logs<br/>as processed]
+        I --> P[Process General Logs - LoginAnalyticsService.process_audit_log_general]
+        P --> Q[Mark general audit_logs - as processed]
     end
 
     Q --> D
     D --> R[End: Return results]
-    R --> S[Log summary:<br/>Tenants processed, events collected]
+    R --> S[Log summary: - Tenants processed, events collected]
 
     style S1 fill:#ffcccc
     style S4 fill:#ffcccc
@@ -159,7 +159,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[Start: Security Scans CronJob<br/>python -m src.collector.security_scans] --> B[Initialize Database]
+    A[Start: Security Scans CronJob - python -m src.collector.security_scans] --> B[Initialize Database]
     B --> C[Get Active Tenants]
     C --> D{For each tenant}
 
@@ -171,7 +171,7 @@ flowchart TD
             M1 --> M2[Check each user's MFA methods]
             M2 --> M3[Check: Phone auth, Authenticator, FIDO2, etc.]
             M3 --> M4{ MFA enabled?}
-            M4 -->|No| M5[Mark as 'no_mfa'<br/>Add to report]
+            M4 -->|No| M5[Mark as 'no_mfa' - Add to report]
             M4 -->|Yes| M6[Mark as 'mfa_enabled']
             M5 --> M6
             M6 --> M7[Store in tenant_mfa_enforcement table]
@@ -190,8 +190,8 @@ flowchart TD
         subgraph OAuth_Scan["OAuth Apps Scan"]
             G --> O1[Fetch OAuth apps from Entra ID]
             O1 --> O2[Check permissions, consent status]
-            O2 --> O3{Dangerous permissions?<br/>e.g., Mail.Read, Files.Read]}
-            O3 -->|Yes| O4[Mark as high_risk<br/>Add to report]
+            O2 --> O3{Dangerous permissions? - e.g., Mail.Read, Files.Read]}
+            O3 -->|Yes| O4[Mark as high_risk - Add to report]
             O3 -->|No| O5[Mark as normal]
             O4 --> O6[Store in tenant_oauth_apps table]
             O5 --> O6
@@ -202,8 +202,8 @@ flowchart TD
         subgraph Mailbox_Scan["Mailbox Rules Scan"]
             H --> R1[Fetch inbox rules from user mailboxes]
             R1 --> R2[Check each rule action]
-            R2 --> R3{Forward to external?<br/>or Auto-forward?}
-            R3 -->|Yes| R4[Mark as suspicious<br/>Add to report]
+            R2 --> R3{Forward to external? - or Auto-forward?}
+            R3 -->|Yes| R4[Mark as suspicious - Add to report]
             R3 -->|No| R5[Check: Delete, Move, etc.]
             R5 --> R6{Suspicious action?}
             R6 -->|Yes| R7[Mark as suspicious]
@@ -220,7 +220,7 @@ flowchart TD
     R9 --> D
 
     D --> I[End: Return results]
-    I --> J[Log summary:<br/>Scans completed per tenant]
+    I --> J[Log summary: - Scans completed per tenant]
 ```
 
 ---
@@ -230,18 +230,18 @@ flowchart TD
 ```mermaid
 flowchart TB
     subgraph O365["Office 365"]
-        O365A[Azure AD<br/>Sign-ins] --> O365API[Management API]
+        O365A[Azure AD - Sign-ins] --> O365API[Management API]
         O365E[Exchange] --> O365API
         O365S[SharePoint] --> O365API
     end
 
-    O365API --> COLLECTOR[Collector CronJob<br/>Every 5 min]
+    O365API --> COLLECTOR[Collector CronJob - Every 5 min]
 
     COLLECTOR --> DB[(audit_logs)]
 
     subgraph Processing["Processing"]
         DB --> LOGINS[Login Analytics Service]
-        LOGINS --> TI[Threat Intel<br/>AbuseIPDB + AlienVault]
+        LOGINS --> TI[Threat Intel - AbuseIPDB + AlienVault]
         LOGINS --> ANOMALY[Anomaly Detection]
         LOGINS --> GEO[GeoIP Lookup]
     end
@@ -257,9 +257,9 @@ flowchart TB
         ANALYTICS --> API2[GET /api/dashboard]
     end
 
-    API1 --> UI[Frontend UI<br/>Login Timeline]
+    API1 --> UI[Frontend UI - Login Timeline]
 
-    COLLECTOR --> SECURITY[Security Scans CronJob<br/>Every 4 hours]
+    COLLECTOR --> SECURITY[Security Scans CronJob - Every 4 hours]
 
     SECURITY --> MFA[MFA Report]
     SECURITY --> CA[CA Policies]
