@@ -22,7 +22,7 @@ from src.models.oauth_apps import (
     PublisherType,
     RiskLevel,
 )
-from src.services.encryption import encryption_service
+from src.services.credential_manager import CredentialStorageManager
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +45,7 @@ class OAuthAppsService:
             db_session: Async database session
         """
         self.db = db_session
+        self.cred_manager = CredentialStorageManager(db_session)
 
     def _apply_tenant_filter(self, query: Any, model_class: Any, tenant_id: str | list[str] | None) -> Any:
         if tenant_id is None:
@@ -72,8 +73,9 @@ class OAuthAppsService:
         if not tenant:
             raise ValueError(f"Tenant {tenant_id} not found")
 
-        # Decrypt credentials
-        client_secret = encryption_service.decrypt(tenant.client_secret)
+        # Decrypt credentials using unified manager
+        creds = await self.cred_manager.get_credentials(tenant.tenant_id, user_id="oauth_apps_scan")
+        client_secret = creds.client_secret
 
         # Create Graph client
         graph_client = MSGraphClient(
@@ -806,9 +808,9 @@ class OAuthAppsService:
             return {"success": False, "error": "Tenant not found"}
 
         try:
-            # Decrypt credentials
-            client_secret = encryption_service.decrypt(tenant.client_secret)
-
+            # Decrypt credentials using unified manager
+            creds = await self.cred_manager.get_credentials(tenant.tenant_id, user_id="oauth_apps_permissions_scan")
+            client_secret = creds.client_secret
             # Create Graph client
             graph_client = MSGraphClient(
                 tenant_id=tenant.tenant_id, client_id=tenant.client_id, client_secret=client_secret

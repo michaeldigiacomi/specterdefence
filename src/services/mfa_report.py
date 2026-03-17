@@ -17,7 +17,7 @@ from src.models.mfa_report import (
     MFAStrengthLevel,
     MFAUserModel,
 )
-from src.services.encryption import encryption_service
+from src.services.credential_manager import CredentialStorageManager
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,7 @@ class MFAReportService:
             db_session: Async database session
         """
         self.db = db_session
+        self.cred_manager = CredentialStorageManager(db_session)
 
     async def scan_tenant_mfa(
         self, tenant_id: str, full_scan: bool = True, check_compliance: bool = True
@@ -63,8 +64,9 @@ class MFAReportService:
         if not tenant:
             raise ValueError(f"Tenant {tenant_id} not found")
 
-        # Decrypt credentials
-        client_secret = encryption_service.decrypt(tenant.client_secret)
+        # Decrypt credentials using unified manager
+        creds = await self.cred_manager.get_credentials(tenant.tenant_id, user_id="mfa_report_scan")
+        client_secret = creds.client_secret
 
         # Create Graph client
         graph_client = MSGraphClient(

@@ -12,7 +12,7 @@ from src.models.alerts import (
     AlertWebhookModel,
     SeverityLevel,
 )
-from src.services.encryption import encryption_service
+from src.services.enhanced_encryption import enhanced_encryption_service
 
 logger = logging.getLogger(__name__)
 

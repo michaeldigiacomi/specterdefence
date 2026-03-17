@@ -233,7 +233,7 @@ async def test_webhook(
         Test result
     """
     from src.alerts.discord import DiscordWebhookClient
-    from src.services.encryption import encryption_service
+    from src.services.enhanced_encryption import enhanced_encryption_service
 
     webhook = await service.get_webhook(webhook_id)
     if not webhook:
@@ -242,7 +242,7 @@ async def test_webhook(
         )
 
     try:
-        decrypted_url = encryption_service.decrypt(webhook.webhook_url)
+        decrypted_url = enhanced_encryption_service.decrypt(webhook.webhook_url)
         client = DiscordWebhookClient(decrypted_url)
 
         success = await client.test_webhook()

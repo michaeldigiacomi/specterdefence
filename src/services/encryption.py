@@ -1,75 +1,52 @@
-"""Encryption service for sensitive data."""
+"""Legacy encryption service wrapper for backward compatibility."""
 
-import base64
-import hashlib
+import logging
+from src.services.enhanced_encryption import enhanced_encryption_service, EncryptionError
 
-from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-
-from src.config import settings
-
+logger = logging.getLogger(__name__)
 
 class EncryptionService:
-    """Service for encrypting and decrypting sensitive data."""
+    """Legacy service for encrypting and decrypting sensitive data.
+    
+    Now wraps EnhancedEncryptionService to unify encryption across the backend.
+    """
 
     def __init__(self) -> None:
-        """Initialize encryption service with key derived from SECRET_KEY or ENCRYPTION_KEY."""
-        # Use dedicated encryption key if available, fall back to SECRET_KEY
-        secret_key = getattr(settings, "ENCRYPTION_KEY", settings.SECRET_KEY)
-        if not secret_key:
-            raise ValueError("ENCRYPTION_KEY or SECRET_KEY must be set")
-
-        secret_key_bytes = secret_key.encode()
-
-        # Use configurable salt from environment, or derive from secret key
-        # In production, ENCRYPTION_SALT should be set to a unique value
-        salt_input = getattr(settings, "ENCRYPTION_SALT", None)
-        if salt_input:
-            # Use provided salt, hash it to ensure consistent length
-            salt = hashlib.sha256(salt_input.encode()).digest()[:16]
-        else:
-            # Derive salt from secret key (deterministic but unique per deployment)
-            salt = hashlib.sha256(secret_key_bytes).digest()[:16]
-
-        # OWASP 2023 recommendation: 600,000 iterations for SHA256
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=600000,
-        )
-        key = base64.urlsafe_b64encode(kdf.derive(secret_key_bytes))
-        self.fernet = Fernet(key)
+        """Initialize encryption service (wraps enhanced service)."""
+        self.service = enhanced_encryption_service
 
     def encrypt(self, plaintext: str) -> str:
-        """Encrypt a string.
+        """Encrypt a string using the enhanced service.
 
         Args:
             plaintext: The string to encrypt.
 
         Returns:
-            Base64 encoded encrypted string.
+            JSON encoded encrypted string with metadata.
         """
-        if not plaintext:
-            raise ValueError("Cannot encrypt empty string")
-        encrypted = self.fernet.encrypt(plaintext.encode())
-        return base64.urlsafe_b64encode(encrypted).decode()
+        try:
+            # Use Fernet by default for legacy compatibility if needed, 
+            # but it will be wrapped in the new JSON format.
+            return self.service.encrypt(plaintext)
+        except Exception as e:
+            logger.error(f"Encryption failed: {e}")
+            raise ValueError(f"Cannot encrypt string: {e}") from e
 
     def decrypt(self, ciphertext: str) -> str:
         """Decrypt an encrypted string.
 
         Args:
-            ciphertext: The encrypted string to decrypt.
+            ciphertext: The encrypted string to decrypt (supports legacy and new formats).
 
         Returns:
             Decrypted plaintext string.
         """
-        if not ciphertext:
-            raise ValueError("Cannot decrypt empty string")
-        encrypted = base64.urlsafe_b64decode(ciphertext.encode())
-        return self.fernet.decrypt(encrypted).decode()
+        try:
+            return self.service.decrypt(ciphertext)
+        except Exception as e:
+            logger.error(f"Decryption failed: {e}")
+            raise ValueError(f"Cannot decrypt string: {e}") from e
 
 
-# Global encryption service instance
+# Global encryption service instance for backward compatibility
 encryption_service = EncryptionService()

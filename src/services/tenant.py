@@ -21,6 +21,7 @@ from src.models.tenant import (
     TenantUpdate,
     TenantValidationResponse,
 )
+from src.services.credential_manager import CredentialStorageManager, StorageBackend
 from src.services.encryption import encryption_service
 
 # Audit logger for credential access
@@ -42,6 +43,7 @@ class TenantService:
             db: Database session
         """
         self.db = db
+        self.cred_manager = CredentialStorageManager(db)
 
     async def list_tenants(self, include_inactive: bool = False) -> list[TenantResponse]:
         """List all tenants.
@@ -318,24 +320,24 @@ class TenantService:
             ms_tenant_name = validation_result.display_name
             initial_status = "connected"
 
-        # Encrypt client secret
-        encrypted_secret = encryption_service.encrypt(tenant_data.client_secret)
-
-        # Create tenant model
-        tenant = TenantModel(
-            name=tenant_data.name,
+        # Store credentials using unified manager
+        # This handles encryption and database storage
+        await self.cred_manager.store_credentials(
             tenant_id=tenant_data.tenant_id,
             client_id=tenant_data.client_id,
-            client_secret=encrypted_secret,
-            is_active=True,
-            connection_status=initial_status,
-            connection_error=connection_error,
-            last_health_check=datetime.now(UTC) if validate else None,
+            client_secret=tenant_data.client_secret,
+            name=tenant_data.name,
+            backend=StorageBackend.DATABASE,
         )
 
-        self.db.add(tenant)
-        await self.db.commit()
-        await self.db.refresh(tenant)
+        # Get the created tenant model to update metadata
+        tenant = await self.get_tenant_by_ms_id(tenant_data.tenant_id)
+        if tenant:
+            tenant.connection_status = initial_status
+            tenant.connection_error = connection_error
+            tenant.last_health_check = datetime.now(UTC) if validate else None
+            await self.db.commit()
+            await self.db.refresh(tenant)
 
         # Build response
         response = self._to_response(tenant)
@@ -369,9 +371,13 @@ class TenantService:
         if update_data.is_active is not None:
             tenant.is_active = update_data.is_active
         if update_data.client_secret is not None:
-            # Encrypt and store the new client secret
-            encrypted_secret = encryption_service.encrypt(update_data.client_secret)
-            tenant.client_secret = encrypted_secret
+            # Use cred_manager to update the secret securely
+            await self.cred_manager.store_credentials(
+                tenant_id=tenant.tenant_id,
+                client_id=tenant.client_id,
+                client_secret=update_data.client_secret,
+                name=tenant.name,
+            )
             # Reset connection status since the secret changed
             tenant.connection_status = "unknown"
             tenant.connection_error = None
@@ -415,10 +421,9 @@ class TenantService:
         if not tenant:
             return False
 
-        await self.db.delete(tenant)
-        await self.db.commit()
-
-        return True
+        # Use cred_manager for clean deletion including associated secrets
+        # The manager handles both DB record and potentially K8s secrets
+        return await self.cred_manager.delete_credentials(tenant.tenant_id)
 
     def _to_response(self, tenant: TenantModel) -> TenantResponse:
         """Convert tenant model to response.

@@ -22,7 +22,7 @@ from src.models.ca_policies import (
     PolicyState,
 )
 from src.models.db import TenantModel
-from src.services.encryption import encryption_service
+from src.services.credential_manager import CredentialStorageManager
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ class CAPoliciesService:
             db_session: Async database session
         """
         self.db = db_session
+        self.cred_manager = CredentialStorageManager(db_session)
 
     def _apply_tenant_filter(self, query: Any, model_class: Any, tenant_id: str | list[str] | None) -> Any:
         if tenant_id is None:
@@ -75,8 +76,9 @@ class CAPoliciesService:
         if not tenant:
             raise ValueError(f"Tenant {tenant_id} not found")
 
-        # Decrypt credentials
-        client_secret = encryption_service.decrypt(tenant.client_secret)
+        # Decrypt credentials using unified manager
+        creds = await self.cred_manager.get_credentials(tenant.tenant_id, user_id="ca_policies_scan")
+        client_secret = creds.client_secret
 
         # Create Graph client
         graph_client = MSGraphClient(

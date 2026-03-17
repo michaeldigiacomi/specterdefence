@@ -181,22 +181,26 @@ class EnhancedEncryptionService:
 
         if algorithm == self.ALGORITHM_FERNET:
             encrypted = self._encrypt_fernet(plaintext, key_version)
+            # Fernet returns base64-encoded bytes. We just decode to string.
+            ciphertext_str = encrypted["ciphertext"].decode()
+            nonce_str = None
+            tag_str = None
         elif algorithm == self.ALGORITHM_AES256_GCM:
             encrypted = self._encrypt_aes256_gcm(plaintext, key_version)
+            # GCM returns raw bytes. We must base64 encode them.
+            ciphertext_str = base64.urlsafe_b64encode(encrypted["ciphertext"]).decode()
+            nonce_str = base64.urlsafe_b64encode(encrypted["nonce"]).decode()
+            tag_str = base64.urlsafe_b64encode(encrypted["tag"]).decode()
         else:
             raise EncryptionError(f"Unsupported algorithm: {algorithm}")
 
         # Create encrypted data container
         encrypted_data = EncryptedData(
-            ciphertext=base64.urlsafe_b64encode(encrypted["ciphertext"]).decode(),
+            ciphertext=ciphertext_str,
             algorithm=algorithm,
             key_version=key_version,
-            nonce=base64.urlsafe_b64encode(encrypted["nonce"]).decode()
-            if encrypted.get("nonce")
-            else None,
-            tag=base64.urlsafe_b64encode(encrypted["tag"]).decode()
-            if encrypted.get("tag")
-            else None,
+            nonce=nonce_str,
+            tag=tag_str,
         )
 
         return encrypted_data.to_json()
@@ -244,39 +248,73 @@ class EnhancedEncryptionService:
 
         try:
             encrypted_data = EncryptedData.from_json(encrypted_json)
-        except (json.JSONDecodeError, KeyError):
+        except (json.JSONDecodeError, KeyError, TypeError):
             # Try legacy format (raw Fernet encrypted string)
             return self._decrypt_legacy(encrypted_json)
 
         algorithm = encrypted_data.algorithm
         key_version = encrypted_data.key_version
-        ciphertext = base64.urlsafe_b64decode(encrypted_data.ciphertext.encode())
-
+        
         if algorithm == self.ALGORITHM_FERNET:
-            return self._decrypt_fernet(ciphertext, key_version)
+            # For Fernet, we expect the ciphertext string to be base64.
+            # Fernet's decrypt expects base64 bytes.
+            try:
+                # First try direct encode to bytes (single base64)
+                ciphertext = encrypted_data.ciphertext.encode()
+                return self._decrypt_fernet(ciphertext, key_version)
+            except Exception:
+                # If fails, it might be double-encoded from a previous buggy version
+                try:
+                    ciphertext = base64.urlsafe_b64decode(encrypted_data.ciphertext.encode())
+                    return self._decrypt_fernet(ciphertext, key_version)
+                except Exception:
+                    raise EncryptionError("Failed to decrypt Fernet data") from None
+                    
         elif algorithm == self.ALGORITHM_AES256_GCM:
-            nonce = base64.urlsafe_b64decode(encrypted_data.nonce.encode())
-            tag = base64.urlsafe_b64decode(encrypted_data.tag.encode())
-            return self._decrypt_aes256_gcm(ciphertext, nonce, tag, key_version)
+            try:
+                ciphertext = base64.urlsafe_b64decode(encrypted_data.ciphertext.encode())
+                nonce = base64.urlsafe_b64decode(encrypted_data.nonce.encode())
+                tag = base64.urlsafe_b64decode(encrypted_data.tag.encode())
+                return self._decrypt_aes256_gcm(ciphertext, nonce, tag, key_version)
+            except Exception as e:
+                raise EncryptionError(f"AES-GCM decryption failed: {str(e)}") from e
         else:
             raise EncryptionError(f"Unsupported algorithm: {algorithm}")
 
     def _decrypt_legacy(self, encrypted_str: str) -> str:
         """Decrypt legacy format (raw Fernet string)."""
+        if not isinstance(encrypted_str, str):
+            raise EncryptionError("Legacy encrypted data must be a string")
+            
+        # Legacy strings from EncryptionService are double-base64 encoded.
         try:
-            # Try with current key
-            encrypted = base64.urlsafe_b64decode(encrypted_str.encode())
-            fernet = self._fernets[self._current_key_version]
-            return fernet.decrypt(encrypted).decode()
-        except Exception:
-            # Try all available keys
+            # Try double-decode first (most likely for legacy data from EncryptionService)
+            decoded1 = base64.urlsafe_b64decode(encrypted_str.encode())
+            decoded2 = base64.urlsafe_b64decode(decoded1)
+            
+            # Try all available keys with double-decoded data
             for _version, fernet in self._fernets.items():
                 try:
-                    encrypted = base64.urlsafe_b64decode(encrypted_str.encode())
-                    return fernet.decrypt(encrypted).decode()
+                    return fernet.decrypt(decoded2).decode()
                 except Exception:
                     continue
-            raise EncryptionError("Failed to decrypt with any available key") from None
+                    
+            # Try single-decode as fallback
+            for _version, fernet in self._fernets.items():
+                try:
+                    return fernet.decrypt(decoded1).decode()
+                except Exception:
+                    continue
+                    
+        except Exception:
+            # Last resort: try direct decrypt if it's already bytes-like
+            for _version, fernet in self._fernets.items():
+                try:
+                    return fernet.decrypt(encrypted_str.encode()).decode()
+                except Exception:
+                    continue
+            
+        raise EncryptionError("Failed to decrypt legacy data with any available key")
 
     def _decrypt_fernet(self, ciphertext: bytes, key_version: int) -> str:
         """Decrypt using Fernet."""

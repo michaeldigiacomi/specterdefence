@@ -34,7 +34,7 @@ from src.models.audit_log import (
     utc_now,
 )
 from src.models.db import TenantModel
-from src.services.encryption import encryption_service
+# No longer using legacy encryption_service directly
 
 # Configure logging
 logging.basicConfig(
@@ -72,6 +72,10 @@ def ensure_timezone_aware(dt: datetime | None) -> datetime | None:
     return dt.astimezone(timezone.utc)
 
 
+from src.services.credential_manager import CredentialStorageManager
+
+# ... (other imports)
+
 class TenantCollector:
     """Collector for a single tenant's audit logs."""
 
@@ -85,20 +89,22 @@ class TenantCollector:
         self.tenant = tenant
         self.session = session
         self.client: O365ManagementClient | None = None
-
-        # Decrypt client secret
-        try:
-            self.decrypted_secret = encryption_service.decrypt(tenant.client_secret)
-        except Exception as e:
-            logger.error(f"Failed to decrypt secret for tenant {tenant.id}: {e}")
-            raise CollectorError(f"Failed to decrypt tenant secret: {e}") from e
+        self.cred_manager = CredentialStorageManager(session)
 
     async def __aenter__(self) -> "TenantCollector":
         """Async context manager entry."""
+        # Decrypt client secret using unified manager
+        try:
+            creds = await self.cred_manager.get_credentials(self.tenant.tenant_id, user_id="collector_cronjob")
+            decrypted_secret = creds.client_secret
+        except Exception as e:
+            logger.error(f"Failed to decrypt secret for tenant {self.tenant.id}: {e}")
+            raise CollectorError(f"Failed to decrypt tenant secret: {e}") from e
+
         self.client = O365ManagementClient(
             tenant_id=self.tenant.tenant_id,
             client_id=self.tenant.client_id,
-            client_secret=self.decrypted_secret,
+            client_secret=decrypted_secret,
         )
         return self
 
