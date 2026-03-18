@@ -112,13 +112,21 @@ async def get_diagnostics_summary(
     login_analytics_latest = row[3]
 
     # Get unprocessed signin count
-    result = await db.execute(text("""
-        SELECT COUNT(*) 
-        FROM audit_logs 
-        WHERE tenant_id = :tenant_id 
-          AND log_type = 'signin' 
-          AND processed = false
-    """), {"tenant_id": str(tenant_id)})
+    if tenant_id:
+        result = await db.execute(text("""
+            SELECT COUNT(*) 
+            FROM audit_logs 
+            WHERE tenant_id = :tenant_id 
+              AND log_type = 'signin' 
+              AND processed = false
+        """), {"tenant_id": tenant_id})
+    else:
+        result = await db.execute(text("""
+            SELECT COUNT(*) 
+            FROM audit_logs 
+            WHERE log_type = 'signin' 
+              AND processed = false
+        """))
     unprocessed_signin_count = result.scalar() or 0
 
     return DiagnosticsSummary(
@@ -136,25 +144,40 @@ async def get_diagnostics_summary(
 @router.get("/audit-logs", response_model=list[AuditLogRecord])
 async def get_recent_audit_logs(
     limit: int = Query(default=20, le=100),
-    tenant_id: uuid.UUID = Depends(get_authorized_tenant),
+    tenant_id: str | None = Depends(get_authorized_tenant),
     db: AsyncSession = Depends(get_db),
 ) -> list[AuditLogRecord]:
     """Get recent audit logs."""
     
-    result = await db.execute(text("""
-        SELECT 
-            id, created_at, o365_created_at, log_type,
-            raw_data->>'Operation' as operation,
-            raw_data->>'UserId' as user_id,
-            raw_data->>'User' as user_email,
-            raw_data->>'ClientIP' as ip_address,
-            raw_data->>'ResultStatus' as result_status,
-            processed
-        FROM audit_logs 
-        WHERE tenant_id = :tenant_id
-        ORDER BY created_at DESC 
-        LIMIT :limit
-    """), {"tenant_id": str(tenant_id), "limit": limit})
+    if tenant_id:
+        result = await db.execute(text("""
+            SELECT 
+                id, created_at, o365_created_at, log_type,
+                raw_data->>'Operation' as operation,
+                raw_data->>'UserId' as user_id,
+                raw_data->>'User' as user_email,
+                raw_data->>'ClientIP' as ip_address,
+                raw_data->>'ResultStatus' as result_status,
+                processed
+            FROM audit_logs 
+            WHERE tenant_id = :tenant_id
+            ORDER BY created_at DESC 
+            LIMIT :limit
+        """), {"tenant_id": tenant_id, "limit": limit})
+    else:
+        result = await db.execute(text("""
+            SELECT 
+                id, created_at, o365_created_at, log_type,
+                raw_data->>'Operation' as operation,
+                raw_data->>'UserId' as user_id,
+                raw_data->>'User' as user_email,
+                raw_data->>'ClientIP' as ip_address,
+                raw_data->>'ResultStatus' as result_status,
+                processed
+            FROM audit_logs 
+            ORDER BY created_at DESC 
+            LIMIT :limit
+        """), {"limit": limit})
     
     rows = result.fetchall()
     return [
@@ -177,20 +200,30 @@ async def get_recent_audit_logs(
 @router.get("/login-analytics", response_model=list[LoginAnalyticsRecord])
 async def get_recent_login_analytics(
     limit: int = Query(default=20, le=100),
-    tenant_id: uuid.UUID = Depends(get_authorized_tenant),
+    tenant_id: str | None = Depends(get_authorized_tenant),
     db: AsyncSession = Depends(get_db),
 ) -> list[LoginAnalyticsRecord]:
     """Get recent login analytics."""
     
-    result = await db.execute(text("""
-        SELECT 
-            id, created_at, user_email, ip_address, 
-            is_success, failure_reason, country
-        FROM login_analytics 
-        WHERE tenant_id = :tenant_id
-        ORDER BY created_at DESC 
-        LIMIT :limit
-    """), {"tenant_id": str(tenant_id), "limit": limit})
+    if tenant_id:
+        result = await db.execute(text("""
+            SELECT 
+                id, created_at, user_email, ip_address, 
+                is_success, failure_reason, country
+            FROM login_analytics 
+            WHERE tenant_id = :tenant_id
+            ORDER BY created_at DESC 
+            LIMIT :limit
+        """), {"tenant_id": tenant_id, "limit": limit})
+    else:
+        result = await db.execute(text("""
+            SELECT 
+                id, created_at, user_email, ip_address, 
+                is_success, failure_reason, country
+            FROM login_analytics 
+            ORDER BY created_at DESC 
+            LIMIT :limit
+        """), {"limit": limit})
     
     rows = result.fetchall()
     return [
