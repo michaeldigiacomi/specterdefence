@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw, Database, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { axios } from '@/services/api';
 
 interface DiagnosticsSummary {
   audit_logs_count: number;
@@ -47,22 +48,16 @@ export default function DataDiagnostics() {
     setError(null);
     try {
       // Fetch summary
-      const summaryRes = await fetch('/api/v1/diagnostics/summary');
-      if (!summaryRes.ok) throw new Error('Failed to fetch summary');
-      const summaryData = await summaryRes.json();
-      setSummary(summaryData);
+      const summaryRes = await axios.get('/diagnostics/summary');
+      setSummary(summaryRes.data);
 
       // Fetch recent audit logs
-      const auditLogsRes = await fetch('/api/v1/diagnostics/audit-logs?limit=20');
-      if (!auditLogsRes.ok) throw new Error('Failed to fetch audit logs');
-      const auditLogsData = await auditLogsRes.json();
-      setAuditLogs(auditLogsData);
+      const auditLogsRes = await axios.get('/diagnostics/audit-logs?limit=20');
+      setAuditLogs(auditLogsRes.data);
 
       // Fetch recent login analytics
-      const loginAnalyticsRes = await fetch('/api/v1/diagnostics/login-analytics?limit=20');
-      if (!loginAnalyticsRes.ok) throw new Error('Failed to fetch login analytics');
-      const loginAnalyticsData = await loginAnalyticsRes.json();
-      setLoginAnalytics(loginAnalyticsData);
+      const loginAnalyticsRes = await axios.get('/diagnostics/login-analytics?limit=20');
+      setLoginAnalytics(loginAnalyticsRes.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
