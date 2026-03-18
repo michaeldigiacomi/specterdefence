@@ -57,35 +57,54 @@ class DiagnosticsSummary(BaseModel):
 
 @router.get("/summary", response_model=DiagnosticsSummary)
 async def get_diagnostics_summary(
-    tenant_id: uuid.UUID = Depends(get_authorized_tenant),
+    tenant_id: str | None = Depends(get_authorized_tenant),
     db: AsyncSession = Depends(get_db),
 ) -> DiagnosticsSummary:
     """Get diagnostics summary."""
     
     # Get audit_logs counts
-    result = await db.execute(text("""
-        SELECT 
-            COUNT(*) as total_count,
-            SUM(CASE WHEN log_type = 'signin' THEN 1 ELSE 0 END) as signin_count,
-            MAX(created_at) as latest
-        FROM audit_logs 
-        WHERE tenant_id = :tenant_id
-    """), {"tenant_id": str(tenant_id)})
+    if tenant_id:
+        result = await db.execute(text("""
+            SELECT 
+                COUNT(*) as total_count,
+                SUM(CASE WHEN log_type = 'signin' THEN 1 ELSE 0 END) as signin_count,
+                MAX(created_at) as latest
+            FROM audit_logs 
+            WHERE tenant_id = :tenant_id
+        """), {"tenant_id": tenant_id})
+    else:
+        result = await db.execute(text("""
+            SELECT 
+                COUNT(*) as total_count,
+                SUM(CASE WHEN log_type = 'signin' THEN 1 ELSE 0 END) as signin_count,
+                MAX(created_at) as latest
+            FROM audit_logs
+        """))
     row = result.fetchone()
     audit_logs_count = row[0] or 0
     audit_logs_signin_count = row[1] or 0
     audit_logs_latest = row[2]
 
     # Get login_analytics counts
-    result = await db.execute(text("""
-        SELECT 
-            COUNT(*) as total_count,
-            SUM(CASE WHEN is_success THEN 1 ELSE 0 END) as success_count,
-            SUM(CASE WHEN NOT is_success THEN 1 ELSE 0 END) as failed_count,
-            MAX(created_at) as latest
-        FROM login_analytics 
-        WHERE tenant_id = :tenant_id
-    """), {"tenant_id": str(tenant_id)})
+    if tenant_id:
+        result = await db.execute(text("""
+            SELECT 
+                COUNT(*) as total_count,
+                SUM(CASE WHEN is_success THEN 1 ELSE 0 END) as success_count,
+                SUM(CASE WHEN NOT is_success THEN 1 ELSE 0 END) as failed_count,
+                MAX(created_at) as latest
+            FROM login_analytics 
+            WHERE tenant_id = :tenant_id
+        """), {"tenant_id": tenant_id})
+    else:
+        result = await db.execute(text("""
+            SELECT 
+                COUNT(*) as total_count,
+                SUM(CASE WHEN is_success THEN 1 ELSE 0 END) as success_count,
+                SUM(CASE WHEN NOT is_success THEN 1 ELSE 0 END) as failed_count,
+                MAX(created_at) as latest
+            FROM login_analytics
+        """))
     row = result.fetchone()
     login_analytics_count = row[0] or 0
     login_analytics_success_count = row[1] or 0
