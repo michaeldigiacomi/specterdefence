@@ -5,3 +5,4 @@ export { default as AlertRuleBuilder } from './AlertRuleBuilder';
 export { default as WebhookManager } from './WebhookManager';
 export { default as ApiKeyManager } from './ApiKeyManager';
 export { default as ConfigImportExport } from './ConfigImportExport';
+export { default as DataDiagnostics } from './DataDiagnostics';
