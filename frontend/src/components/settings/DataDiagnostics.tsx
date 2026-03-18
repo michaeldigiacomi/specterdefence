@@ -47,19 +47,19 @@ export default function DataDiagnostics() {
     setError(null);
     try {
       // Fetch summary
-      const summaryRes = await fetch('/api/diagnostics/summary');
+      const summaryRes = await fetch('/api/v1/diagnostics/summary');
       if (!summaryRes.ok) throw new Error('Failed to fetch summary');
       const summaryData = await summaryRes.json();
       setSummary(summaryData);
 
       // Fetch recent audit logs
-      const auditLogsRes = await fetch('/api/diagnostics/audit-logs?limit=20');
+      const auditLogsRes = await fetch('/api/v1/diagnostics/audit-logs?limit=20');
       if (!auditLogsRes.ok) throw new Error('Failed to fetch audit logs');
       const auditLogsData = await auditLogsRes.json();
       setAuditLogs(auditLogsData);
 
       // Fetch recent login analytics
-      const loginAnalyticsRes = await fetch('/api/diagnostics/login-analytics?limit=20');
+      const loginAnalyticsRes = await fetch('/api/v1/diagnostics/login-analytics?limit=20');
       if (!loginAnalyticsRes.ok) throw new Error('Failed to fetch login analytics');
       const loginAnalyticsData = await loginAnalyticsRes.json();
       setLoginAnalytics(loginAnalyticsData);
