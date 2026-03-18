@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Bell, Shield, Globe, Key, Upload } from 'lucide-react';
+import { Settings, Bell, Shield, Globe, Key, Upload, Activity } from 'lucide-react';
 import {
   SystemSettings,
   UserPreferences,
@@ -8,6 +8,7 @@ import {
   WebhookManager,
   ApiKeyManager,
   ConfigImportExport,
+  DataDiagnostics,
 } from '@/components/settings';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -24,6 +25,7 @@ const tabs = [
   { id: 'webhooks', label: 'Webhooks', icon: Globe, component: WebhookManager },
   { id: 'apikeys', label: 'API Keys', icon: Key, component: ApiKeyManager },
   { id: 'backup', label: 'Import/Export', icon: Upload, component: ConfigImportExport },
+  { id: 'diagnostics', label: 'Diagnostics', icon: Activity, component: DataDiagnostics },
 ];
 
 // Mock user email - in a real app, this would come from auth context
@@ -46,6 +48,8 @@ function renderActiveComponent(activeTab: string) {
       return <ApiKeyManager />;
     case 'backup':
       return <ConfigImportExport />;
+    case 'diagnostics':
+      return <DataDiagnostics />;
     default:
       return <SystemSettings />;
   }

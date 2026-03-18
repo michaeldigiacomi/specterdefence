@@ -11,6 +11,7 @@ from src.api import (
     auth_local,
     ca_policies,
     dashboard,
+    diagnostics,
     health,
     mailbox_rules,
     mfa_report,
@@ -44,3 +45,4 @@ router.include_router(mfa_report.router, prefix="/mfa-report", tags=["mfa-report
 router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"], dependencies=protected_deps)
 router.include_router(settings.router, prefix="/settings", tags=["settings"], dependencies=protected_deps)
 router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"], dependencies=protected_deps)
+router.include_router(diagnostics.router, prefix="/diagnostics", tags=["diagnostics"], dependencies=protected_deps)
