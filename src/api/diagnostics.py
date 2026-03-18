@@ -55,7 +55,7 @@ class DiagnosticsSummary(BaseModel):
     unprocessed_signin_count: int
 
 
-@router.get("/diagnostics/summary", response_model=DiagnosticsSummary)
+@router.get("/summary", response_model=DiagnosticsSummary)
 async def get_diagnostics_summary(
     tenant_id: uuid.UUID = Depends(get_authorized_tenant),
     db: AsyncSession = Depends(get_db),
@@ -114,7 +114,7 @@ async def get_diagnostics_summary(
     )
 
 
-@router.get("/diagnostics/audit-logs", response_model=list[AuditLogRecord])
+@router.get("/audit-logs", response_model=list[AuditLogRecord])
 async def get_recent_audit_logs(
     limit: int = Query(default=20, le=100),
     tenant_id: uuid.UUID = Depends(get_authorized_tenant),
@@ -155,7 +155,7 @@ async def get_recent_audit_logs(
     ]
 
 
-@router.get("/diagnostics/login-analytics", response_model=list[LoginAnalyticsRecord])
+@router.get("/login-analytics", response_model=list[LoginAnalyticsRecord])
 async def get_recent_login_analytics(
     limit: int = Query(default=20, le=100),
     tenant_id: uuid.UUID = Depends(get_authorized_tenant),
