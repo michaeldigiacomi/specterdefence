@@ -53,7 +53,7 @@ specterdefence/
 
 ```bash
 # Clone the repository
-git clone https://github.com/bluedigiacomi/specterdefence.git
+git clone https://github.com/michaeldigiacomi/specterdefence.git
 cd specterdefence
 
 # Install dependencies with Poetry
@@ -133,12 +133,6 @@ Hooks configured:
 
 - Kubernetes 1.24+
 - kubectl configured for your cluster
-
-### Deployment (Production)
-
-The application is deployed at:
-- **URL**: http://specterdefence.digitaladrenalin.net
-- **Cluster**: k3s @ k3s.digitaladrenalin.net (57.129.132.176)
 
 #### Quick Deploy
 
