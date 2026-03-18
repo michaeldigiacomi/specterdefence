@@ -1,6 +1,21 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw, Database, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { axios } from '@/services/api';
+
+// Helper to get auth header
+function getAuthHeader(): HeadersInit {
+  const token = localStorage.getItem('specterdefence-storage');
+  if (token) {
+    try {
+      const parsed = JSON.parse(token);
+      if (parsed.state?.token) {
+        return { Authorization: `Bearer ${parsed.state.token}` };
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+  return {};
+}
 
 interface DiagnosticsSummary {
   audit_logs_count: number;
@@ -46,18 +61,25 @@ export default function DataDiagnostics() {
   const fetchData = async () => {
     setLoading(true);
     setError(null);
+    const authHeaders = getAuthHeader();
     try {
       // Fetch summary
-      const summaryRes = await axios.get('/diagnostics/summary');
-      setSummary(summaryRes.data);
+      const summaryRes = await fetch('/api/v1/diagnostics/summary', { headers: authHeaders });
+      if (!summaryRes.ok) throw new Error('Failed to fetch summary');
+      const summaryData = await summaryRes.json();
+      setSummary(summaryData);
 
       // Fetch recent audit logs
-      const auditLogsRes = await axios.get('/diagnostics/audit-logs?limit=20');
-      setAuditLogs(auditLogsRes.data);
+      const auditLogsRes = await fetch('/api/v1/diagnostics/audit-logs?limit=20', { headers: authHeaders });
+      if (!auditLogsRes.ok) throw new Error('Failed to fetch audit logs');
+      const auditLogsData = await auditLogsRes.json();
+      setAuditLogs(auditLogsData);
 
       // Fetch recent login analytics
-      const loginAnalyticsRes = await axios.get('/diagnostics/login-analytics?limit=20');
-      setLoginAnalytics(loginAnalyticsRes.data);
+      const loginAnalyticsRes = await fetch('/api/v1/diagnostics/login-analytics?limit=20', { headers: authHeaders });
+      if (!loginAnalyticsRes.ok) throw new Error('Failed to fetch login analytics');
+      const loginAnalyticsData = await loginAnalyticsRes.json();
+      setLoginAnalytics(loginAnalyticsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
