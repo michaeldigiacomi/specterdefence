@@ -19,6 +19,7 @@ import {
   AppWindow,
   Users as UserIcon,
   Globe,
+  Share2,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -44,6 +45,7 @@ const navItems = [
   { path: '/mfa-report', icon: KeyRound, label: 'MFA Report' },
   { path: '/oauth-apps', icon: AppWindow, label: 'OAuth Apps' },
   { path: '/monitoring', icon: Globe, label: 'Monitoring' },
+  { path: '/sharepoint', icon: Share2, label: 'SharePoint' },
   { path: '/tenants', icon: Building2, label: 'Tenants' },
   { path: '/users', icon: UserIcon, label: 'Users' },
   { path: '/settings', icon: Settings, label: 'Settings' },

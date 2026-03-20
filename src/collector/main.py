@@ -20,6 +20,7 @@ sys.path.insert(0, "/app")
 import contextlib
 
 from src.analytics.logins import LoginAnalyticsService
+from src.analytics.sharepoint import SharePointAnalyticsService
 from src.collector.o365_feed import (
     CONTENT_TYPES,
     O365ManagementClient,
@@ -440,7 +441,15 @@ async def collect_logs() -> dict[str, Any]:
                                 tenant_id=tenant.id,
                                 limit=1000  # Process up to 1000 at a time
                             )
-                            logger.info(f"Successfully processed {processed_count} signin logs into analytics for tenant {tenant.name}")
+                            # Also process SharePoint analytics
+                            logger.info(f"Processing SharePoint logs for tenant {tenant.name}...")
+                            sharepoint_service = SharePointAnalyticsService(session)
+                            sp_processed = await sharepoint_service.process_audit_log_sharepoint(
+                                tenant_id=tenant.id,
+                                limit=1000
+                            )
+                            if sp_processed > 0:
+                                logger.info(f"Successfully processed {sp_processed} SharePoint logs for tenant {tenant.name}")
 
                             # Also mark other logs as processed
                             general_processed = await analytics_service.process_audit_log_general(

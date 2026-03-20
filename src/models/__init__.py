@@ -68,6 +68,7 @@ from src.models.oauth_apps import (
     PublisherType,
     RiskLevel,
 )
+from src.models.sharepoint import SharePointSharingModel
 from src.models.settings import (
     ApiKeyModel,
     ConfigurationBackupModel,
@@ -168,4 +169,5 @@ __all__ = [
     "WebsiteMonitorModel",
     "SslCertificateModel",
     "DomainExpiryModel",
+    "SharePointSharingModel",
 ]

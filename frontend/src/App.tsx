@@ -19,6 +19,7 @@ import MailboxRules from '@/pages/MailboxRules';
 import MFAReport from '@/pages/MFAReport';
 import OAuthApps from '@/pages/OAuthApps';
 import Monitoring from '@/pages/Monitoring';
+import SharePoint from '@/pages/SharePoint';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,6 +94,7 @@ function App() {
               <Route path="mfa-report" element={<MFAReport />} />
               <Route path="oauth-apps" element={<OAuthApps />} />
               <Route path="monitoring" element={<Monitoring />} />
+              <Route path="sharepoint" element={<SharePoint />} />
             </Route>
 
             {/* Catch all - redirect to login */}

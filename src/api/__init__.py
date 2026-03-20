@@ -18,6 +18,7 @@ from src.api import (
     monitoring,
     oauth_apps,
     settings,
+    sharepoint,
     tenants,
     users,
     websocket,
@@ -46,3 +47,4 @@ router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"],
 router.include_router(settings.router, prefix="/settings", tags=["settings"], dependencies=protected_deps)
 router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"], dependencies=protected_deps)
 router.include_router(diagnostics.router, prefix="/diagnostics", tags=["diagnostics"], dependencies=protected_deps)
+router.include_router(sharepoint.router, prefix="/sharepoint", tags=["sharepoint"], dependencies=protected_deps)
