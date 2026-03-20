@@ -31,6 +31,7 @@ interface DiagnosticsSummary {
 interface AuditLogRecord {
   id: string;
   created_at: string;
+  o365_created_at: string | null;
   log_type: string;
   operation: string | null;
   user_id: string | null;
@@ -48,6 +49,8 @@ interface LoginAnalyticsRecord {
   is_success: boolean;
   failure_reason: string | null;
   country: string | null;
+  risk_score: number;
+  anomaly_flags: string[];
 }
 
 export default function DataDiagnostics() {
@@ -253,7 +256,8 @@ export default function DataDiagnostics() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">Time</th>
+                <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">Ingested At</th>
+                <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">Event Time (O365)</th>
                 <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">Type</th>
                 <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">Operation</th>
                 <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">User</th>
@@ -267,6 +271,9 @@ export default function DataDiagnostics() {
                 <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="px-4 py-2 text-gray-900 dark:text-white whitespace-nowrap">
                     {formatDate(log.created_at)}
+                  </td>
+                  <td className="px-4 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    {formatDate(log.o365_created_at)}
                   </td>
                   <td className="px-4 py-2 text-gray-500 dark:text-gray-400">
                     {log.log_type}
@@ -313,6 +320,8 @@ export default function DataDiagnostics() {
                 <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">User</th>
                 <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">IP Address</th>
                 <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">Country</th>
+                <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">Risk Score</th>
+                <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">Anomalies</th>
                 <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">Result</th>
                 <th className="px-4 py-2 text-left text-gray-500 dark:text-gray-400">Failure Reason</th>
               </tr>
@@ -331,6 +340,30 @@ export default function DataDiagnostics() {
                   </td>
                   <td className="px-4 py-2 text-gray-900 dark:text-white">
                     {record.country || 'N/A'}
+                  </td>
+                  <td className="px-4 py-2">
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                      record.risk_score > 70 
+                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' 
+                        : record.risk_score > 30
+                        ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                        : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                    }`}>
+                      {record.risk_score}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">
+                    <div className="flex flex-wrap gap-1">
+                      {record.anomaly_flags.length > 0 ? (
+                        record.anomaly_flags.map((flag, idx) => (
+                          <span key={idx} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded text-[10px] uppercase">
+                            {flag.replace(/_/g, ' ')}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-600">-</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-2">
                     <span className={`px-2 py-1 rounded text-xs ${
