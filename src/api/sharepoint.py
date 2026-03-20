@@ -13,7 +13,7 @@ from src.analytics.sharepoint import SharePointAnalyticsService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/sharepoint", tags=["sharepoint"])
+router = APIRouter()
 
 
 @router.get("/metrics")
