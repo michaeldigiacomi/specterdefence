@@ -1,7 +1,7 @@
 """SharePoint analytics models for tracking sharing and file activity."""
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Index, String, Text
@@ -12,8 +12,8 @@ from src.models.types import UUID
 
 
 def utc_now() -> datetime:
-    """Return current UTC datetime."""
-    return datetime.utcnow()
+    """Return current UTC datetime with timezone info."""
+    return datetime.now(UTC)
 
 
 class SharePointSharingModel(Base):

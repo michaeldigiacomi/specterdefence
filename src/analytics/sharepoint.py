@@ -22,6 +22,12 @@ SHARING_LINK_OPERATIONS = {
     "AddedToSecureLink",
     "SharingLinkCreated",
     "SharingInheritanceBroken",
+    "CompanyLinkCreated",
+    "AddedToCompanyLink",
+    "SharingInvitationCreated",
+    "FileShared",
+    "FolderShared",
+    "Shared",
 }
 
 # Operations that revoke sharing
@@ -29,6 +35,7 @@ SHARING_REVOKED_OPERATIONS = {
     "SharingRevoked",
     "AnonymousLinkRemoved",
     "SecureLinkRemoved",
+    "CompanyLinkRemoved",
     "SharingInheritanceRestored",
 }
 
@@ -100,19 +107,29 @@ class SharePointAnalyticsService:
                 
                 event_time_str = raw_data.get("CreationTime")
                 if event_time_str:
-                    event_time = datetime.fromisoformat(event_time_str.replace("Z", "+00:00"))
-                    if event_time.tzinfo is None:
-                        event_time = event_time.replace(tzinfo=UTC)
+                    try:
+                        # Normalize ISO format and ensure UTC awareness
+                        event_time = datetime.fromisoformat(event_time_str.replace("Z", "+00:00"))
+                        if event_time.tzinfo is None:
+                            event_time = event_time.replace(tzinfo=UTC)
+                    except (ValueError, AttributeError):
+                        event_time = log.o365_created_at or datetime.now(UTC)
                 else:
-                    event_time = log.o365_created_at or log.created_at
-
-                # Ensure event_time is aware even if it came from the model fallback
-                if event_time and event_time.tzinfo is None:
+                    event_time = log.o365_created_at or datetime.now(UTC)
+                
+                # Double check event_time for awareness
+                if event_time.tzinfo is None:
                     event_time = event_time.replace(tzinfo=UTC)
 
                 if is_sharing_creation:
                     # Determine sharing type
-                    sharing_type = "Anonymous" if "Anonymous" in operation else "Secure"
+                    sharing_type = "Secure"
+                    if "Anonymous" in operation:
+                        sharing_type = "Anonymous"
+                    elif "Company" in operation:
+                        sharing_type = "Organization"
+                    elif "Invitation" in operation or "Shared" in operation:
+                        sharing_type = "DirectInvite"
                     share_link_url = raw_data.get("SharingLinkUrl")
                     target_user = raw_data.get("TargetUserOrGroup")
 
@@ -162,7 +179,13 @@ class SharePointAnalyticsService:
 
     async def get_summary_metrics(self, tenant_id: str) -> dict[str, Any]:
         """Get summary metrics for SharePoint sharing."""
-        metrics = {}
+        metrics: dict[str, Any] = {
+            "active_links_count": 0,
+            "by_type": {"Anonymous": 0, "Secure": 0, "Organization": 0, "DirectInvite": 0},
+            "top_sharers": {},
+            "by_site": {},
+            "recent_activity": []
+        }
         
         # Total active links
         result = await self.db.execute(
@@ -176,7 +199,7 @@ class SharePointAnalyticsService:
         )
         metrics["active_links_count"] = result.scalar() or 0
         
-        # Anonymous vs Secure
+        # Anonymous vs Secure vs others
         result = await self.db.execute(
             select(SharePointSharingModel.sharing_type, func.count(SharePointSharingModel.id))
             .where(
@@ -187,7 +210,11 @@ class SharePointAnalyticsService:
             )
             .group_by(SharePointSharingModel.sharing_type)
         )
-        metrics["by_type"] = {row[0]: row[1] for row in result.all()}
+        for row in result.all():
+            if row[0] in metrics["by_type"]:
+                metrics["by_type"][row[0]] = row[1]
+            elif row[0]:
+                metrics["by_type"][row[0]] = row[1]
         
         # Most active sharers (top 5)
         result = await self.db.execute(
