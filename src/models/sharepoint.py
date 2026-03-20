@@ -8,6 +8,7 @@ from sqlalchemy import Boolean, DateTime, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
+from src.models.types import UUID
 
 
 def utc_now() -> datetime:
@@ -58,4 +59,3 @@ class SharePointSharingModel(Base):
     def __repr__(self) -> str:
         return f"<SharePointSharing(id={self.id}, operation={self.operation}, file={self.file_name})>"
 
-from src.models.types import UUID
