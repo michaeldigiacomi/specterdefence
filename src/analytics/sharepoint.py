@@ -1,7 +1,7 @@
 """SharePoint analytics service for analyzing sharing events."""
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -99,11 +99,16 @@ class SharePointAnalyticsService:
                 user_email = raw_data.get("UserId")
                 
                 event_time_str = raw_data.get("CreationTime")
-                event_time = (
-                    datetime.fromisoformat(event_time_str.replace("Z", "+00:00"))
-                    if event_time_str
-                    else log.o365_created_at or log.created_at
-                )
+                if event_time_str:
+                    event_time = datetime.fromisoformat(event_time_str.replace("Z", "+00:00"))
+                    if event_time.tzinfo is None:
+                        event_time = event_time.replace(tzinfo=UTC)
+                else:
+                    event_time = log.o365_created_at or log.created_at
+
+                # Ensure event_time is aware even if it came from the model fallback
+                if event_time and event_time.tzinfo is None:
+                    event_time = event_time.replace(tzinfo=UTC)
 
                 if is_sharing_creation:
                     # Determine sharing type

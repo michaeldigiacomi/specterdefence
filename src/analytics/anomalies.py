@@ -3,7 +3,7 @@
 import logging
 import math
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -166,6 +166,13 @@ class AnomalyDetector:
         Returns:
             AnomalyResult with detection status and details
         """
+        # Ensure both datetimes are aware for subtraction
+        # (Though they should be normalized to UTC in the caller or database layer)
+        if curr_time.tzinfo is not None and prev_time.tzinfo is None:
+            prev_time = prev_time.replace(tzinfo=curr_time.tzinfo)
+        elif curr_time.tzinfo is None and prev_time.tzinfo is not None:
+            curr_time = curr_time.replace(tzinfo=prev_time.tzinfo)
+
         # Calculate time difference
         time_diff = curr_time - prev_time
         time_diff_minutes = abs(time_diff.total_seconds() / 60)

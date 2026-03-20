@@ -1,7 +1,7 @@
 """Login analytics service for tracking and analyzing login events."""
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -530,10 +530,13 @@ class LoginAnalyticsService:
                 if login_time_str:
                     try:
                         login_time = datetime.fromisoformat(login_time_str.replace("Z", "+00:00"))
+                        if login_time.tzinfo is None:
+                            login_time = login_time.replace(tzinfo=UTC)
                     except (ValueError, AttributeError):
                         login_time = log.o365_created_at or log.created_at
-                else:
-                    login_time = log.o365_created_at or log.created_at
+                # Ensure login_time is aware even if it came from the model fallback
+                if login_time and login_time.tzinfo is None:
+                    login_time = login_time.replace(tzinfo=UTC)
 
                 # Determine success/failure
                 is_success = True

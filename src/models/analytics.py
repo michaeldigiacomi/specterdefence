@@ -1,7 +1,7 @@
 """Analytics models for login tracking and anomaly detection."""
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, String
@@ -15,8 +15,8 @@ if TYPE_CHECKING:
 
 
 def utc_now() -> datetime:
-    """Return current UTC datetime."""
-    return datetime.utcnow()
+    """Return current UTC datetime with timezone info."""
+    return datetime.now(UTC)
 
 
 class LoginAnalyticsModel(Base):
