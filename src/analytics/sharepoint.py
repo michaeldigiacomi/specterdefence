@@ -192,7 +192,40 @@ class SharePointAnalyticsService:
             .order_by(desc(func.count(SharePointSharingModel.id)))
             .limit(5)
         )
-        metrics["top_sharers"] = {row[0]: row[1] for row in result.all()}
+        metrics["top_sharers"] = {row[0]: row[1] for row in result.all() if row[0]}
+        
+        # Breakdown by Site (Top 5)
+        result = await self.db.execute(
+            select(SharePointSharingModel.site_url, func.count(SharePointSharingModel.id))
+            .where(
+                and_(
+                    SharePointSharingModel.tenant_id == tenant_id,
+                    SharePointSharingModel.is_active.is_(True),
+                )
+            )
+            .group_by(SharePointSharingModel.site_url)
+            .order_by(desc(func.count(SharePointSharingModel.id)))
+            .limit(5)
+        )
+        metrics["by_site"] = {row[0]: row[1] for row in result.all() if row[0]}
+
+        # Recent shared files (for a quick activity feed)
+        result = await self.db.execute(
+            select(SharePointSharingModel)
+            .where(SharePointSharingModel.tenant_id == tenant_id)
+            .order_by(desc(SharePointSharingModel.event_time))
+            .limit(10)
+        )
+        recent_logs = result.scalars().all()
+        metrics["recent_activity"] = [
+            {
+                "file_name": log.file_name,
+                "operation": log.operation,
+                "user": log.user_email,
+                "time": log.event_time.isoformat()
+            }
+            for log in recent_logs
+        ]
         
         return metrics
 
