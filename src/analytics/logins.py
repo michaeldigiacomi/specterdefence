@@ -478,8 +478,8 @@ class LoginAnalyticsService:
             .where(
                 and_(
                     AuditLogModel.tenant_id == tenant_id,
-                    # Handle both signin and general audit types that are signin-related
-                    AuditLogModel.log_type == LogType.SIGNIN,
+                    # Handle both signin and AAD audit types that contain sign-in operations
+                    AuditLogModel.log_type.in_([LogType.SIGNIN, LogType.AZURE_ACTIVE_DIRECTORY]),
                     AuditLogModel.processed.is_(False),
                 )
             )
@@ -500,6 +500,23 @@ class LoginAnalyticsService:
                     continue
 
                 # Extract relevant fields from O365 signin log
+                operation = raw_data.get("Operation", "")
+                
+                # Filter specifically for sign-in related operations
+                # Admin audits like "Add user" also appear in AAD logs but aren't logins
+                is_signin_op = (
+                    "UserLoggedIn" in operation or 
+                    "UserLoginFailed" in operation or 
+                    "Failed" in operation or
+                    "Sign-in" in operation or
+                    log.log_type == LogType.SIGNIN
+                )
+
+                if not is_signin_op:
+                    # Mark non-signin logs as processed so we don't try again
+                    log.processed = True
+                    continue
+
                 user_email = raw_data.get("UserId") or raw_data.get("UserPrincipalName")
                 ip_address = raw_data.get("ClientIP") or raw_data.get("IpAddress")
 

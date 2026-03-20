@@ -70,7 +70,15 @@ async def get_diagnostics_summary(
         result = await db.execute(text("""
             SELECT 
                 COUNT(*) as total_count,
-                SUM(CASE WHEN log_type = 'signin' THEN 1 ELSE 0 END) as signin_count,
+                SUM(CASE 
+                    WHEN log_type = 'signin' THEN 1 
+                    WHEN log_type = 'azure_active_directory' AND (
+                        raw_data->>'Operation' LIKE '%UserLoggedIn%' OR 
+                        raw_data->>'Operation' LIKE '%UserLoginFailed%' OR
+                        raw_data->>'Operation' LIKE '%SignIn%'
+                    ) THEN 1 
+                    ELSE 0 
+                END) as signin_count,
                 MAX(created_at) as latest
             FROM audit_logs 
             WHERE tenant_id = :tenant_id
@@ -88,7 +96,15 @@ async def get_diagnostics_summary(
             result = await db.execute(text("""
                 SELECT 
                     COUNT(*) as total_count,
-                    SUM(CASE WHEN log_type = 'signin' THEN 1 ELSE 0 END) as signin_count,
+                    SUM(CASE 
+                        WHEN log_type = 'signin' THEN 1 
+                        WHEN log_type = 'azure_active_directory' AND (
+                            raw_data->>'Operation' LIKE '%UserLoggedIn%' OR 
+                            raw_data->>'Operation' LIKE '%UserLoginFailed%' OR
+                            raw_data->>'Operation' LIKE '%SignIn%'
+                        ) THEN 1 
+                        ELSE 0 
+                    END) as signin_count,
                     MAX(created_at) as latest
                 FROM audit_logs
             """))
@@ -179,7 +195,7 @@ async def get_recent_audit_logs(
                 id, created_at, o365_created_at, log_type,
                 raw_data->>'Operation' as operation,
                 raw_data->>'UserId' as user_id,
-                raw_data->>'User' as user_email,
+                raw_data->>'UserPrincipalName' as user_email,
                 raw_data->>'ClientIP' as ip_address,
                 raw_data->>'ResultStatus' as result_status,
                 processed
@@ -197,7 +213,7 @@ async def get_recent_audit_logs(
                 id, created_at, o365_created_at, log_type,
                 raw_data->>'Operation' as operation,
                 raw_data->>'UserId' as user_id,
-                raw_data->>'User' as user_email,
+                raw_data->>'UserPrincipalName' as user_email,
                 raw_data->>'ClientIP' as ip_address,
                 raw_data->>'ResultStatus' as result_status,
                 processed

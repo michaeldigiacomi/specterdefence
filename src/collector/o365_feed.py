@@ -455,9 +455,9 @@ def map_content_type_to_log_type(content_type: str) -> str:
         Our internal log type string.
     """
     mapping = {
-        "Audit.AzureActiveDirectory": "signin",
-        "Audit.Exchange": "audit_general",
-        "Audit.SharePoint": "audit_general",
+        "Audit.AzureActiveDirectory": "azure_active_directory",
+        "Audit.Exchange": "exchange",
+        "Audit.SharePoint": "sharepoint",
         "Audit.General": "audit_general",
         "DLP.All": "audit_general",
     }
