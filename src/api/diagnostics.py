@@ -266,6 +266,7 @@ async def get_recent_login_analytics(
             ip_address=row[3],
             is_success=row[4],
             failure_reason=row[5],
+            country=row[6],
             risk_score=row[7],
             anomaly_flags=row[8],
         )
