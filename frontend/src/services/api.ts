@@ -784,6 +784,28 @@ class ApiService {
     const response = await this.client.get(`/oauth-apps/alerts?${searchParams.toString()}`);
     return response.data;
   }
+
+  // ============== SharePoint ==============
+
+  async getSharePointMetrics(tenantId?: string): Promise<any> {
+    const params = new URLSearchParams();
+    if (tenantId) params.append('tenant_id', tenantId);
+    const response = await this.client.get(`/sharepoint/metrics?${params.toString()}`);
+    return response.data;
+  }
+
+  async getSharePointLinks(
+    tenantId?: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (tenantId) params.append('tenant_id', tenantId);
+    params.append('limit', String(limit));
+    params.append('offset', String(offset));
+    const response = await this.client.get(`/sharepoint/sharing-links?${params.toString()}`);
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();

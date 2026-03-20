@@ -7,7 +7,6 @@ import {
   Unlock, 
   FileText, 
   User, 
-  Calendar,
   AlertCircle,
   Clock,
   Globe
@@ -15,6 +14,7 @@ import {
 import PageHeader from '@/components/PageHeader';
 import StatsCard from '@/components/StatsCard';
 import { useAppStore } from '@/store/appStore';
+import { apiService } from '@/services/api';
 import { clsx } from 'clsx';
 
 interface SharePointMetrics {
@@ -42,26 +42,12 @@ const SharePoint: React.FC = () => {
 
   const { data: metrics, isLoading: isMetricsLoading } = useQuery<SharePointMetrics>({
     queryKey: ['sharepoint-metrics', selectedTenant],
-    queryFn: async () => {
-      const url = selectedTenant 
-        ? `/api/v1/sharepoint/metrics?tenant_id=${selectedTenant}`
-        : '/api/v1/sharepoint/metrics';
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch metrics');
-      return res.json();
-    },
+    queryFn: () => apiService.getSharePointMetrics(selectedTenant || undefined),
   });
 
   const { data: links, isLoading: isLinksLoading } = useQuery<SharingLink[]>({
     queryKey: ['sharepoint-links', selectedTenant],
-    queryFn: async () => {
-      const url = selectedTenant 
-        ? `/api/v1/sharepoint/sharing-links?tenant_id=${selectedTenant}`
-        : '/api/v1/sharepoint/sharing-links';
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch links');
-      return res.json();
-    },
+    queryFn: () => apiService.getSharePointLinks(selectedTenant || undefined),
   });
 
   const formatDate = (dateStr: string) => {
@@ -132,12 +118,12 @@ const SharePoint: React.FC = () => {
                   <tr>
                     <td colSpan={5} className="px-6 py-10 text-center text-gray-500">Loading links...</td>
                   </tr>
-                ) : links?.length === 0 ? (
+                ) : !links || links.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-10 text-center text-gray-500">No active sharing links found</td>
                   </tr>
                 ) : (
-                  links?.map((link) => (
+                  links.map((link) => (
                     <tr key={link.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -209,7 +195,7 @@ const SharePoint: React.FC = () => {
           {/* Top SharersCard */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <UserIcon className="w-5 h-5 text-indigo-500" />
+              <User className="w-5 h-5 text-indigo-500" />
               Top Sharers
             </h3>
             <div className="space-y-4">
@@ -260,6 +246,3 @@ const SharePoint: React.FC = () => {
 };
 
 export default SharePoint;
-
-// Import UserIcon manually since we renamed highlight it in Sidebar
-const UserIcon = ({ className }: { className?: string }) => <User className={className} />;
