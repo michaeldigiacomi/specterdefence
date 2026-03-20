@@ -320,8 +320,10 @@ async def get_authorized_tenant(
         return allowed_ids[0]
 
     # User has multiple tenants - they need to specify which one
-    # Return None to indicate they need to pick one
-    return None
+    raise HTTPException(
+        status_code=400,
+        detail="You belong to multiple tenants. Please specify a tenant_id query parameter."
+    )
 
 
 @router.post("/login", response_model=LoginResponse)
