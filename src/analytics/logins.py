@@ -635,7 +635,8 @@ class LoginAnalyticsService:
             .where(
                 and_(
                     AuditLogModel.tenant_id == tenant_id,
-                    AuditLogModel.log_type != LogType.SIGNIN,
+                    # Specialized services handle signins (AAD/SIGNIN) and SharePoint
+                    AuditLogModel.log_type.notin_([LogType.SIGNIN, LogType.SHAREPOINT, LogType.AZURE_ACTIVE_DIRECTORY]),
                     AuditLogModel.processed.is_(False),
                 )
             )

@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StatsCard from '@/components/StatsCard';
-import { useAppStore } from '@/store/appStore';
 import { apiService } from '@/services/api';
 import { clsx } from 'clsx';
 
@@ -47,16 +46,29 @@ interface SharingLink {
 }
 
 const SharePoint: React.FC = () => {
-  const { selectedTenant } = useAppStore();
+  const [tenants, setTenants] = React.useState<{id: string; name: string}[]>([]);
+  const [selectedTenant, setSelectedTenant] = React.useState<string>('');
+
+  React.useEffect(() => {
+    apiService
+      .getTenants()
+      .then(res => {
+        setTenants(res?.items || []);
+        if (res?.items && res.items.length > 0) setSelectedTenant(res.items[0]?.id || '');
+      })
+      .catch(console.error);
+  }, []);
 
   const { data: metrics, isLoading: isMetricsLoading } = useQuery<SharePointMetrics>({
     queryKey: ['sharepoint-metrics', selectedTenant],
-    queryFn: () => apiService.getSharePointMetrics(selectedTenant || undefined),
+    queryFn: () => apiService.getSharePointMetrics(selectedTenant),
+    enabled: !!selectedTenant,
   });
 
   const { data: links, isLoading: isLinksLoading } = useQuery<SharingLink[]>({
     queryKey: ['sharepoint-links', selectedTenant],
-    queryFn: () => apiService.getSharePointLinks(selectedTenant || undefined),
+    queryFn: () => apiService.getSharePointLinks(selectedTenant),
+    enabled: !!selectedTenant,
   });
 
   const formatDate = (dateStr: string) => {
@@ -65,10 +77,27 @@ const SharePoint: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <PageHeader 
-        title="SharePoint Analytics" 
-        subtitle="Monitor external sharing and public links across SharePoint and OneDrive"
-      />
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <PageHeader 
+          title="SharePoint Analytics" 
+          description="Monitor external sharing and public links across SharePoint and OneDrive"
+        />
+        <div className="flex items-center gap-2">
+          {tenants.length > 0 && (
+            <select
+              value={selectedTenant}
+              onChange={e => setSelectedTenant(e.target.value)}
+              className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white"
+            >
+              {tenants.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -76,29 +105,29 @@ const SharePoint: React.FC = () => {
           title="Active Public Links"
           value={metrics?.active_links_count ?? 0}
           icon={Globe}
-          status="warning"
-          isLoading={isMetricsLoading}
+          color="amber"
+          loading={isMetricsLoading}
         />
         <StatsCard
           title="Anonymous Shares"
-          value={metrics?.by_type?.Anonymous ?? 0}
+          value={metrics?.by_type?.['Anonymous'] ?? 0}
           icon={Unlock}
-          status="danger"
-          isLoading={isMetricsLoading}
+          color="red"
+          loading={isMetricsLoading}
         />
         <StatsCard
           title="Secure Shares"
-          value={metrics?.by_type?.Secure ?? 0}
+          value={metrics?.by_type?.['Secure'] ?? 0}
           icon={Lock}
-          status="success"
-          isLoading={isMetricsLoading}
+          color="green"
+          loading={isMetricsLoading}
         />
         <StatsCard
           title="Unique Sharers"
           value={Object.keys(metrics?.top_sharers ?? {}).length}
           icon={User}
-          status="info"
-          isLoading={isMetricsLoading}
+          color="blue"
+          loading={isMetricsLoading}
         />
       </div>
 

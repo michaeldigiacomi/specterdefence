@@ -29,7 +29,7 @@ logging.basicConfig(
 )
 
 # Quiet down noisy libraries
-logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+logging.getLogger("uvicorn.access").setLevel(logging.INFO)
 logging.getLogger("sqlalchemy.engine").setLevel(
     logging.INFO if settings.DEBUG else logging.WARNING
 )

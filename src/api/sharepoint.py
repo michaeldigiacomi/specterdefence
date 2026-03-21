@@ -25,6 +25,7 @@ async def get_sharepoint_metrics(
     """Get SharePoint sharing metrics."""
     # Use explicit tenant_id if provided (and authorized), else use auth_tenant
     effective_tenant_id = tenant_id or auth_tenant
+    logger.info(f"Fetching SharePoint metrics for tenant: {effective_tenant_id} (input: {tenant_id}, auth: {auth_tenant})")
     
     if effective_tenant_id == "NONE":
         return {
@@ -35,6 +36,16 @@ async def get_sharepoint_metrics(
 
     service = SharePointAnalyticsService(db)
     return await service.get_summary_metrics(effective_tenant_id)
+
+
+from src.models.sharepoint import SharePointSharingModel
+from sqlalchemy import select
+
+@router.get("/debug")
+async def debug_sharepoint(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(SharePointSharingModel))
+    records = result.scalars().all()
+    return [{"file": r.file_name, "active": r.is_active, "tenant": str(r.tenant_id)} for r in records]
 
 
 @router.get("/sharing-links")

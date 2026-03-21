@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, desc, func, select, update
+from sqlalchemy import and_, desc, func, select, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.audit_log import AuditLogModel, LogType
@@ -28,6 +28,7 @@ SHARING_LINK_OPERATIONS = {
     "FileShared",
     "FolderShared",
     "Shared",
+    "SharingSet",
 }
 
 # Operations that revoke sharing
@@ -177,8 +178,18 @@ class SharePointAnalyticsService:
         await self.db.commit()
         return processed_count
 
-    async def get_summary_metrics(self, tenant_id: str) -> dict[str, Any]:
+    def _apply_tenant_filter(self, query: Any, model_class: Any, tenant_id: str | list[str] | None) -> Any:
+        if tenant_id is None:
+            return query
+        if tenant_id == "NONE":
+            return query.where(model_class.tenant_id == "NONE_ASSIGNED")
+        if isinstance(tenant_id, list):
+            return query.where(model_class.tenant_id.in_(tenant_id))
+        return query.where(model_class.tenant_id == tenant_id)
+
+    async def get_summary_metrics(self, tenant_id: str | None) -> dict[str, Any]:
         """Get summary metrics for SharePoint sharing."""
+        print(f"DEBUG get_summary_metrics called with tenant_id: {tenant_id}")
         metrics: dict[str, Any] = {
             "active_links_count": 0,
             "by_type": {"Anonymous": 0, "Secure": 0, "Organization": 0, "DirectInvite": 0},
@@ -188,28 +199,20 @@ class SharePointAnalyticsService:
         }
         
         # Total active links
-        result = await self.db.execute(
-            select(func.count(SharePointSharingModel.id))
-            .where(
-                and_(
-                    SharePointSharingModel.tenant_id == tenant_id,
-                    SharePointSharingModel.is_active.is_(True),
-                )
-            )
+        query = select(func.count(SharePointSharingModel.id)).where(
+            SharePointSharingModel.is_active.is_(True)
         )
+        query = self._apply_tenant_filter(query, SharePointSharingModel, tenant_id)
+        result = await self.db.execute(query)
         metrics["active_links_count"] = result.scalar() or 0
         
         # Anonymous vs Secure vs others
-        result = await self.db.execute(
-            select(SharePointSharingModel.sharing_type, func.count(SharePointSharingModel.id))
-            .where(
-                and_(
-                    SharePointSharingModel.tenant_id == tenant_id,
-                    SharePointSharingModel.is_active.is_(True),
-                )
-            )
-            .group_by(SharePointSharingModel.sharing_type)
+        query = select(SharePointSharingModel.sharing_type, func.count(SharePointSharingModel.id)).where(
+            SharePointSharingModel.is_active.is_(True)
         )
+        query = self._apply_tenant_filter(query, SharePointSharingModel, tenant_id)
+        query = query.group_by(SharePointSharingModel.sharing_type)
+        result = await self.db.execute(query)
         for row in result.all():
             if row[0] in metrics["by_type"]:
                 metrics["by_type"][row[0]] = row[1]
@@ -217,37 +220,34 @@ class SharePointAnalyticsService:
                 metrics["by_type"][row[0]] = row[1]
         
         # Most active sharers (top 5)
-        result = await self.db.execute(
-            select(SharePointSharingModel.user_email, func.count(SharePointSharingModel.id))
-            .where(SharePointSharingModel.tenant_id == tenant_id)
-            .group_by(SharePointSharingModel.user_email)
+        query = select(SharePointSharingModel.user_email, func.count(SharePointSharingModel.id))
+        query = self._apply_tenant_filter(query, SharePointSharingModel, tenant_id)
+        query = (
+            query.group_by(SharePointSharingModel.user_email)
             .order_by(desc(func.count(SharePointSharingModel.id)))
             .limit(5)
         )
+        result = await self.db.execute(query)
         metrics["top_sharers"] = {row[0]: row[1] for row in result.all() if row[0]}
         
         # Breakdown by Site (Top 5)
-        result = await self.db.execute(
-            select(SharePointSharingModel.site_url, func.count(SharePointSharingModel.id))
-            .where(
-                and_(
-                    SharePointSharingModel.tenant_id == tenant_id,
-                    SharePointSharingModel.is_active.is_(True),
-                )
-            )
-            .group_by(SharePointSharingModel.site_url)
+        query = select(SharePointSharingModel.site_url, func.count(SharePointSharingModel.id)).where(
+            SharePointSharingModel.is_active.is_(True)
+        )
+        query = self._apply_tenant_filter(query, SharePointSharingModel, tenant_id)
+        query = (
+            query.group_by(SharePointSharingModel.site_url)
             .order_by(desc(func.count(SharePointSharingModel.id)))
             .limit(5)
         )
+        result = await self.db.execute(query)
         metrics["by_site"] = {row[0]: row[1] for row in result.all() if row[0]}
 
         # Recent shared files (for a quick activity feed)
-        result = await self.db.execute(
-            select(SharePointSharingModel)
-            .where(SharePointSharingModel.tenant_id == tenant_id)
-            .order_by(desc(SharePointSharingModel.event_time))
-            .limit(10)
-        )
+        query = select(SharePointSharingModel)
+        query = self._apply_tenant_filter(query, SharePointSharingModel, tenant_id)
+        query = query.order_by(desc(SharePointSharingModel.event_time)).limit(10)
+        result = await self.db.execute(query)
         recent_logs = result.scalars().all()
         metrics["recent_activity"] = [
             {
@@ -262,19 +262,12 @@ class SharePointAnalyticsService:
         return metrics
 
     async def get_active_sharing_links(
-        self, tenant_id: str, limit: int = 50, offset: int = 0
+        self, tenant_id: str | None = None, limit: int = 50, offset: int = 0
     ) -> list[SharePointSharingModel]:
         """Get current active sharing links."""
-        result = await self.db.execute(
-            select(SharePointSharingModel)
-            .where(
-                and_(
-                    SharePointSharingModel.tenant_id == tenant_id,
-                    SharePointSharingModel.is_active.is_(True),
-                )
-            )
-            .order_by(desc(SharePointSharingModel.event_time))
-            .offset(offset)
-            .limit(limit)
-        )
+        query = select(SharePointSharingModel).where(SharePointSharingModel.is_active.is_(True))
+        query = self._apply_tenant_filter(query, SharePointSharingModel, tenant_id)
+        query = query.order_by(desc(SharePointSharingModel.event_time)).offset(offset).limit(limit)
+        
+        result = await self.db.execute(query)
         return list(result.scalars().all())

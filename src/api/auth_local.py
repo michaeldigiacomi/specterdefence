@@ -206,9 +206,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     """Create a JWT access token."""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now() + expires_delta
+        expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.now() + timedelta(hours=24)
+        expire = datetime.utcnow() + timedelta(hours=24)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm="HS256")
     return encoded_jwt
@@ -222,7 +222,8 @@ def verify_token(token: str) -> dict | None:
         if username is None:
             return None
         return payload
-    except JWTError:
+    except JWTError as e:
+        print(f"JWTError in verify_token: {e}")
         return None
 
 

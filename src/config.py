@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
     # App
     APP_NAME: str = "SpecterDefence"
@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     ENCRYPTION_SALT: str = Field(
         default="", description="Salt for encryption - should be set in production"
     )
+    ENCRYPTION_KEY: str = Field(
+        default="", description="Base64 encoded Fernet key for tenant credential encryption"
+    )
 
     # Threat Intelligence
     ABUSEIPDB_API_KEY: str = Field(
@@ -69,6 +72,9 @@ class Settings(BaseSettings):
     )
     ALIENVAULT_OTX_API_KEY: str = Field(
         default="", description="AlienVault OTX API key for threat intelligence"
+    )
+    KIMI_API_KEY: str = Field(
+        default="", description="Kimi (Moonshot AI) API key"
     )
 
     @field_validator("SECRET_KEY")
