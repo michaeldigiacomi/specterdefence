@@ -806,6 +806,37 @@ class ApiService {
     const response = await this.client.get(`/sharepoint/sharing-links?${params.toString()}`);
     return response.data;
   }
+
+  async getDlpStats(days: number = 30, tenantId?: string): Promise<any> {
+    const params = new URLSearchParams();
+    params.append('days', String(days));
+    if (tenantId && tenantId !== 'all') params.append('tenant_id', tenantId);
+    const response = await this.client.get(`/dlp/stats?${params.toString()}`);
+    return response.data;
+  }
+
+  async getDlpEvents(limit: number = 50, tenantId?: string): Promise<any> {
+    const params = new URLSearchParams();
+    params.append('limit', String(limit));
+    if (tenantId) params.append('tenant_id', tenantId);
+    const response = await this.client.get(`/dlp?${params.toString()}`);
+    return response.data;
+  }
+  async getMailboxSecurityStats(days: number = 30, tenantId?: string): Promise<any> {
+    const params = new URLSearchParams();
+    params.append('days', String(days));
+    if (tenantId && tenantId !== 'all') params.append('tenant_id', tenantId);
+    const response = await this.client.get(`/mailbox-security/stats?${params.toString()}`);
+    return response.data;
+  }
+
+  async getMailboxAccessEvents(limit: number = 50, tenantId?: string): Promise<any> {
+    const params = new URLSearchParams();
+    params.append('limit', String(limit));
+    if (tenantId && tenantId !== 'all') params.append('tenant_id', tenantId);
+    const response = await this.client.get(`/mailbox-security/access?${params.toString()}`);
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();

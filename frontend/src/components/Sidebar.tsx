@@ -20,6 +20,7 @@ import {
   Users as UserIcon,
   Globe,
   Share2,
+  Lock,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -42,6 +43,8 @@ const navItems = [
   { path: '/anomalies', icon: AlertTriangle, label: 'Anomalies' },
   { path: '/ca-policies', icon: ShieldCheck, label: 'CA Policies' },
   { path: '/mailbox-rules', icon: Mail, label: 'Mailbox Rules' },
+  { path: '/mailbox-security', icon: Lock, label: 'Mailbox Security' },
+  { path: '/insider-threat', icon: AlertTriangle, label: 'Insider Threat / DLP' },
   { path: '/mfa-report', icon: KeyRound, label: 'MFA Report' },
   { path: '/oauth-apps', icon: AppWindow, label: 'OAuth Apps' },
   { path: '/monitoring', icon: Globe, label: 'Monitoring' },

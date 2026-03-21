@@ -20,7 +20,8 @@ import MFAReport from '@/pages/MFAReport';
 import OAuthApps from '@/pages/OAuthApps';
 import Monitoring from '@/pages/Monitoring';
 import SharePoint from '@/pages/SharePoint';
-
+import InsiderThreat from '@/pages/InsiderThreat';
+import MailboxSecurity from '@/pages/MailboxSecurity';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -95,6 +96,8 @@ function App() {
               <Route path="oauth-apps" element={<OAuthApps />} />
               <Route path="monitoring" element={<Monitoring />} />
               <Route path="sharepoint" element={<SharePoint />} />
+              <Route path="insider-threat" element={<InsiderThreat />} />
+              <Route path="mailbox-security" element={<MailboxSecurity />} />
             </Route>
 
             {/* Catch all - redirect to login */}

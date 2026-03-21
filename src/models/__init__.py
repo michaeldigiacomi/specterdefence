@@ -59,6 +59,8 @@ from src.models.mailbox_rules import (
     RuleStatus,
     RuleType,
 )
+from src.models.dlp import DLPEventModel
+from src.models.mailbox import MailboxRuleEventModel, MailboxAccessModel
 from src.models.oauth_apps import (
     AppStatus,
     OAuthAppAlertModel,

@@ -21,6 +21,7 @@ import contextlib
 
 from src.analytics.logins import LoginAnalyticsService
 from src.analytics.sharepoint import SharePointAnalyticsService
+from src.analytics.insider_threat import InsiderThreatService
 from src.collector.o365_feed import (
     CONTENT_TYPES,
     O365ManagementClient,
@@ -450,6 +451,18 @@ async def collect_logs() -> dict[str, Any]:
                             )
                             if sp_processed > 0:
                                 logger.info(f"Successfully processed {sp_processed} SharePoint logs for tenant {tenant.name}")
+
+                            # 3. Insider Threat & DLP processing
+                            logger.info(f"Processing DLP events for tenant {tenant.name}...")
+                            insider_service = InsiderThreatService(session)
+                            dlp_processed = await insider_service.process_dlp_events(tenant.id)
+                            if dlp_processed > 0:
+                                logger.info(f"Successfully processed {dlp_processed} DLP events for tenant {tenant.name}")
+                            
+                            logger.info(f"Processing Mailbox security for tenant {tenant.name}...")
+                            mbx_processed = await insider_service.process_mailbox_security(tenant.id)
+                            if mbx_processed > 0:
+                                logger.info(f"Successfully processed {mbx_processed} Mailbox events for tenant {tenant.name}")
 
                             # Also mark other logs as processed
                             general_processed = await analytics_service.process_audit_log_general(

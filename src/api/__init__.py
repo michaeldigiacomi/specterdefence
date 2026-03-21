@@ -22,6 +22,8 @@ from src.api import (
     tenants,
     users,
     websocket,
+    dlp,
+    mailbox,
 )
 
 router = APIRouter()
@@ -48,3 +50,5 @@ router.include_router(settings.router, prefix="/settings", tags=["settings"], de
 router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"], dependencies=protected_deps)
 router.include_router(diagnostics.router, prefix="/diagnostics", tags=["diagnostics"], dependencies=protected_deps)
 router.include_router(sharepoint.router, prefix="/sharepoint", tags=["sharepoint"], dependencies=protected_deps)
+router.include_router(dlp.router, prefix="/dlp", tags=["dlp"], dependencies=protected_deps)
+router.include_router(mailbox.router, prefix="/mailbox-security", tags=["mailbox-security"], dependencies=protected_deps)
