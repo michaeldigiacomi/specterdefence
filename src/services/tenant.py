@@ -453,7 +453,7 @@ class TenantService:
             Decrypted client secret
         """
         # Hash the tenant ID for audit log (privacy-preserving)
-        tenant_id_hash = hashlib.sha256(tenant.id.encode()).hexdigest()[:16]
+        tenant_id_hash = hashlib.sha256(str(tenant.id).encode()).hexdigest()[:16]
 
         # Log credential access for security auditing
         audit_logger.warning(
