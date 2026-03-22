@@ -129,11 +129,13 @@ export interface MailboxRule {
   created_by_non_owner: boolean;
   created_by: string | null;
   detection_reasons: string[];
+  auto_reply_content: string | null;
   rule_created_at: string | null;
   rule_modified_at: string | null;
   last_scan_at: string;
   created_at: string;
   updated_at: string;
+  rule_data: any;
 }
 
 export interface MailboxRuleListResponse {

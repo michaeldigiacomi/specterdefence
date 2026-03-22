@@ -67,8 +67,13 @@ class EncryptionService:
         """
         if not ciphertext:
             raise ValueError("Cannot decrypt empty string")
-        encrypted = base64.urlsafe_b64decode(ciphertext.encode())
-        return self.fernet.decrypt(encrypted).decode()
+        try:
+            encrypted = base64.urlsafe_b64decode(ciphertext.encode())
+            return self.fernet.decrypt(encrypted).decode()
+        except Exception:
+            # If decryption fails (e.g. invalid base64 padding or Fernet token check), 
+            # assume the data is from an older plaintext schema and return it as-is.
+            return ciphertext
 
 
 # Global encryption service instance

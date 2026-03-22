@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, MailWarning, Shield, RefreshCw, ExternalLink, Clock, UserX } from 'lucide-react';
 import { apiService } from '@/services/api';
 import type { MailboxRule, MailboxRuleAlert } from '@/types/securityTypes';
@@ -25,6 +25,7 @@ export default function MailboxRules() {
   const [totalRules, setTotalRules] = useState(0);
   const [totalAlerts, setTotalAlerts] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,8 +33,13 @@ export default function MailboxRules() {
     setIsLoading(true);
     setError(null);
     try {
+      const queryParams: Record<string, any> = { limit: 100 };
+      if (statusFilter) {
+        queryParams['status'] = statusFilter;
+      }
+
       const [rulesRes, alertsRes] = await Promise.all([
-        apiService.getMailboxRules({ status: statusFilter || undefined, limit: 100 }),
+        apiService.getMailboxRules(queryParams),
         apiService.getMailboxRuleAlerts({ acknowledged: false, limit: 20 }),
       ]);
       setRules(rulesRes.items);
@@ -55,6 +61,10 @@ export default function MailboxRules() {
   const suspiciousCount = rules.filter(r => r.status === 'suspicious').length;
   const maliciousCount = rules.filter(r => r.status === 'malicious').length;
   const externalForwardCount = rules.filter(r => r.forward_to_external).length;
+
+  const toggleRuleExpansion = (ruleId: string) => {
+    setExpandedRuleId(current => (current === ruleId ? null : ruleId));
+  };
 
   return (
     <div className="space-y-6">
@@ -198,90 +208,195 @@ export default function MailboxRules() {
                 </tr>
               ) : (
                 rules.map(rule => (
-                  <tr
-                    key={rule.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-gray-900 dark:text-white truncate max-w-[200px]">
-                        {rule.user_email}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {rule.rule_name}
-                      </p>
-                      {rule.forward_to && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          → {rule.forward_to}
-                        </p>
+                  <React.Fragment key={rule.id}>
+                    <tr
+                      onClick={() => toggleRuleExpansion(rule.id)}
+                      className={clsx(
+                        'transition-colors cursor-pointer',
+                        expandedRuleId === rule.id
+                          ? 'bg-primary-50 dark:bg-primary-900/10'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-gray-600 dark:text-gray-300 capitalize">
-                        {rule.rule_type.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={clsx(
-                          'px-2.5 py-1 rounded-full text-xs font-medium',
-                          statusColors[rule.status] || 'bg-gray-100 text-gray-800'
+                    >
+                      <td className="px-6 py-4">
+                        <p className="text-sm text-gray-900 dark:text-white truncate max-w-[200px]">
+                          {rule.user_email}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {rule.rule_name}
+                        </p>
+                        {rule.forward_to && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            → {rule.forward_to}
+                          </p>
                         )}
-                      >
-                        {rule.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={clsx(
-                          'px-2.5 py-1 rounded-full text-xs font-medium',
-                          severityColors[rule.severity] || 'bg-gray-100 text-gray-800'
-                        )}
-                      >
-                        {rule.severity}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-1.5 flex-wrap">
-                        {rule.forward_to_external && (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs rounded"
-                            title="External forwarding"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            Ext
-                          </span>
-                        )}
-                        {rule.created_outside_business_hours && (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs rounded"
-                            title="Created outside business hours"
-                          >
-                            <Clock className="w-3 h-3" />
-                            Off-hrs
-                          </span>
-                        )}
-                        {rule.created_by_non_owner && (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs rounded"
-                            title="Created by non-owner"
-                          >
-                            <UserX className="w-3 h-3" />
-                            Non-owner
-                          </span>
-                        )}
-                        {rule.is_hidden_folder_redirect && (
-                          <span
-                            className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs rounded"
-                            title="Hidden folder redirect"
-                          >
-                            Hidden
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-600 dark:text-gray-300 capitalize">
+                          {rule.rule_type.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={clsx(
+                            'px-2.5 py-1 rounded-full text-xs font-medium',
+                            statusColors[rule.status] || 'bg-gray-100 text-gray-800'
+                          )}
+                        >
+                          {rule.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={clsx(
+                            'px-2.5 py-1 rounded-full text-xs font-medium',
+                            severityColors[rule.severity] || 'bg-gray-100 text-gray-800'
+                          )}
+                        >
+                          {rule.severity}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-1.5 flex-wrap">
+                          {rule.forward_to_external && (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs rounded"
+                              title="External forwarding"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              Ext
+                            </span>
+                          )}
+                          {rule.created_outside_business_hours && (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs rounded"
+                              title="Created outside business hours"
+                            >
+                              <Clock className="w-3 h-3" />
+                              Off-hrs
+                            </span>
+                          )}
+                          {rule.created_by_non_owner && (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs rounded"
+                              title="Created by non-owner"
+                            >
+                              <UserX className="w-3 h-3" />
+                              Non-owner
+                            </span>
+                          )}
+                          {rule.is_hidden_folder_redirect && (
+                            <span
+                              className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs rounded"
+                              title="Hidden folder redirect"
+                            >
+                              Hidden
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedRuleId === rule.id && (
+                      <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                        <td colSpan={6} className="px-6 py-6">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+                            {/* Rule Details */}
+                            <div className="space-y-4">
+                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                                Rule Configuration
+                              </h3>
+                              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4 text-sm">
+                                <div>
+                                  <dt className="text-gray-500 dark:text-gray-400">Rule ID</dt>
+                                  <dd className="text-gray-900 dark:text-white font-mono text-xs mt-1">
+                                    {rule.rule_id}
+                                  </dd>
+                                </div>
+                                <div>
+                                  <dt className="text-gray-500 dark:text-gray-400">Status</dt>
+                                  <dd className="text-gray-900 dark:text-white mt-1">
+                                    {rule.is_enabled ? 'Enabled' : 'Disabled'}
+                                  </dd>
+                                </div>
+                                {rule.forward_to && (
+                                  <div>
+                                    <dt className="text-gray-500 dark:text-gray-400">Forwards To</dt>
+                                    <dd className="text-gray-900 dark:text-white mt-1 break-all">
+                                      {rule.forward_to}
+                                    </dd>
+                                  </div>
+                                )}
+                                {rule.redirect_to && (
+                                  <div>
+                                    <dt className="text-gray-500 dark:text-gray-400">Redirects To</dt>
+                                    <dd className="text-gray-900 dark:text-white mt-1 break-all">
+                                      {rule.redirect_to}
+                                    </dd>
+                                  </div>
+                                )}
+                                {rule.rule_created_at && (
+                                  <div>
+                                    <dt className="text-gray-500 dark:text-gray-400">Created At</dt>
+                                    <dd className="text-gray-900 dark:text-white mt-1">
+                                      {new Date(rule.rule_created_at).toLocaleString()}
+                                    </dd>
+                                  </div>
+                                )}
+                                {rule.rule_modified_at && (
+                                  <div>
+                                    <dt className="text-gray-500 dark:text-gray-400">Modified At</dt>
+                                    <dd className="text-gray-900 dark:text-white mt-1">
+                                      {new Date(rule.rule_modified_at).toLocaleString()}
+                                    </dd>
+                                  </div>
+                                )}
+                              </dl>
+
+                              {rule.auto_reply_content && (
+                                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Automated Reply Content</dt>
+                                  <dd className="text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-3 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                                    {/* Usually HTML, rendering it safely as text or dangerouslySetInnerHTML if strict */}
+                                    {rule.auto_reply_content.replace(/<[^>]*>?/gm, '')}
+                                  </dd>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Threat Intelligence & Detection */}
+                            <div className="space-y-4">
+                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                                Detection Reasoning
+                              </h3>
+                              {rule.detection_reasons && rule.detection_reasons.length > 0 ? (
+                                <ul className="space-y-2">
+                                  {rule.detection_reasons.map((reason, idx) => (
+                                    <li key={idx} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                      <Shield className="w-4 h-4 mt-0.5 text-red-500 flex-shrink-0" />
+                                      {reason}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 italic">No suspicious indicators identified.</p>
+                              )}
+
+                              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Raw Data</h4>
+                                <div className="bg-gray-100 dark:bg-gray-900 rounded-md p-3 max-h-[200px] overflow-y-auto">
+                                  <pre className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono break-words">
+                                    {JSON.stringify(rule.rule_data, null, 2)}
+                                  </pre>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))
               )}
             </tbody>
