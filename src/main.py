@@ -176,6 +176,7 @@ if not settings.DEBUG and os.getenv("TESTING") != "true":
         TrustedHostMiddleware,
         allowed_hosts=[
             "specterdefence.digitaladrenalin.net",
+            "app.specterdefence.digitaladrenalin.net",
             "*.digitaladrenalin.net",
             "localhost",
             "127.0.0.1",
