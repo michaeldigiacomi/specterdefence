@@ -143,6 +143,12 @@ export function useTestWebhook() {
   });
 }
 
+export function useTestExistingWebhook() {
+  return useMutation({
+    mutationFn: (webhookId: string) => apiService.testExistingWebhook(webhookId),
+  });
+}
+
 // ============== Configuration Import/Export Hooks ==============
 
 export function useConfigurationBackups() {

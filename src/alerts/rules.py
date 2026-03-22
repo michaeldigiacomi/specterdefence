@@ -355,12 +355,9 @@ class AlertRuleService:
 
         event_severity_level = severity_order.get(severity, 0)
 
-        # Build query
+        # Build query (fetching active rules first to filter locally, avoiding SQLite/Postgres ARRAY contains translation issues)
         query = select(AlertRuleModel).where(
-            and_(
-                AlertRuleModel.is_active.is_(True),
-                AlertRuleModel.event_types.contains([event_type]),
-            )
+            AlertRuleModel.is_active.is_(True)
         )
 
         # Filter by tenant (get global rules and tenant-specific rules)
@@ -372,9 +369,12 @@ class AlertRuleService:
         result = await self.db.execute(query)
         rules = result.scalars().all()
 
-        # Filter by severity level (only rules with min_severity <= event severity)
+        # Filter by severity level and event type (only rules with min_severity <= event severity and matching event type)
         matching_rules = []
         for rule in rules:
+            if event_type not in rule.event_types:
+                continue
+            
             rule_severity_level = severity_order.get(rule.min_severity, 0)
             if rule_severity_level <= event_severity_level:
                 matching_rules.append(rule)

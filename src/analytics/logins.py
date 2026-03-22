@@ -205,6 +205,16 @@ class LoginAnalyticsService:
 
         await self.db.commit()
 
+        # Trigger alert processing for this login
+        from src.services.alert_processor import alert_processor
+        try:
+            await alert_processor.process_login_analytics(
+                login_data=login_record,
+                user_history=user_history,
+            )
+        except Exception as e:
+            logger.error(f"Error triggering alert processing for login {login_record.id}: {e}")
+
         return login_record
 
     async def _get_or_create_user_history(

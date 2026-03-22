@@ -6,6 +6,7 @@ import {
   useUpdateWebhook,
   useDeleteWebhook,
   useTestWebhook,
+  useTestExistingWebhook,
 } from '@/hooks/useSettings';
 import { useTenants } from '@/hooks/useApi';
 import { WebhookConfig, WebhookCreate } from '@/types';
@@ -45,6 +46,7 @@ export default function WebhookManager() {
   const updateWebhook = useUpdateWebhook();
   const deleteWebhook = useDeleteWebhook();
   const testWebhook = useTestWebhook();
+  const testExistingWebhook = useTestExistingWebhook();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<WebhookConfig | null>(null);
@@ -118,10 +120,12 @@ export default function WebhookManager() {
     setTestingWebhookId(webhook.id);
 
     try {
-      // In a real implementation, we'd need the webhook URL from the backend
-      // For now, we'll just show a success message
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success(`Test notification sent to ${webhook.name}`);
+      const result = await testExistingWebhook.mutateAsync(webhook.id);
+      if (result.success) {
+        toast.success(`Test notification sent to ${webhook.name}`);
+      } else {
+        toast.error(result.message || 'Failed to send test notification');
+      }
     } catch {
       toast.error('Failed to send test notification');
     } finally {
@@ -408,7 +412,7 @@ export default function WebhookManager() {
                 <select
                   value={formData.tenant_id || ''}
                   onChange={e =>
-                    setFormData(prev => ({ ...prev, tenant_id: e.target.value || undefined }))
+                    setFormData(prev => ({ ...prev, tenant_id: e.target.value || undefined }) as any)
                   }
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:text-white"
                 >

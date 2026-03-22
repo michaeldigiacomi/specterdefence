@@ -456,6 +456,11 @@ class ApiService {
     return response.data;
   }
 
+  async testExistingWebhook(webhookId: string): Promise<WebhookTestResponse> {
+    const response = await this.client.post(`/alerts/webhooks/${webhookId}/test`);
+    return response.data;
+  }
+
   // Configuration Import/Export
   async exportConfiguration(data: ConfigExportRequest): Promise<ConfigExportResponse> {
     const response = await this.client.post('/settings/config/export', data);
