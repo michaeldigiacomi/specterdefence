@@ -15,12 +15,12 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://specterdefence.digitaladrenalin.net',
+        target: 'https://app.specterdefence.digitaladrenalin.net',
         changeOrigin: true,
         ws: true,
       },
       '/ws': {
-        target: 'ws://specterdefence.digitaladrenalin.net',
+        target: 'ws://app.specterdefence.digitaladrenalin.net',
         ws: true,
       },
     },

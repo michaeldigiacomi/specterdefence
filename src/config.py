@@ -31,7 +31,13 @@ class Settings(BaseSettings):
 
     # CORS - Restrictive by default
     CORS_ORIGINS: list[str] = Field(
-        default_factory=list, description="Allowed CORS origins - empty means same-origin only"
+        default_factory=lambda: [
+            "https://specterdefence.digitaladrenalin.net",
+            "https://app.specterdefence.digitaladrenalin.net",
+            "http://localhost:3000",
+            "http://localhost:5173",
+        ],
+        description="Allowed CORS origins",
     )
 
     # Trusted Proxies for X-Forwarded-For

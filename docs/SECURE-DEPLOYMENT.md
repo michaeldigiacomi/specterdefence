@@ -184,7 +184,7 @@ Create `production-values.yaml`:
 # production-values.yaml
 global:
   environment: production
-  domain: specterdefence.digitaladrenalin.net
+  domain: app.specterdefence.digitaladrenalin.net
 
 api:
   replicaCount: 3
@@ -216,7 +216,7 @@ api:
   config:
     debug: "false"
     logLevel: "info"
-    corsOrigins: "https://specterdefence.digitaladrenalin.net"
+    corsOrigins: "https://app.specterdefence.digitaladrenalin.net"
 
   podSecurityContext:
     runAsNonRoot: true
@@ -358,7 +358,7 @@ kubectl get ingress -n specterdefence
 ### 4.1 Verify Security Headers
 
 ```bash
-curl -I https://specterdefence.digitaladrenalin.net
+curl -I https://app.specterdefence.digitaladrenalin.net
 ```
 
 Expected headers:
@@ -374,10 +374,10 @@ Content-Security-Policy: default-src 'self'
 
 ```bash
 # Check certificate
-openssl s_client -connect specterdefence.digitaladrenalin.net:443 -servername specterdefence.digitaladrenalin.net </dev/null | openssl x509 -text
+openssl s_client -connect app.specterdefence.digitaladrenalin.net:443 -servername app.specterdefence.digitaladrenalin.net </dev/null | openssl x509 -text
 
 # Test SSL rating (requires ssllabs-scan or similar)
-# ssllabs-scan specterdefence.digitaladrenalin.net
+# ssllabs-scan app.specterdefence.digitaladrenalin.net
 ```
 
 ### 4.3 Verify Secrets Are Not Exposed
@@ -393,14 +393,14 @@ kubectl exec -n specterdefence deployment/specterdefence-api -- env | grep -i se
 
 ```bash
 # Test with default password (should fail)
-curl -X POST https://specterdefence.digitaladrenalin.net/api/v1/auth/local/login \
+curl -X POST https://app.specterdefence.digitaladrenalin.net/api/v1/auth/local/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 
 # Should return 401
 
 # Test with correct password
-curl -X POST https://specterdefence.digitaladrenalin.net/api/v1/auth/local/login \
+curl -X POST https://app.specterdefence.digitaladrenalin.net/api/v1/auth/local/login \
   -H "Content-Type: application/json" \
   -d "{\"username\":\"admin\",\"password\":\"$ADMIN_PASSWORD\"}"
 
@@ -413,7 +413,7 @@ curl -X POST https://specterdefence.digitaladrenalin.net/api/v1/auth/local/login
 # Test rate limiting on login endpoint
 for i in {1..10}; do
   curl -s -o /dev/null -w "%{http_code}\n" \
-    -X POST https://specterdefence.digitaladrenalin.net/api/v1/auth/local/login \
+    -X POST https://app.specterdefence.digitaladrenalin.net/api/v1/auth/local/login \
     -H "Content-Type: application/json" \
     -d '{"username":"admin","password":"wrong"}'
 done

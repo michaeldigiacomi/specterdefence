@@ -1,0 +1,111 @@
+name: Marketing CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+    paths:
+      - 'marketing/**'
+      - 'Dockerfile.marketing'
+      - '.github/workflows/marketing.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'marketing/**'
+      - 'Dockerfile.marketing'
+      - '.github/workflows/marketing.yml'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: michaeldigiacomi/specterdefence-marketing
+
+jobs:
+  # ============================================
+  # Build and Push
+  # ============================================
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=,suffix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push marketing image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.marketing
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=marketing-${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=marketing-${{ github.ref_name }}
+          platforms: linux/amd64
+
+  # ============================================
+  # Deploy (main branch only)
+  # ============================================
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
+          args: '--accept-routes --accept-dns'
+
+      - name: Set up kubectl
+        uses: azure/k8s-set-context@v1
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+      - name: Deploy to Kubernetes
+        run: |
+          # Apply manifest
+          kubectl apply -f k8s/prod/marketing.yaml -n specterdefence
+          
+          # Update image in deployment
+          kubectl set image deployment/specterdefence-marketing \
+            specterdefence-marketing=ghcr.io/michaeldigiacomi/specterdefence-marketing:latest \
+            -n specterdefence
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/specterdefence-marketing \
+            -n specterdefence \
+            --timeout=5m

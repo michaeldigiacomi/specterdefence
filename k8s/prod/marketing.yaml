@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: specterdefence-marketing
+  namespace: specterdefence
+  labels:
+    app: specterdefence-marketing
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: specterdefence-marketing
+  template:
+    metadata:
+      labels:
+        app: specterdefence-marketing
+    spec:
+      containers:
+      - name: specterdefence-marketing
+        image: ghcr.io/michaeldigiacomi/specterdefence-marketing:latest
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: specterdefence-marketing
+  namespace: specterdefence
+spec:
+  selector:
+    app: specterdefence-marketing
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
