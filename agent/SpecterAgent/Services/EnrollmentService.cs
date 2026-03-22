@@ -23,6 +23,29 @@ public class EnrollmentService
     public bool IsEnrolled => _config?.DeviceToken != null;
     public AgentConfig? Config => _config;
 
+    public void InitializeFromArgs(string? enrollmentToken, string? backendUrl)
+    {
+        if (string.IsNullOrEmpty(enrollmentToken) || string.IsNullOrEmpty(backendUrl))
+            return;
+
+        _logger.LogInformation("Initializing configuration from command-line arguments.");
+        _config = new AgentConfig
+        {
+            EnrollmentToken = enrollmentToken,
+            BackendUrl = backendUrl
+        };
+        
+        // Save to config.json so it persists across service restarts
+        try
+        {
+            File.WriteAllText(_configPath, JsonConvert.SerializeObject(_config, Formatting.Indented));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to persist CLI arguments to config file.");
+        }
+    }
+
     private void LoadConfig()
     {
         if (File.Exists(_configPath))
