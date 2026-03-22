@@ -46,6 +46,8 @@ class MailboxRuleResponse(BaseModel):
     created_by_non_owner: bool
     created_by: str | None
     detection_reasons: list[str]
+    auto_reply_content: str | None
+    rule_data: dict | list | None
     rule_created_at: str | None
     rule_modified_at: str | None
     last_scan_at: str
@@ -244,6 +246,8 @@ async def list_mailbox_rules(
                 created_by_non_owner=rule.created_by_non_owner,
                 created_by=rule.created_by,
                 detection_reasons=rule.detection_reasons,
+                auto_reply_content=rule.auto_reply_content,
+                rule_data=rule.rule_data,
                 rule_created_at=rule.rule_created_at.isoformat() if rule.rule_created_at else None,
                 rule_modified_at=rule.rule_modified_at.isoformat()
                 if rule.rule_modified_at
@@ -334,6 +338,8 @@ async def get_tenant_mailbox_rules(
                 created_by_non_owner=rule.created_by_non_owner,
                 created_by=rule.created_by,
                 detection_reasons=rule.detection_reasons,
+                auto_reply_content=rule.auto_reply_content,
+                rule_data=rule.rule_data,
                 rule_created_at=rule.rule_created_at.isoformat() if rule.rule_created_at else None,
                 rule_modified_at=rule.rule_modified_at.isoformat()
                 if rule.rule_modified_at
@@ -394,6 +400,8 @@ async def get_suspicious_rules(
             created_by_non_owner=rule.created_by_non_owner,
             created_by=rule.created_by,
             detection_reasons=rule.detection_reasons,
+            auto_reply_content=rule.auto_reply_content,
+            rule_data=rule.rule_data,
             rule_created_at=rule.rule_created_at.isoformat() if rule.rule_created_at else None,
             rule_modified_at=rule.rule_modified_at.isoformat() if rule.rule_modified_at else None,
             last_scan_at=rule.last_scan_at.isoformat(),
@@ -688,6 +696,8 @@ async def get_mailbox_rule(
         created_by_non_owner=rule.created_by_non_owner,
         created_by=rule.created_by,
         detection_reasons=rule.detection_reasons,
+        auto_reply_content=rule.auto_reply_content,
+        rule_data=rule.rule_data,
         rule_created_at=rule.rule_created_at.isoformat() if rule.rule_created_at else None,
         rule_modified_at=rule.rule_modified_at.isoformat() if rule.rule_modified_at else None,
         last_scan_at=rule.last_scan_at.isoformat(),
