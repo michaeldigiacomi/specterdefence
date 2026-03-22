@@ -32,9 +32,11 @@
 | **Conditional Access Monitoring** | Track CA policy changes, detect security drift, and alert on policy disables |
 | **OAuth App Risk Assessment** | Analyze OAuth applications for high-risk permissions and unverified publishers |
 | **Mailbox Rule Monitoring** | Detect suspicious forwarding rules and hidden redirects |
-| **Login Anomaly Detection** | Identify impossible travel, new countries, and brute force attempts. Per-tenant approved countries can be configured to alert on logins from non-approved regions. |
+| **Login Anomaly Detection** | Identify impossible travel, new countries, and brute force attempts. |
+| **Insider Threat & DLP** | Monitor SharePoint sharing events and sensitive data exposure alerts |
+| **Endpoint Monitoring** | Track Windows endpoint health, heartbeats, and security events |
 | **Real-Time Alerting** | WebSocket-based alert streaming with Discord/Slack webhook integration |
-| **Audit Log Collection** | Continuous ingestion of M365 audit logs for analysis |
+| **Audit Log Collection** | Continuous ingestion of M365 audit logs (Entra, Exchange, SharePoint) |
 
 ### 1.3 Target Users
 
@@ -78,6 +80,10 @@
 │  │  │  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌──────────────┐  │  │   │
 │  │  │  │ MFAReport │ │  CAPolicies│ │OAuthApps │ │ MailboxRules │  │  │   │
 │  │  │  │  Service  │ │  Service   │ │ Service  │ │   Service    │  │  │   │
+│  │  │  └─────┬─────┘ └─────┬─────┘ └─────┬─────┘ └──────┬───────┘  │  │   │
+│  │  │  ┌─────▼─────┐ ┌─────▼─────┐ ┌─────▼─────┐ ┌──────▼───────┐  │  │   │
+│  │  │  │ SharePoint│ │ DLP/Insider│ │ Endpoint  │ │   Threat    │  │  │   │
+│  │  │  │  Service  │ │  Service   │ │ Service  │ │   Intel     │  │  │   │
 │  │  │  └─────┬─────┘ └─────┬─────┘ └─────┬─────┘ └──────┬───────┘  │  │   │
 │  │  │        └─────────────┴─────────────┴──────────────┘           │  │   │
 │  │  │                          │                                     │  │   │
@@ -215,6 +221,9 @@ src/
 │   ├── oauth_apps.py       # OAuth application endpoints
 │   ├── mailbox_rules.py    # Mailbox rule endpoints
 │   ├── analytics.py        # Login analytics endpoints
+│   ├── sharepoint.py       # SharePoint analytics endpoints
+│   ├── insider_threat.py   # Insider threat endpoints
+│   ├── endpoints.py        # Endpoint agent endpoints
 │   ├── dashboard.py        # Dashboard data endpoints
 │   └── settings.py         # System settings endpoints
 │
@@ -225,6 +234,9 @@ src/
 │   ├── ca_policies.py      # CA policy monitoring
 │   ├── oauth_apps.py       # OAuth app risk assessment
 │   ├── mailbox_rules.py    # Mailbox rule analysis
+│   ├── sharepoint.py       # SharePoint sharing analysis
+│   ├── insider_threat.py   # Insider threat (DLP) analysis
+│   ├── endpoints.py        # Endpoint agent management
 │   ├── dashboard.py        # Dashboard aggregation
 │   ├── alert_processor.py  # Alert processing logic
 │   ├── alert_stream.py     # WebSocket streaming service
@@ -235,12 +247,18 @@ src/
 │   ├── mfa_report.py       # MFA-specific Graph queries
 │   ├── ca_policies.py      # CA policy Graph queries
 │   ├── oauth_apps.py       # OAuth app Graph queries
-│   └── mailbox_rules.py    # Mailbox rule Graph queries
+│   ├── mailbox_rules.py    # Mailbox rule Graph queries
+│   ├── sharepoint.py       # SharePoint-specific queries
+│   └── endpoints.py        # Endpoint-specific queries
 │
 ├── models/                 # Data Models (SQLAlchemy + Pydantic)
 │   ├── db.py               # SQLAlchemy ORM models
+│   ├── user.py             # Local user models
 │   ├── tenant.py           # Pydantic tenant schemas
 │   ├── alerts.py           # Alert models and enums
+│   ├── analytics.py        # Login analytics models
+│   ├── sharepoint.py       # SharePoint data models
+│   ├── endpoint.py         # Endpoint agent models
 │   ├── mfa_report.py       # MFA enrollment models
 │   ├── ca_policies.py      # CA policy models
 │   ├── oauth_apps.py       # OAuth app models
@@ -256,11 +274,15 @@ src/
 │   ├── anomalies.py        # Impossible travel, new country detection
 │   ├── logins.py           # Login pattern analysis
 │   ├── failed_logins.py    # Brute force detection
+│   ├── sharepoint.py       # SharePoint sharing analysis
+│   ├── insider_threat.py   # Sensitive data exposure detection
+│   ├── threat_intel.py     # IP reputation (AbuseIPDB, OTX)
 │   └── geo_ip.py           # GeoIP lookup utilities
 │
 └── collector/              # Data Collection Jobs
     ├── main.py             # Collector entry point
-    └── o365_feed.py        # Office 365 audit log ingestion
+    ├── o365_feed.py        # Office 365 audit log ingestion
+    └── security_scans.py   # Periodic security configuration scans
 ```
 
 #### Key FastAPI Configuration (main.py)
@@ -708,13 +730,15 @@ class EncryptionService:
 ### 4.1 User Model (Local Authentication)
 
 ```python
-class UserResponse(BaseModel):
-    username: str
-    is_authenticated: bool
+class UserModel(Base):
+    __tablename__ = "users"
 
-# Stored as environment variables (not in database):
-# ADMIN_USERNAME - admin username
-# ADMIN_PASSWORD_HASH - bcrypt hash of password
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 ```
 
 ### 4.2 Tenant Model
@@ -733,6 +757,9 @@ class TenantModel(Base):
     tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     client_id: Mapped[str] = mapped_column(String(255), nullable=False)
     client_secret: Mapped[str] = mapped_column(String(500), nullable=False)
+
+    # Security Configuration
+    approved_countries: Mapped[list[str]] = mapped_column(JSONB, default=list)
 
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -790,44 +817,68 @@ class AlertHistoryModel(Base):
     sent_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, index=True)
 ```
 
-### 4.4 OAuth App Models
+### 4.4 SharePoint Models
 
 ```python
-class OAuthAppModel(Base):
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id"), index=True)
+class SharePointSharingModel(Base):
+    __tablename__ = "sharepoint_sharing"
 
-    # App Info
-    app_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    display_name: Mapped[str] = mapped_column(String(500), nullable=False)
-
-    # Publisher
-    publisher_name: Mapped[str | None] = mapped_column(String(500))
-    publisher_type: Mapped[PublisherType] = mapped_column(SQLEnum(PublisherType), default=PublisherType.UNKNOWN)
-    is_microsoft_publisher: Mapped[bool] = mapped_column(Boolean, default=False)
-    is_verified_publisher: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    # Risk Analysis
-    risk_level: Mapped[RiskLevel] = mapped_column(SQLEnum(RiskLevel), default=RiskLevel.LOW)
-    status: Mapped[AppStatus] = mapped_column(SQLEnum(AppStatus), default=AppStatus.PENDING_REVIEW)
-    risk_score: Mapped[int] = mapped_column(Integer, default=0)  # 0-100
-
-    # Permissions
-    permission_count: Mapped[int] = mapped_column(Integer, default=0)
-    high_risk_permissions: Mapped[list[str]] = mapped_column(ARRAY(String(255)))
-    has_mail_permissions: Mapped[bool] = mapped_column(Boolean, default=False)
-    has_user_read_all: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    # Consent
-    consent_count: Mapped[int] = mapped_column(Integer, default=0)
-    admin_consented: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    # Timestamps
-    first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
-    last_scan_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True, nullable=False)
+    audit_log_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    
+    # Event Info
+    event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True, nullable=False)
+    operation: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    
+    # Resource Info
+    site_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    file_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    file_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
+    # Actor Info
+    user_email: Mapped[str | None] = mapped_column(String(255), index=True, nullable=True)
+    
+    # Sharing Details
+    sharing_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    share_link_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    target_user: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    
+    # State
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 ```
 
-### 4.5 Audit Log Models
+### 4.5 Endpoint Models
+
+```python
+class EndpointDeviceModel(Base):
+    __tablename__ = "endpoint_devices"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    hostname: Mapped[str] = mapped_column(String(255), nullable=False)
+    os_version: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[DeviceStatus] = mapped_column(SQLEnum(DeviceStatus), nullable=False)
+    last_heartbeat: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    enrolled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+class EndpointEventModel(Base):
+    __tablename__ = "endpoint_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    device_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("endpoint_devices.id"))
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id"))
+    event_type: Mapped[EndpointEventType] = mapped_column(SQLEnum(EndpointEventType))
+    severity: Mapped[EndpointEventSeverity] = mapped_column(SQLEnum(EndpointEventSeverity))
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    process_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    command_line: Mapped[str | None] = mapped_column(Text, nullable=True)
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+```
+
+### 4.6 Audit Log Models
 
 ```python
 class AuditLogModel(Base):
@@ -937,7 +988,27 @@ class AuditLogModel(Base):
 | GET | `/api/v1/alerts/history` | Alert history |
 | POST | `/api/v1/alerts/webhooks/{id}/test` | Test webhook |
 
-### 5.8 WebSocket
+### 5.8 SharePoint & Insider Threat
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/sharepoint/stats` | Get SharePoint sharing stats |
+| GET | `/api/v1/sharepoint/links` | List active sharing links |
+| POST | `/api/v1/sharepoint/revoke/{id}` | Revoke a sharing link |
+| GET | `/api/v1/insider-threat/summary` | Get DLP/Insider threat summary |
+| GET | `/api/v1/insider-threat/events` | List sensitive data events |
+
+### 5.9 Endpoint Agent
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/endpoints/devices` | List enrolled devices |
+| POST | `/api/v1/endpoints/enroll` | Enroll a new device |
+| POST | `/api/v1/endpoints/heartbeat` | Device heartbeat |
+| POST | `/api/v1/endpoints/events` | Report endpoint events |
+| GET | `/api/v1/endpoints/events` | List security events |
+
+### 5.10 WebSocket
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -959,7 +1030,7 @@ class AuditLogModel(Base):
 {"type": "alert", "severity": "CRITICAL", "title": "...", "metadata": {...}}
 ```
 
-### 5.9 Health Checks
+### 5.11 Health Checks
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|

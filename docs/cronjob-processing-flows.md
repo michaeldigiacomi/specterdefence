@@ -320,7 +320,7 @@ flowchart TD
         C4 -->|Yes| D1
     end
 
-    subgraph Login_Anomaly_Alerts["Login Anomaly Alerts (Work in Progress)"]
+    subgraph Login_Anomaly_Alerts["Login Anomaly Alerts"]
         B --> C5{Login Anomaly Detected?}
         C5 -->|Yes| D2[AlertProcessor.process_login_analytics]
         D2 --> D1
@@ -356,7 +356,7 @@ flowchart TD
    - CA Policies: Policy misconfigurations
    - MFA Report: Users without MFA enabled
 
-2. **Login Anomalies (work in progress)**
+2. **Login Anomalies (Real-time)**
    - New device detected
    - New location / country
    - Impossible travel

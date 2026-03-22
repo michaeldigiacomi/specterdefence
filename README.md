@@ -15,10 +15,13 @@ SpecterDefence provides automated security monitoring, alerting, and remediation
 ## Features
 
 - 🔐 **Multi-Tenant Management** - Register and manage multiple Office 365 tenants
-- 📊 **Security Posture Monitoring** - Continuous assessment of security configurations
-- 🚨 **Threat Detection** - Real-time security alerts and incident response
+- 📊 **Security Posture Monitoring** - Continuous assessment of MFA and policy configurations
+- 🚨 **Real-Time Threat Detection** - Impossible travel, new country logins, and brute-force detection
+- 🔍 **Insider Threat & DLP** - Monitor SharePoint sharing and sensitive data exposure
+- 🖥️ **Endpoint Agent** - Windows-based device monitoring and event collection
 - 📈 **Compliance Reporting** - Track compliance against security frameworks
-- 🔧 **Automated Remediation** - Auto-fix common security misconfigurations
+- 🌐 **Geographic Map** - Visualize login activity and anomalies globally
+- 🔧 **Automated Alerting** - WebSocket-based alerts and Discord/Slack integrations
 
 ## Architecture
 
@@ -69,10 +72,8 @@ poetry run uvicorn src.main:app --reload
 # Build and run with Docker
 docker build -t specterdefence .
 docker run -p 8000:8000 specterdefence
-
-# Or use docker-compose
-docker-compose up -d
 ```
+
 
 ## Configuration
 
@@ -202,7 +203,8 @@ Then update the Helm chart to use the API key by setting `env.IPAPI_API_KEY` or 
 
 ### Security Documentation
 
-- [Kubernetes Security Best Practices](./docs/k8s-security.md) - Comprehensive security hardening guide
+- [Secure Deployment Guide](./docs/SECURE-DEPLOYMENT.md) - Comprehensive production setup guide
+- [Architecture Overview](./docs/ARCHITECTURE.md) - Detailed system design and data flows
 - [Secret Rotation Guide](./docs/secret-rotation.md) - Procedures for rotating credentials
 
 ### Deployment with Ingress

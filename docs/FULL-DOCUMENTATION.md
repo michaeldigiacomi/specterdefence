@@ -14,15 +14,19 @@ It caters specifically to **organizations managing multiple M365 tenants**, such
 
 ## 2. Platform Capabilities
 
-### 2.1 Identity Posture Scanning
-SpecterDefence monitors user identities across your organization:
-- **MFA Compliance Checking:** Discovers and categorizes authentication methods. Identifies weak MFA (SMS/Voice) vs moderate (Authenticator App) vs strong (FIDO2, Windows Hello) methods and alerts on administrators lacking sufficient protection.
-- **Login Anomaly Detection:** Utilizes geospatial distance checking (Haversine formula applied to flight speeds) to detect "Impossible Travel." Detects brute-force attempts and anomalous logins from new countries or known malicious IP addresses (via CTI feed cross-referencing). Additionally, per-tenant approved countries can be configured to trigger alerts when logins occur from non-approved countries, allowing organizations to restrict logins to specific geographic regions.
+### 2.1 Identity Posture & Login Monitoring
+- **MFA Compliance Checking:** Discovers and categorizes authentication methods. Identifies weak MFA (SMS/Voice) vs moderate (Authenticator App) vs strong (FIDO2, Windows Hello) methods.
+- **Login Anomaly Detection:** Detects "Impossible Travel," brute-force attempts, and anomalous logins from new countries or known malicious IP addresses.
+- **Approved Countries:** Configurable per-tenant allows restricting logins to specific geographic regions.
 
-### 2.2 Configuration Drift Monitoring
-The most frequent entry point for attackers in cloud environments is a silent misconfiguration.
-- **Conditional Access (CA) Policy Tracker:** Analyzes changes in CA policies (e.g., broad scoping changes, removal of MFA conditions, disabled policies, legacy authentication bypasses) and alerts administrators.
-- **Mailbox Rules Monitoring:** Discovers suspicious forwarding or hidden redirect rules in Exchange Online—a hallmark indicator of Business Email Compromise (BEC).
+### 2.2 Insider Threat & Resource Security
+- **SharePoint Sharing Analytics:** Tracks anonymous and external sharing links in SharePoint and OneDrive.
+- **Data Loss Prevention (DLP):** Monitoring of DLP policy matches and sensitive data exposure events.
+- **Endpoint Protection:** The Windows Endpoint Agent tracks device health and suspicious process executions.
+
+### 2.3 Configuration Drift Monitoring
+- **Conditional Access (CA) Tracker:** Analyzes changes in CA policies and alerts on misconfigurations.
+- **Mailbox Rules Monitoring:** Detects suspicious forwarding or hidden redirect rules in Exchange Online.
 
 ### 2.3 Application Risk Assessment
 - **OAuth App Monitoring:** Audits all Azure AD Enterprise Applications and App Registrations. Identifies high-risk API permissions (`Mail.ReadWrite`, `User.Read.All`) paired with unverified publishers, providing a prioritized list for remediation.
@@ -74,4 +78,4 @@ SpecterDefence provides a Kubernetes Helm Chart out-of-the-box.
 3. Apply the backend API pods, frontend pods, and collector cron jobs via `helm upgrade --install`.
 4. SpecterDefence is deployed securely behind an Nginx or Traefik Ingress controller with strict Let's Encrypt TLS enabled, rate limiting, and defensive HTTP headers (CSP, HSTS).
 
-*Refer to the full `k8s-security.md` and repository `ARCHITECTURE.md` for extended compliance and infrastructure guidance.*
+*Refer to the full repository [ARCHITECTURE.md](./ARCHITECTURE.md) and [SECURE-DEPLOYMENT.md](./SECURE-DEPLOYMENT.md) for extended compliance and infrastructure guidance.*

@@ -11,9 +11,11 @@
 - 🔐 **Multi-Tenant Management**: Natively designed for Managed Service Providers (MSPs) and enterprises with multiple subsidiaries, allowing security teams to monitor dozens of M365 tenants from a single pane of glass.
 - 📊 **Security Posture & Compliance**: Track MFA enrollment continuously across all users and analyze the strength of authentication methods (FIDO2 vs. SMS). Identify and alert on misconfigurations or policy drifts.
 - 🚦 **Conditional Access (CA) Monitoring**: Automatically detect high-risk changes such as CA policy disables, MFA removal, or broad scope changes that leave your environment exposed.
-- 🚨 **Real-Time Threat Detection**: Catch active attacks as they happen. Advanced login anomaly detection correlates native M365 audit logs with CTI (Cyber Threat Intelligence) to identify impossible travel, new countries, and brute-force attempts. Per-tenant approved countries can also be configured to alert on logins from non-approved regions.
-- 🛡️ **Malicious App & Rule Detection**: Proactively identify risky OAuth applications with long-standing permissions (e.g., Mail.ReadWrite) and detect suspicious mailbox forwarding or hidden redirect rules often used by attackers during Business Email Compromise (BEC).
-- ⚡ **Instant Actionable Alerting**: Powerful real-time streaming to security teams via WebSockets, Microsoft Teams, Slack, or Discord—complete with deduplication to prevent alert fatigue.
+- 🚨 **Real-Time Threat Detection**: Catch active attacks as they happen. Advanced login anomaly detection correlates native M365 audit logs with CTI (Cyber Threat Intelligence) to identify impossible travel, new countries, and brute-force attempts.
+- 🔍 **Insider Threat & DLP**: Monitor SharePoint sharing events and sensitive data exposure alerts to prevent data exfiltration.
+- 🖥️ **Endpoint Security**: Windows-based endpoint monitoring tracks device health, heartbeats, and suspicious process executions.
+- 🛡️ **Malicious App & Rule Detection**: Proactively identify risky OAuth applications with long-standing permissions (e.g., Mail.ReadWrite) and detect suspicious mailbox forwarding rules.
+- ⚡ **Instant Actionable Alerting**: Powerful real-time streaming to security teams via WebSockets, Slack, or Discord—complete with deduplication.
 
 ## Why Choose SpecterDefence?
 
