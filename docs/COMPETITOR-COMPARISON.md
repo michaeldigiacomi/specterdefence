@@ -20,6 +20,7 @@ Historically, securing Microsoft 365 environments required one of two expensive 
 | **Alert Deduplication** | **Built-in** (Hash-based Cooldowns) | Requires Logic Apps / SOAR | Requires complex correlation rules | Built-in | Medium |
 | **O365 Posture Analytics** | **Deep** (OAuth, Mailbox, CA drift) | Custom KQL Queries needed | Custom Queries needed | Light coverage, focuses on Azure Infra | Deep |
 | **Query Language Req.** | None (GUI rules engine) | KQL (Kusto Query Language) | SPL (Search Processing Language) | Proprietary / UI | KQL / UI |
+| **Endpoint Visibility** | **Optional Agent** (Listen/Alert) | Deep (Defender/MDE) | Requires Separate Agent | Infrastructure (Agentless) | Deep (E5 Needed) |
 
 ---
 
@@ -46,7 +47,7 @@ Historically, securing Microsoft 365 environments required one of two expensive 
 ### 2.4 SpecterDefence vs. Native Microsoft (Defender for Office/Cloud Apps)
 
 - **The Microsoft Challenge:** Microsoft provides fantastic native tools, but the most advanced automated remediation, Impossible Travel detection, and deep posture management require **Microsoft 365 E5 / A5 / G5 licenses**, which are extremely expensive compared to Business Premium or E3 configurations. Furthermore, managing dozens of disparate tenants (e.g., an MSP) is clunky without Azure Lighthouse.
-- **The SpecterDefence Solution:** SpecterDefence provides enterprise-grade posture checking and behavioral analytics regardless of varying tenant license levels. Its core value proposition is the multi-tenant architecture: view, assess, and alert on all your managed customers from a single dashboard.
+- **The SpecterDefence Solution:** SpecterDefence provides enterprise-grade posture checking and behavioral analytics regardless of varying tenant license levels. The **SpecterDefence Endpoint Agent** provides similar visibility to Defender for Endpoint (MDE) but with a focus on ease of deployment, native multi-tenant support, and no extra per-user licensing costs. It bridges the visibility gap for organizations on E3/Business Premium.
 
 ---
 

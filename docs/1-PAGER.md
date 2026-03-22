@@ -13,14 +13,14 @@
 - 🚦 **Conditional Access (CA) Monitoring**: Automatically detect high-risk changes such as CA policy disables, MFA removal, or broad scope changes that leave your environment exposed.
 - 🚨 **Real-Time Threat Detection**: Catch active attacks as they happen. Advanced login anomaly detection correlates native M365 audit logs with CTI (Cyber Threat Intelligence) to identify impossible travel, new countries, and brute-force attempts.
 - 🔍 **Insider Threat & DLP**: Monitor SharePoint sharing events and sensitive data exposure alerts to prevent data exfiltration.
-- 🖥️ **Endpoint Security**: Windows-based endpoint monitoring tracks device health, heartbeats, and suspicious process executions.
+- 🖥️ **Endpoint Security**: Optional Windows-based endpoint monitoring tracks device health, heartbeats, and suspicious process executions (LOLBins, PowerShell abuse).
 - 🛡️ **Malicious App & Rule Detection**: Proactively identify risky OAuth applications with long-standing permissions (e.g., Mail.ReadWrite) and detect suspicious mailbox forwarding rules.
 - ⚡ **Instant Actionable Alerting**: Powerful real-time streaming to security teams via WebSockets, Slack, or Discord—complete with deduplication.
 
 ## Why Choose SpecterDefence?
 
-**1. No Agent, Fast Value**
-With a 100% agentless integration utilizing the secure Microsoft Graph API, you can onboard a new tenant, authenticate, and receive your initial security baseline report within minutes.
+**1. Agentless-First, Deep-Visibility Options**
+With a 100% agentless integration utilizing the secure Microsoft Graph API, you can onboard a new tenant and receive your initial security baseline report within minutes. For organizations requiring deeper visibility, the **optional Windows Agent** provides granular endpoint telemetry.
 
 **2. Stop Alert Fatigue**
 Instead of hundreds of raw log lines, SpecterDefence provides consolidated, deduped alerts. "Impossible Travel Detected: User logged in from USA and China within 10 minutes." 

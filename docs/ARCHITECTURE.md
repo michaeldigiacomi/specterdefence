@@ -68,6 +68,18 @@
 │                            SPECTERDEFENCE PLATFORM                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
+│  ┌───────────────────────────────────────────────────────────────┐          │
+│  │                     WINDOWS ENDPOINT                          │          │
+│  │  ┌─────────────────────────────────────────────────────────┐  │          │
+│  │  │              SpecterDefence Agent (C#)                  │  │          │
+│  │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │  │          │
+│  │  │  │ Event Watcher│  │ SQLite Buffer│  │ Uploader     │   │  │          │
+│  │  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘   │  │          │
+│  │  └─────────┼─────────────────┼─────────────────┼───────────┘  │          │
+│  └────────────┼─────────────────┼─────────────────┼──────────────┘          │
+│               │                 │                 │                         │
+│               │                 │ HTTPS           │                         │
+│               ▼                 ▼                 ▼                         │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │                         FASTAPI BACKEND                             │   │
 │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────────┐  │   │
@@ -183,6 +195,12 @@
 │     │  WebSocket │◀───│  Alert Feed  │◀───│   New Alert  │                  │
 │     │  Clients   │    │  Manager     │    │   Detected   │                  │
 │     └────────────┘    └──────────────┘    └──────────────┘                  │
+│                                                                             │
+│  5. ENDPOINT AGENT TELEMETRY                                                │
+│     ┌────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────┐  │
+│     │  Windows   │───▶│  SQLite      │───▶│  Batch       │───▶│  FastAPI │  │
+│     │  Events    │    │  Buffer      │    │  Upload      │    │  Backend │  │
+│     └────────────┘    └──────────────┘    └──────────────┘    └──────────┘  │
 │                                                                             │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -524,8 +542,34 @@ Organizations can configure a list of approved country codes for each tenant. Wh
 - Configuration: Tenants can set `approved_countries` as a JSON list of country codes (e.g., `["US", "CA", "GB"]`)
 - Alerting: Logins from non-approved countries trigger an `UNAPPROVED_COUNTRY` alert type
 - UI: Users can configure approved countries in the Tenants settings page (comma-separated country codes)
+- API: Accessible via `/api/v1/tenants/{id}/approved-countries`
 
-### 3.5 Microsoft Graph Integration
+### 3.8 Endpoint Agent Architecture
+
+The SpecterDefence Windows Agent (C#/.NET 8) provides granular visibility into endpoint activity without requiring a kernel driver or third-party dependencies like Sysmon.
+
+#### 1. Enrollment & Authentication
+- **Initial Enrollment**: The agent uses a one-time, tenant-scoped **Enrollment Token** to register via `POST /endpoints/enroll`.
+- **Identity**: On successful enrollment, the server returns a unique `DeviceId` and a secure `DeviceToken`.
+- **Authorization**: All subsequent calls (heartbeat, events) require the `X-Device-Token` header. The backend validates this token against the hashed version in the database.
+
+#### 2. Event Monitoring (Native Windows APIs)
+The agent uses the `EventLogWatcher` class to subscribe to specific event channels:
+- **Security Channel (4688)**: Captures process creation events, including command lines.
+- **PowerShell Channel (4104)**: Captures de-obfuscated script block content.
+- **System Channel (7045)**: Detects new service installations.
+
+#### 3. Local Buffering & Ingestion
+To prevent data loss during network instability:
+- All detected events are immediately serialized and stored in a local **SQLite** database (`agent.db`).
+- A background **Telemetry Uploader** service pulls batches of up to 50 events every 30 seconds.
+- Events are deleted from the local buffer only after a `200 OK` response from the backend.
+
+#### 4. Heartbeat logic
+- The agent reports its health, OS version, and agent version every 5 minutes.
+- The backend updates the `last_heartbeat` timestamp in the `endpoint_devices` table.
+- Devices that haven't reported in over 10 minutes are flagged as "Offline" in the dashboard.
+
 
 #### Connection Flow
 

@@ -71,6 +71,13 @@ from src.models.oauth_apps import (
     RiskLevel,
 )
 from src.models.sharepoint import SharePointSharingModel
+from src.models.endpoint import (
+    DeviceStatus,
+    EndpointDeviceModel,
+    EndpointEventModel,
+    EndpointEventSeverity,
+    EndpointEventType,
+)
 from src.models.settings import (
     ApiKeyModel,
     ConfigurationBackupModel,
@@ -172,4 +179,9 @@ __all__ = [
     "SslCertificateModel",
     "DomainExpiryModel",
     "SharePointSharingModel",
+    "EndpointDeviceModel",
+    "EndpointEventModel",
+    "DeviceStatus",
+    "EndpointEventType",
+    "EndpointEventSeverity",
 ]

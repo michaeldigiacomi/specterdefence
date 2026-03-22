@@ -21,6 +21,7 @@ import {
   Globe,
   Share2,
   Lock,
+  Monitor,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { useLogout } from '@/hooks/useAuth';
@@ -49,6 +50,7 @@ const navItems = [
   { path: '/oauth-apps', icon: AppWindow, label: 'OAuth Apps' },
   { path: '/monitoring', icon: Globe, label: 'Monitoring' },
   { path: '/sharepoint', icon: Share2, label: 'SharePoint' },
+  { path: '/endpoints', icon: Monitor, label: 'Endpoints' },
   { path: '/tenants', icon: Building2, label: 'Tenants' },
   { path: '/users', icon: UserIcon, label: 'Users' },
   { path: '/settings', icon: Settings, label: 'Settings' },
