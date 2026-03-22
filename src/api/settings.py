@@ -563,6 +563,70 @@ async def revoke_api_key(
 
 def _is_safe_webhook_url(url: str) -> tuple[bool, str | None]:
     """
+    Validate a webhook URL to mitigate SSRF risks.
+
+    The checks performed here are deliberately conservative:
+    - Only http/https schemes are allowed.
+    - Hostname must be present.
+    - The hostname is resolved and all resolved IPs must be public (no private,
+      loopback, link-local, multicast, reserved or unspecified addresses).
+    """
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False, "Malformed URL"
+
+    if parsed.scheme not in ("http", "https"):
+        return False, "Only http and https URLs are allowed"
+
+    if not parsed.hostname:
+        return False, "URL must include a hostname"
+
+    hostname = parsed.hostname
+
+    try:
+        # Resolve all addresses for the hostname (both IPv4 and IPv6).
+        addrinfo_list = socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        return False, "Unable to resolve hostname"
+
+    if not addrinfo_list:
+        return False, "Hostname did not resolve to any address"
+
+    for family, _socktype, _proto, _canonname, sockaddr in addrinfo_list:
+        ip_str = None
+        if family == socket.AF_INET:
+            ip_str = sockaddr[0]
+        elif family == socket.AF_INET6:
+            ip_str = sockaddr[0]
+
+        if not ip_str:
+            continue
+
+        try:
+            ip_obj = ipaddress.ip_address(ip_str)
+        except ValueError:
+            return False, f"Resolved IP address is invalid: {ip_str}"
+
+        # Reject any non-public address space.
+        if (
+            ip_obj.is_private
+            or ip_obj.is_loopback
+            or ip_obj.is_link_local
+            or ip_obj.is_multicast
+            or ip_obj.is_reserved
+            or ip_obj.is_unspecified
+        ):
+            return False, "URL resolves to a non-public IP address"
+
+    # Optionally, enforce a safe default port range, but allow standard web ports.
+    if parsed.port is not None:
+        # Allow common HTTP(S) ports; block obviously sensitive low ports.
+        if parsed.port < 1024 and parsed.port not in (80, 443):
+            return False, "Target port is not allowed"
+
+    return True, None
+    """
     Validate that the given URL is safe to call from the server.
 
     The URL must:
