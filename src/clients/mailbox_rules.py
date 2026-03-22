@@ -186,16 +186,21 @@ class MailboxRuleClient:
 
         # Get actions
         actions = rule.get("actions", {})
+        if not isinstance(actions, dict):
+            logger.warning(f"Rule actions is not a dictionary: {actions}")
+            actions = {}
 
         # Check for forwarding
         if actions.get("forwardTo"):
             analysis["is_forwarding"] = True
             analysis["rule_type"] = "forwarding"
             forward_recipients = actions.get("forwardTo", [])
-            if forward_recipients:
-                analysis["forward_to"] = (
-                    forward_recipients[0].get("emailAddress", {}).get("address", "")
-                )
+            if isinstance(forward_recipients, list) and forward_recipients:
+                recipient = forward_recipients[0]
+                if isinstance(recipient, dict):
+                    analysis["forward_to"] = recipient.get("emailAddress", {}).get("address", "")
+                elif isinstance(recipient, str):
+                    analysis["forward_to"] = recipient
 
                 # Check against tenant domains (can be passed in future)
                 analysis["forward_to_external"] = self._is_external_address(analysis["forward_to"])
@@ -214,10 +219,13 @@ class MailboxRuleClient:
             analysis["is_redirect"] = True
             analysis["rule_type"] = "redirect"
             redirect_recipients = actions.get("redirect", [])
-            if redirect_recipients:
-                analysis["redirect_to"] = (
-                    redirect_recipients[0].get("emailAddress", {}).get("address", "")
-                )
+            if isinstance(redirect_recipients, list) and redirect_recipients:
+                recipient = redirect_recipients[0]
+                if isinstance(recipient, dict):
+                    analysis["redirect_to"] = recipient.get("emailAddress", {}).get("address", "")
+                elif isinstance(recipient, str):
+                    analysis["redirect_to"] = recipient
+                
                 reasons = analysis.get("detection_reasons")
                 if isinstance(reasons, list):
                     reasons.append("Email redirect rule detected")
@@ -238,8 +246,15 @@ class MailboxRuleClient:
 
         # Check for move to hidden folder (delete, junk, etc.)
         if actions.get("moveToFolder"):
-            folder_id = actions.get("moveToFolder", {}).get("id", "").lower()
-            folder_name = actions.get("moveToFolder", {}).get("displayName", "").lower()
+            move_target = actions.get("moveToFolder", {})
+            folder_id = ""
+            folder_name = ""
+            
+            if isinstance(move_target, dict):
+                folder_id = move_target.get("id", "").lower()
+                folder_name = move_target.get("displayName", "").lower()
+            elif isinstance(move_target, str):
+                folder_id = move_target.lower()
 
             if any(
                 x in folder_id or x in folder_name for x in ["deleted", "junk", "spam", "archive"]
