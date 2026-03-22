@@ -1,10 +1,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: specterdefence
+  name: specterdefence-marketing
   namespace: specterdefence
   labels:
-    app.kubernetes.io/name: specterdefence
+    app.kubernetes.io/name: specterdefence-marketing
     environment: production
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
@@ -15,10 +15,8 @@ spec:
   tls:
     - hosts:
         - specterdefence.digitaladrenalin.net
-        - app.specterdefence.digitaladrenalin.net
       secretName: specterdefence-tls
   rules:
-    # Marketing Site (Root Domain)
     - host: specterdefence.digitaladrenalin.net
       http:
         paths:
@@ -29,12 +27,30 @@ spec:
                 name: specterdefence-marketing
                 port:
                   number: 80
-    
-    # Core Application (Subdomain)
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: specterdefence-app
+  namespace: specterdefence
+  labels:
+    app.kubernetes.io/name: specterdefence-app
+    environment: production
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    # Note: Challenge might fail if DNS points to Tailscale
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - app.specterdefence.digitaladrenalin.net
+      secretName: specterdefence-app-tls
+  rules:
     - host: app.specterdefence.digitaladrenalin.net
       http:
         paths:
-          # API routes -> backend
           - path: /api
             pathType: Prefix
             backend:
@@ -42,7 +58,6 @@ spec:
                 name: specterdefence-backend
                 port:
                   number: 8000
-          # WebSocket -> backend
           - path: /ws
             pathType: Prefix
             backend:
@@ -50,7 +65,6 @@ spec:
                 name: specterdefence-backend
                 port:
                   number: 8000
-          # Everything else -> frontend SPA
           - path: /
             pathType: Prefix
             backend:

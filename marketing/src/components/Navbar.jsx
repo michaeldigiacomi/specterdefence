@@ -18,17 +18,17 @@ const Navbar = () => {
       justifyContent: 'space-between',
       gap: '4rem'
     }}>
-      <div className="flex-center" style={{ gap: '0.75rem' }}>
+      <a href="#" className="flex-center" style={{ gap: '0.75rem', cursor: 'pointer' }}>
         <Shield className="grad-text" size={28} style={{ color: 'var(--accent-cyan)' }} />
         <span style={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.5px' }}>
           Specter<span className="grad-text">Defence</span>
         </span>
-      </div>
+      </a>
       
       <div style={{ display: 'flex', gap: '2rem', fontWeight: 500, color: 'var(--text-muted)' }}>
         <a href="#features" className="hover-white">Features</a>
         <a href="#endpoint" className="hover-white">Endpoint</a>
-        <a href="#docs" className="hover-white">Docs</a>
+        <a href="https://github.com/michaeldigiacomi/specterdefence/tree/main/docs" target="_blank" rel="noopener noreferrer" className="hover-white">Docs</a>
         <a href="#pricing" className="hover-white">Pricing</a>
       </div>
 
