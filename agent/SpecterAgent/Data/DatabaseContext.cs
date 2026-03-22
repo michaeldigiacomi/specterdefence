@@ -23,7 +23,7 @@ public class DatabaseContext
     {
         return await _database.Table<BufferedEvent>()
                              .OrderBy(x => x.DetectedAt)
-                             .Limit(limit)
+                             .Take(limit)
                              .ToListAsync();
     }
 
