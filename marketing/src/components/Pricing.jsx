@@ -83,6 +83,7 @@ const Pricing = () => {
       icon: Server,
       features: [
         'Up to 3 Managed Tenants',
+        'Up to 5 Windows Endpoints',
         'Basic Security Analytics',
         'Community Support',
         'Open Source Core'
@@ -96,9 +97,10 @@ const Pricing = () => {
       icon: Zap,
       features: [
         'Unlimited Tenants',
+        'Up to 50 Windows Endpoints',
+        'Extra Endpoints: $1.00/mo',
         'Custom Security Rules',
         'API Access',
-        'Email Support',
         'Advanced Analytics'
       ]
     },
@@ -111,8 +113,9 @@ const Pricing = () => {
       highlighted: true,
       features: [
         'Fully Managed Infrastructure',
+        'Up to 250 Windows Endpoints',
+        'Extra Endpoints: $0.50/mo',
         'Automated Daily Updates',
-        'Zero Maintenance',
         'Priority Slack Support',
         'Daily Off-site Backups'
       ]
@@ -124,6 +127,7 @@ const Pricing = () => {
       type: 'hosted',
       icon: Globe,
       features: [
+        'Unlimited Windows Endpoints',
         'Dedicated Cloud Instance',
         'White-label Reporting',
         'SSO & SAML Integration',

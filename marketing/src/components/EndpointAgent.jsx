@@ -32,14 +32,15 @@ const EndpointAgent = () => {
           </div>
           <h2 style={{ textAlign: 'left', marginBottom: '1.5rem' }}>Native <span className="grad-text">Endpoint</span> Intelligence</h2>
           <p style={{ marginBottom: '2rem' }}>
-            The optional Windows-based agent tracks device health, heartbeats, and suspicious process executions like PowerShell abuse and LOLBins—without requiring a kernel driver.
+            The host-based Windows agent extends visibility to the endpoint layer, tracking device health and suspicious process executions like PowerShell abuse and LOLBins—without requiring a kernel driver or expensive Microsoft E5 licensing.
           </p>
           <ul style={{ listStyle: 'none', space: '1rem', color: 'var(--text-main)' }}>
             {[
-              "Process Creation Tracking (Event 4688)",
-              "De-obfuscated PowerShell Monitoring",
-              "New Service Installation Detection",
-              "SQLite Local Buffering for Reliability"
+              "Process Creation Tracking (Event ID 4688)",
+              "De-obfuscated PowerShell Monitoring (Event ID 4104)",
+              "Resilient SQLite Local Buffering & Batch Uploads",
+              "Silent MSI Deployment with Auto-Enrollment",
+              "Bridges visibility gaps for M365 E3 & Business Premium"
             ].map((item, i) => (
               <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-cyan)' }}></div>
