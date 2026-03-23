@@ -24,7 +24,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: michaeldigiacomi/specterdefence-backend
+  IMAGE_NAME: digiacomi-shared/specterdefence-backend
 
 jobs:
   # ============================================
