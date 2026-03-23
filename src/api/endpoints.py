@@ -230,8 +230,9 @@ async def enroll_device(
     # Generate a unique device token
     device_token = secrets.token_urlsafe(48)
 
-    # Create the device record
+    # Create the device record with an explicit ID to ensure it is returned in the response
     device = EndpointDeviceModel(
+        id=uuid.uuid4(),
         tenant_id=str(valid_key.tenant_id) if valid_key.tenant_id else None,
         hostname=body.hostname,
         os_version=body.os_version,
