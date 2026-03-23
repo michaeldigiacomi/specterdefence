@@ -22,7 +22,7 @@ It caters specifically to **organizations managing multiple M365 tenants**, such
 ### 2.2 Insider Threat & Resource Security
 - **SharePoint Sharing Analytics:** Tracks anonymous and external sharing links in SharePoint and OneDrive.
 - **Data Loss Prevention (DLP):** Monitoring of DLP policy matches and sensitive data exposure events.
-- **Endpoint Protection:** The Windows Endpoint Agent tracks device health and suspicious process executions.
+- **Endpoint Protection:** The Windows Endpoint Agent tracks device health and suspicious process executions. See [ENDPOINT-AGENT.md](./ENDPOINT-AGENT.md) for details.
 
 ### 2.3 Configuration Drift Monitoring
 - **Conditional Access (CA) Tracker:** Analyzes changes in CA policies and alerts on misconfigurations.

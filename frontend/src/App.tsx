@@ -22,6 +22,7 @@ import Monitoring from '@/pages/Monitoring';
 import SharePoint from '@/pages/SharePoint';
 import InsiderThreat from '@/pages/InsiderThreat';
 import MailboxSecurity from '@/pages/MailboxSecurity';
+import Endpoints from '@/pages/Endpoints';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -98,6 +99,7 @@ function App() {
               <Route path="sharepoint" element={<SharePoint />} />
               <Route path="insider-threat" element={<InsiderThreat />} />
               <Route path="mailbox-security" element={<MailboxSecurity />} />
+              <Route path="endpoints" element={<Endpoints />} />
             </Route>
 
             {/* Catch all - redirect to login */}

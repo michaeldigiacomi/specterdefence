@@ -842,6 +842,69 @@ class ApiService {
     const response = await this.client.get(`/mailbox-security/access?${params.toString()}`);
     return response.data;
   }
+
+  // ============== Endpoints (Windows Agent) ==============
+
+  async getEndpointDevices(params?: {
+    tenant_id?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<any> {
+    const searchParams = new URLSearchParams();
+    if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
+    if (params?.status) searchParams.append('status', params.status);
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.offset) searchParams.append('offset', String(params.offset));
+    const response = await this.client.get(`/endpoints/devices?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  async getEndpointDeviceEvents(
+    deviceId: string,
+    params?: { event_type?: string; severity?: string; limit?: number; offset?: number }
+  ): Promise<any> {
+    const searchParams = new URLSearchParams();
+    if (params?.event_type) searchParams.append('event_type', params.event_type);
+    if (params?.severity) searchParams.append('severity', params.severity);
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.offset) searchParams.append('offset', String(params.offset));
+    const response = await this.client.get(
+      `/endpoints/devices/${deviceId}/events?${searchParams.toString()}`
+    );
+    return response.data;
+  }
+
+  async getEndpointEvents(params?: {
+    tenant_id?: string;
+    event_type?: string;
+    severity?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<any> {
+    const searchParams = new URLSearchParams();
+    if (params?.tenant_id) searchParams.append('tenant_id', params.tenant_id);
+    if (params?.event_type) searchParams.append('event_type', params.event_type);
+    if (params?.severity) searchParams.append('severity', params.severity);
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.offset) searchParams.append('offset', String(params.offset));
+    const response = await this.client.get(`/endpoints/events?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  async getEndpointSummary(tenantId?: string): Promise<any> {
+    const params = new URLSearchParams();
+    if (tenantId) params.append('tenant_id', tenantId);
+    const response = await this.client.get(`/endpoints/summary?${params.toString()}`);
+    return response.data;
+  }
+
+  async generateEndpointEnrollmentToken(tenantId?: string): Promise<any> {
+    const params = new URLSearchParams();
+    if (tenantId) params.append('tenant_id', tenantId);
+    const response = await this.client.post(`/endpoints/generate-token?${params.toString()}`);
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();

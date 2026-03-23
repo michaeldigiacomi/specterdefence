@@ -12,6 +12,7 @@ from src.api import (
     ca_policies,
     dashboard,
     diagnostics,
+    endpoints,
     health,
     mailbox_rules,
     mfa_report,
@@ -52,3 +53,4 @@ router.include_router(diagnostics.router, prefix="/diagnostics", tags=["diagnost
 router.include_router(sharepoint.router, prefix="/sharepoint", tags=["sharepoint"], dependencies=protected_deps)
 router.include_router(dlp.router, prefix="/dlp", tags=["dlp"], dependencies=protected_deps)
 router.include_router(mailbox.router, prefix="/mailbox-security", tags=["mailbox-security"], dependencies=protected_deps)
+router.include_router(endpoints.router, prefix="/endpoints", tags=["endpoints"], dependencies=protected_deps)
