@@ -232,7 +232,7 @@ async def enroll_device(
 
     # Create the device record
     device = EndpointDeviceModel(
-        tenant_id=valid_key.tenant_id,
+        tenant_id=str(valid_key.tenant_id) if valid_key.tenant_id else None,
         hostname=body.hostname,
         os_version=body.os_version,
         agent_version=body.agent_version,
@@ -624,7 +624,7 @@ async def generate_enrollment_token(
         name=f"Endpoint Enrollment Token",
         key_hash=_hash_token(token),
         key_prefix=token[:8],
-        tenant_id=uuid.UUID(tenant_id) if tenant_id and tenant_id != "NONE" else None,
+        tenant_id=str(tenant_id) if tenant_id and tenant_id != "NONE" else None,
         is_active=True,
         created_by=user["username"],
     )
