@@ -61,7 +61,7 @@ public class TelemetryUploader : BackgroundService
             var config = _enrollment.Config!;
             var eventsToUpload = pending.Select(x => JsonConvert.DeserializeObject<EndpointEvent>(x.EventJson)).ToList();
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"{config.BackendUrl}/endpoints/events");
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{config.BackendUrl}/api/v1/endpoints/events");
             request.Headers.Add("X-Device-Token", config.DeviceToken);
             request.Content = JsonContent.Create(new { events = eventsToUpload });
 

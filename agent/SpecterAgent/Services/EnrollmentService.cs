@@ -76,7 +76,7 @@ public class EnrollmentService
 
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"{backendUrl}/endpoints/enroll", request);
+            var response = await _httpClient.PostAsJsonAsync($"{backendUrl}/api/v1/endpoints/enroll", request);
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<EnrollmentResponse>();

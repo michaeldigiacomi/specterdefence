@@ -30,13 +30,17 @@ public class HeartbeatService : BackgroundService
         {
             if (!_enrollmentService.IsEnrolled)
             {
-                _logger.LogWarning("Agent is not enrolled. Waiting for enrollment...");
                 // Check if there is an enrollment token in the config
                 if (!string.IsNullOrEmpty(_enrollmentService.Config?.EnrollmentToken))
                 {
+                    _logger.LogInformation("Agent is not enrolled. Attempting enrollment immediately...");
                     await _enrollmentService.EnrollAsync(
                         _enrollmentService.Config.EnrollmentToken,
                         _enrollmentService.Config.BackendUrl);
+                }
+                else
+                {
+                    _logger.LogWarning("Agent is not enrolled and no enrollment token found. Waiting...");
                 }
             }
 
@@ -54,7 +58,7 @@ public class HeartbeatService : BackgroundService
         try
         {
             var config = _enrollmentService.Config!;
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"{config.BackendUrl}/endpoints/heartbeat");
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{config.BackendUrl}/api/v1/endpoints/heartbeat");
             request.Headers.Add("X-Device-Token", config.DeviceToken);
             request.Content = JsonContent.Create(new
             {
