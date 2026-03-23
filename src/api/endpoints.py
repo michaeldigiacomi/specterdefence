@@ -1,6 +1,5 @@
-"""Agent API endpoints for SpecterDefence Windows Agent enrollment and telemetry."""
-
 import hashlib
+import logging
 import secrets
 import uuid
 from datetime import datetime
@@ -12,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.auth_local import get_authorized_tenant, get_current_user
 from src.database import get_db
+
+logger = logging.getLogger("specterdefence.api.endpoints")
 from src.models.endpoint import (
     DeviceStatus,
     EndpointDeviceModel,
@@ -167,19 +168,24 @@ def _hash_token(token: str) -> str:
 async def _get_device_by_token(db: AsyncSession, token: str) -> EndpointDeviceModel | None:
     """Look up a device by its bearer token."""
     token_hash = _hash_token(token)
+    logger.debug("Attempting device lookup with token prefix: %s... (hash: %s)", token[:8], token_hash)
     result = await db.execute(
         select(EndpointDeviceModel).where(
             EndpointDeviceModel.token_hash == token_hash,
             EndpointDeviceModel.status == DeviceStatus.ACTIVE,
         )
     )
-    return result.scalar_one_or_none()
+    device = result.scalar_one_or_none()
+    if not device:
+        logger.warning("Device lookup failed for token hash: %s", token_hash)
+    return device
 
 
 def _extract_device_token(request: Request) -> str:
     """Extract the device token from the X-Device-Token header."""
     token = request.headers.get("X-Device-Token")
     if not token:
+        logger.warning("Missing X-Device-Token header in request from %s", request.client.host if request.client else "unknown")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing X-Device-Token header",
