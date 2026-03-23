@@ -3,6 +3,9 @@ using Microsoft.Extensions.Hosting;
 using SpecterAgent;
 using SpecterAgent.Services;
 
+// Explicitly initialize SQLite provider to ensure native DLLs are loaded in single-file deployment
+SQLitePCL.Batteries_V2.Init();
+
 var builder = Host.CreateApplicationBuilder(args);
 
 // Parse CLI arguments for silent enrollment
