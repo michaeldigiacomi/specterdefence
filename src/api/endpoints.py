@@ -252,7 +252,7 @@ async def enroll_device(
     await db.refresh(device)
 
     return EnrollResponse(
-        device_id=device.id,
+        device_id=str(device.id),
         device_token=device_token,
         message=f"Device '{body.hostname}' enrolled successfully",
     )
