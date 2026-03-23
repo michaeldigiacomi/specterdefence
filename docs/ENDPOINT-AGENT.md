@@ -16,15 +16,15 @@ The SpecterDefence Windows Agent is a lightweight background service that extend
 
 The agent is built using **.NET 8.0**. You will need the .NET 8 SDK installed on your build machine.
 
-### Build a Single-File Binary
-To generate a standalone executable that doesn't require the .NET runtime to be installed on the target machine:
+### 🚀 Automated Build (CI/CD)
+The agent is automatically built via GitHub Actions on every push to the `agent/` directory. You can download the latest standalone `SpecterAgent.exe` from the **Actions** tab in the GitHub repository (Artifacts section).
 
+### Manual Build (Single-File)
+To generate a standalone executable manually:
 ```powershell
 cd agent\SpecterAgent
-dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishTrimmed=false
+dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishTrimmed=false -o ./publish
 ```
-
-The output will be located in `agent\SpecterAgent\bin\Release\net8.0-windows\win-x64\publish\SpecterAgent.exe`.
 
 ---
 
@@ -32,27 +32,25 @@ The output will be located in `agent\SpecterAgent\bin\Release\net8.0-windows\win
 
 ### Prerequisites
 - Windows 10/11 or Windows Server 2016+
-- Administrator privileges for installation.
-- PowerShell Script Block Logging and Process Creation Auditing should be enabled (via GPO or local policy) for maximum visibility.
+- Administrator privileges.
+- **Visibility Bridge**: This agent provides enterprise-grade process and PowerShell monitoring for tenants on **Microsoft 365 E3** or **Business Premium**, bridging the gap to E5-level security without the per-user licensing overhead.
 
 ### Manual Installation
 1.  Generate an **Enrollment Token** from the **Endpoints** page in the SpecterDefence dashboard.
 2.  Copy the `SpecterAgent.exe` to a permanent location (e.g., `C:\Program Files\SpecterAgent\`).
-3.  Create a `config.json` in the same directory:
-    ```json
-    {
-      "EnrollmentToken": "YOUR_TOKEN_HERE",
-      "BackendUrl": "https://your-specter-defence-url"
-    }
+3.  **Initialize via CLI (Recommended)**:
+    Run the agent with the following flags to automatically create the configuration and enroll:
+    ```powershell
+    .\SpecterAgent.exe --enrollment-token YOUR_TOKEN --backend-url https://your-specter-url
     ```
-4.  Install as a Windows Service:
+4.  **Install as a Windows Service**:
     ```powershell
     sc.exe create SpecterAgent binPath= "C:\Program Files\SpecterAgent\SpecterAgent.exe" start= auto
     sc.exe start SpecterAgent
     ```
 
-### Silent / Mass Deployment (MSI)
-The agent is designed to be packaged as an MSI. When deploying via Intune or GPO, you can pass the enrollment token as a public property (coming in Phase 2).
+### Silent / Mass Deployment
+For mass deployment (Intune, GPO, NinjaOne), use the CLI flags in your install script to ensure every device is enrolled immediately upon service start. MSI packaging support is available in the `build-agent` workflow output.
 
 ---
 
