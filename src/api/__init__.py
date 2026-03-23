@@ -33,6 +33,7 @@ router = APIRouter()
 router.include_router(health.router, prefix="/health", tags=["health"])
 router.include_router(auth_local.router, prefix="/auth/local", tags=["local-auth"])
 router.include_router(websocket.router, prefix="/ws", tags=["websocket"])
+router.include_router(endpoints.router, prefix="/endpoints", tags=["endpoints"])
 
 # Protected routes
 protected_deps = [Depends(get_current_user)]
@@ -53,4 +54,4 @@ router.include_router(diagnostics.router, prefix="/diagnostics", tags=["diagnost
 router.include_router(sharepoint.router, prefix="/sharepoint", tags=["sharepoint"], dependencies=protected_deps)
 router.include_router(dlp.router, prefix="/dlp", tags=["dlp"], dependencies=protected_deps)
 router.include_router(mailbox.router, prefix="/mailbox-security", tags=["mailbox-security"], dependencies=protected_deps)
-router.include_router(endpoints.router, prefix="/endpoints", tags=["endpoints"], dependencies=protected_deps)
+router.include_router(mailbox.router, prefix="/mailbox-security", tags=["mailbox-security"], dependencies=protected_deps)
