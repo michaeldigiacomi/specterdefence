@@ -392,7 +392,7 @@ class OAuthAppsService:
         for perm in permissions:
             perm_value = perm.get("value") or perm.get("appRoleId", "")
 
-            # Check if permission already exists
+            # Check if permission already exists in DB
             result = await self.db.execute(
                 select(OAuthAppPermissionModel).where(
                     and_(
@@ -402,6 +402,17 @@ class OAuthAppsService:
                 )
             )
             existing = result.scalar_one_or_none()
+
+            # Also check session for pending additions (prevents duplicate key)
+            if not existing:
+                for obj in self.db.new:
+                    if (
+                        isinstance(obj, OAuthAppPermissionModel)
+                        and obj.app_id == app_internal_id
+                        and obj.permission_value == perm_value
+                    ):
+                        existing = obj
+                        break
 
             if existing:
                 # Update existing
@@ -452,7 +463,7 @@ class OAuthAppsService:
             if not user_id:
                 continue
 
-            # Check if consent already exists
+            # Check if consent already exists in DB
             result = await self.db.execute(
                 select(OAuthAppConsentModel).where(
                     and_(
@@ -462,6 +473,19 @@ class OAuthAppsService:
                 )
             )
             existing = result.scalar_one_or_none()
+
+            # Also check if we already added one in this session (prevents
+            # duplicate key when same consent appears multiple times in a
+            # single Graph API response before commit)
+            if not existing:
+                for obj in self.db.new:
+                    if (
+                        isinstance(obj, OAuthAppConsentModel)
+                        and obj.app_id == app_internal_id
+                        and obj.user_id == user_id
+                    ):
+                        existing = obj
+                        break
 
             # Parse dates
             consented_at = None
