@@ -24,7 +24,7 @@ spec:
         - name: ghcr-registry-secret
       containers:
         - name: specterdefence-backend
-          image: ghcr.io/digiacomi-shared/specterdefence-backend:latest
+          image: ghcr.io/michaeldigiacomi/specterdefence-backend:latest
           imagePullPolicy: Always
           ports:
             - name: http
@@ -45,6 +45,11 @@ spec:
                 secretKeyRef:
                   name: specterdefence-secrets
                   key: SECRET_KEY
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: JWT_SECRET_KEY
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
@@ -55,16 +60,16 @@ spec:
                 secretKeyRef:
                   name: specterdefence-secrets
                   key: ENCRYPTION_KEY
-            - name: KIMI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: specterdefence-secrets
-                  key: KIMI_API_KEY
             - name: ADMIN_PASSWORD_HASH
               valueFrom:
                 secretKeyRef:
                   name: specterdefence-secrets
                   key: ADMIN_PASSWORD_HASH
+            - name: KIMI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: specterdefence-secrets
+                  key: KIMI_API_KEY
             - name: ABUSEIPDB_API_KEY
               valueFrom:
                 secretKeyRef:

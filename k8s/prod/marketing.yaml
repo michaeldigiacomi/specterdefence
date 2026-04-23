@@ -4,20 +4,28 @@ metadata:
   name: specterdefence-marketing
   namespace: specterdefence
   labels:
-    app: specterdefence-marketing
+    app.kubernetes.io/name: specterdefence
+    app.kubernetes.io/component: marketing
+    environment: production
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: specterdefence-marketing
+      app.kubernetes.io/name: specterdefence
+      app.kubernetes.io/component: marketing
   template:
     metadata:
       labels:
-        app: specterdefence-marketing
+        app.kubernetes.io/name: specterdefence
+        app.kubernetes.io/component: marketing
+        environment: production
     spec:
+      imagePullSecrets:
+        - name: ghcr-registry-secret
       containers:
       - name: specterdefence-marketing
         image: ghcr.io/michaeldigiacomi/specterdefence-marketing:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
         resources:
@@ -33,9 +41,13 @@ kind: Service
 metadata:
   name: specterdefence-marketing
   namespace: specterdefence
+  labels:
+    app.kubernetes.io/name: specterdefence
+    app.kubernetes.io/component: marketing
 spec:
   selector:
-    app: specterdefence-marketing
+    app.kubernetes.io/name: specterdefence
+    app.kubernetes.io/component: marketing
   ports:
   - protocol: TCP
     port: 80

@@ -31,16 +31,16 @@ spec:
               containerPort: 80
           livenessProbe:
             httpGet:
-              path: /health
+              path: /
               port: http
             initialDelaySeconds: 10
-            periodSeconds: 10
+            periodSeconds: 30
           readinessProbe:
             httpGet:
-              path: /health
+              path: /
               port: http
             initialDelaySeconds: 5
-            periodSeconds: 5
+            periodSeconds: 10
           resources:
             requests:
               memory: "128Mi"
@@ -48,11 +48,6 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "500m"
-          env:
-            - name: VITE_API_URL
-              value: "/api/v1"
-            - name: VITE_WS_URL
-              value: "ws://specterdefence-backend:8000/ws"
 ---
 apiVersion: v1
 kind: Service
