@@ -21,7 +21,7 @@ SpecterDefence provides automated security monitoring, alerting, and remediation
 - 🖥️ **Endpoint Agent** - Windows-based device monitoring and event collection
 - 📈 **Compliance Reporting** - Track compliance against security frameworks
 - 🌐 **Geographic Map** - Visualize login activity and anomalies globally
-- 🔧 **Automated Alerting** - WebSocket-based alerts and Discord/Slack integrations
+- 🔧 **Automated Alerting** - WebSocket-based alerts and Discord integrations
 
 ## Architecture
 
@@ -29,12 +29,15 @@ SpecterDefence provides automated security monitoring, alerting, and remediation
 specterdefence/
 ├── src/                # Backend API (FastAPI)
 │   ├── api/           # Routes and endpoints
+│   │   └── monitoring/  # Website, SSL, and domain monitoring routes
 │   ├── alerts/        # Alert processing logic
 │   ├── analytics/     # Security analytics
 │   ├── clients/       # Microsoft Graph API client
 │   ├── collector/     # Data collection services
+│   │   └── monitoring.py  # Monitoring data collector
 │   ├── models/        # Pydantic data models
 │   ├── services/      # Business logic layer
+│   │   └── monitoring/  # Website, SSL, and domain monitoring services
 │   └── config.py      # Application configuration
 ├── frontend/           # React frontend (Vite/Tailwind)
 ├── tests/              # Test suites
@@ -181,7 +184,6 @@ kubectl create secret generic specterdefence-secrets \
 | `ADMIN_PASSWORD_HASH` | Bcrypt hash for the local admin user | Yes |
 | `ABUSEIPDB_API_KEY` | IP reputation check API key | Optional |
 | `ALIENVAULT_OTX_API_KEY` | Threat intelligence feed API key | Optional |
-| `O365_CLIENT_SECRET` | Microsoft Graph API client secret | Optional |
 
 ### IP Lookup Service
 
@@ -189,17 +191,6 @@ The IP lookup feature uses [ip-api.com](https://ip-api.com) for geographic IP lo
 
 - **Free tier**: 45 requests/minute, no API key required
 - **Pro version**: Higher rate limits and commercial use requires an API key
-
-To use the pro version for higher rate limits in production, set the `IPAPI_API_KEY` secret:
-
-```bash
-kubectl create secret generic specterdefence-secrets \
-  --namespace specterdefence \
-  --from-literal=IPAPI_API_KEY="your-ipapi-api-key"
-  # ... other secrets
-```
-
-Then update the Helm chart to use the API key by setting `env.IPAPI_API_KEY` or adding it to the secrets.
 
 ### Security Documentation
 

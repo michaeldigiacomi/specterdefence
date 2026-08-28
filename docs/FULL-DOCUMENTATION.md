@@ -39,7 +39,7 @@ SpecterDefence utilizes a microservices architecture optimally deployed on Kuber
 
 ### 3.1 The Backend (Core API)
 - **Framework:** Written in Python 3.11+ using the **FastAPI** framework, ensuring high concurrency and performance.
-- **Data Layer:** Uses **PostgreSQL** (via `SQLAlchemy` ORM) for long-term storage of tenant configuration, user assets, and alert history. Uses **Redis** for stateful caching and rate-limiting.
+- **Data Layer:** Uses **PostgreSQL** (via `SQLAlchemy` ORM) for long-term storage of tenant configuration, user assets, and alert history.
 - **Graph Client (MSAL):** Manages OAuth 2.0 app-only authentication (Client Credentials flow) to pull data securely, observing pagination and M365 API rate limits.
 
 ### 3.2 The Frontend
@@ -64,18 +64,18 @@ Actionable alerts, not noise, are fundamental to SpecterDefence.
 
 - **Intelligent Rules Syntax:** Customers customize threat rules based on Severity mapping (LOW, MEDIUM, HIGH, CRITICAL).
 - **Advanced Deduplication:** Before dispatching an alert, SpecterDefence generates an event-unique SHA-256 hash (combining event type, email, IP address, user locations, and tenant ID). If a duplicate hash exists within the admin-defined `cooldown_minute` window, the alert is suppressed, eliminating alert storms.
-- **Instant Webhooks:** WebSockets push live alerts directly to the dashboard, and integrations with Discord/Slack webhooks format and route the alarm immediately to responders.
+- **Instant Webhooks:** WebSockets push live alerts directly to the dashboard, and integrations with Discord webhooks format and route the alarm immediately to responders.
 
 ---
 
 ## 5. Deployment Overview
 
-SpecterDefence provides a Kubernetes Helm Chart out-of-the-box.
+SpecterDefence provides Kubernetes manifests (raw YAML) out-of-the-box.
 
 ### 5.1 Deployment Steps
 1. Configure necessary Kubernetes namespaces and secrets.
 2. Provide the AES `ENCRYPTION_KEY` and Application `SECRET_KEY`. 
-3. Apply the backend API pods, frontend pods, and collector cron jobs via `helm upgrade --install`.
-4. SpecterDefence is deployed securely behind an Nginx or Traefik Ingress controller with strict Let's Encrypt TLS enabled, rate limiting, and defensive HTTP headers (CSP, HSTS).
+3. Apply the backend API pods, frontend pods, and collector cron jobs via `kubectl apply -f k8s/prod/`.
+4. SpecterDefence is deployed securely behind a Traefik Ingress controller with strict Let's Encrypt TLS enabled, rate limiting, and defensive HTTP headers (CSP, HSTS).
 
 *Refer to the full repository [ARCHITECTURE.md](./ARCHITECTURE.md) and [SECURE-DEPLOYMENT.md](./SECURE-DEPLOYMENT.md) for extended compliance and infrastructure guidance.*

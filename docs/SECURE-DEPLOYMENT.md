@@ -1,5 +1,7 @@
 # SpecterDefence Secure Deployment Guide
 
+> Note: The current k8s manifests use raw YAML with a single replica and Traefik ingress. The deployment can be enhanced with HPA, PDB, and Network Policies as described in the recommendations below.
+
 This guide provides step-by-step instructions for securely deploying SpecterDefence to production.
 
 ---
@@ -7,10 +9,10 @@ This guide provides step-by-step instructions for securely deploying SpecterDefe
 ## Prerequisites
 
 - Kubernetes cluster (1.24+) with kubectl configured
-- Helm 3.12+ installed
 - Access to a secrets management system (HashiCorp Vault, AWS Secrets Manager, or manual)
 - Domain name with DNS configured
 - TLS certificate (Let's Encrypt recommended)
+- Traefik ingress controller installed on the cluster
 
 ---
 
@@ -62,13 +64,6 @@ export POSTGRES_DB=specterdefence
 ```bash
 # Create namespace
 kubectl create namespace specterdefence
-
-# Label namespace for pod security standards
-kubectl label namespace specterdefence \
-  pod-security.kubernetes.io/enforce=restricted \
-  pod-security.kubernetes.io/enforce-version=latest \
-  pod-security.kubernetes.io/audit=restricted \
-  pod-security.kubernetes.io/warn=restricted
 ```
 
 ---
@@ -158,7 +153,7 @@ spec:
     solvers:
     - http01:
         ingress:
-          class: nginx
+          class: traefik
 EOF
 ```
 
@@ -176,179 +171,43 @@ kubectl create secret tls specterdefence-tls \
 
 ## Step 3: Deploy SpecterDefence
 
-### 3.1 Create Production Values File
+### 3.1 Apply the Raw YAML Manifests
 
-Create `production-values.yaml`:
+The repository contains raw Kubernetes YAML manifests in `k8s/prod/`. These include:
 
-```yaml
-# production-values.yaml
-global:
-  environment: production
-  domain: app.specterdefence.digitaladrenalin.net
-
-api:
-  replicaCount: 3
-
-  image:
-    repository: ghcr.io/bluedigiacomi/specterdefence-api
-    pullPolicy: IfNotPresent
-    tag: "stable"
-
-  resources:
-    limits:
-      cpu: 2000m
-      memory: 2Gi
-    requests:
-      cpu: 500m
-      memory: 1Gi
-
-  autoscaling:
-    enabled: true
-    minReplicas: 3
-    maxReplicas: 20
-    targetCPUUtilizationPercentage: 60
-    targetMemoryUtilizationPercentage: 75
-
-  podDisruptionBudget:
-    enabled: true
-    minAvailable: 2
-
-  config:
-    debug: "false"
-    logLevel: "info"
-    corsOrigins: "https://app.specterdefence.digitaladrenalin.net"
-
-  podSecurityContext:
-    runAsNonRoot: true
-    runAsUser: 1000
-    fsGroup: 1000
-    seccompProfile:
-      type: RuntimeDefault
-
-  containerSecurityContext:
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    capabilities:
-      drop:
-        - ALL
-    seccompProfile:
-      type: RuntimeDefault
-
-  topologySpreadConstraints:
-    - maxSkew: 1
-      topologyKey: topology.kubernetes.io/zone
-      whenUnsatisfiable: ScheduleAnyway
-      labelSelector:
-        matchLabels:
-          app.kubernetes.io/component: api
-
-frontend:
-  replicaCount: 3
-
-  image:
-    repository: ghcr.io/bluedigiacomi/specterdefence-frontend
-    pullPolicy: IfNotPresent
-    tag: "stable"
-
-  resources:
-    limits:
-      cpu: 1000m
-      memory: 512Mi
-    requests:
-      cpu: 250m
-      memory: 256Mi
-
-  autoscaling:
-    enabled: true
-    minReplicas: 3
-    maxReplicas: 10
-
-ingress:
-  enabled: true
-  className: nginx
-
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
-    nginx.ingress.kubernetes.io/rate-limit: "1000"
-    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
-    nginx.ingress.kubernetes.io/hsts: "true"
-    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
-    nginx.ingress.kubernetes.io/hsts-include-subdomains: "true"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      add_header X-Frame-Options "DENY" always;
-      add_header X-Content-Type-Options "nosniff" always;
-      add_header X-XSS-Protection "1; mode=block" always;
-      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-      add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
-
-  tls:
-    enabled: true
-    secretName: specterdefence-tls
-
-secrets:
-  existingSecret:
-    enabled: true
-    name: specterdefence-secrets
-  validation:
-    enabled: true
-
-networkPolicy:
-  enabled: true
-  ingress:
-    allowedNamespaces:
-      - ingress-nginx
-  egress:
-    enabled: true
-    allowDNS: true
-
-serviceAccount:
-  create: true
-  automountServiceAccountToken: false
-
-podSecurityStandard:
-  enforce: "restricted"
-  audit: "restricted"
-  warn: "restricted"
-
-postgresql:
-  enabled: true
-  auth:
-    existingSecret: specterdefence-db-credentials
-  primary:
-    persistence:
-      enabled: true
-      size: 50Gi
-    resources:
-      limits:
-        cpu: 2000m
-        memory: 4Gi
-      requests:
-        cpu: 1000m
-        memory: 2Gi
-```
-
-### 3.2 Deploy with Helm
+- `namespace.yaml` — Namespace definition
+- `deployment.yaml` — Backend API deployment (1 replica) and Service
+- `frontend.yaml` — Frontend deployment (1 replica) and Service
+- `ingress.yaml` — Traefik ingress rules for app and marketing site
+- `collector-cronjob.yaml` — CronJob running the data collector every 5 minutes
+- `security-cronjob.yaml` — CronJob running security scans every 4 hours
+- `marketing.yaml` — Marketing site deployment and Service
 
 ```bash
-# Add Helm repo (if using)
-# helm repo add specterdefence https://charts.specterdefence.io
-
-# Deploy
+# Deploy all manifests
 cd /path/to/specterdefence
-helm upgrade --install specterdefence ./helm/specterdefence \
-  --namespace specterdefence \
-  --values production-values.yaml \
-  --wait \
-  --timeout 10m
+kubectl apply -f k8s/prod/
 
 # Verify deployment
 kubectl get pods -n specterdefence
 kubectl get ingress -n specterdefence
+kubectl get cronjobs -n specterdefence
+```
+
+### 3.2 Verify the Deployment
+
+```bash
+# Check backend pod status
+kubectl get pods -n specterdefence -l app.kubernetes.io/component=backend
+
+# Check frontend pod status
+kubectl get pods -n specterdefence -l app.kubernetes.io/component=frontend
+
+# Check ingress routes
+kubectl get ingress -n specterdefence
+
+# Check cronjobs
+kubectl get cronjobs -n specterdefence
 ```
 
 ---
@@ -384,7 +243,7 @@ openssl s_client -connect app.specterdefence.digitaladrenalin.net:443 -servernam
 
 ```bash
 # Check environment variables don't contain secrets
-kubectl exec -n specterdefence deployment/specterdefence-api -- env | grep -i secret
+kubectl exec -n specterdefence deployment/specterdefence-backend -- env | grep -i secret
 
 # Should return nothing or masked values
 ```
@@ -464,9 +323,9 @@ spec:
     - alert: SpecterDefenceHighErrorRate
       expr: |
         (
-          sum(rate(http_requests_total{service="specterdefence-api",status=~"5.."}[5m]))
+          sum(rate(http_requests_total{service="specterdefence-backend",status=~"5.."}[5m]))
           /
-          sum(rate(http_requests_total{service="specterdefence-api"}[5m]))
+          sum(rate(http_requests_total{service="specterdefence-backend"}[5m]))
         ) > 0.05
       for: 5m
       labels:
@@ -475,7 +334,7 @@ spec:
         summary: "High error rate on SpecterDefence API"
 
     - alert: SpecterDefenceUnauthenticatedAccess
-      expr: increase(http_requests_total{service="specterdefence-api",status="401"}[5m]) > 10
+      expr: increase(http_requests_total{service="specterdefence-backend",status="401"}[5m]) > 10
       for: 5m
       labels:
         severity: warning
@@ -573,7 +432,7 @@ If secrets are compromised:
 
 ```bash
 # 1. Scale down application
-kubectl scale deployment specterdefence-api -n specterdefence --replicas=0
+kubectl scale deployment specterdefence-backend -n specterdefence --replicas=0
 
 # 2. Generate new secrets
 export NEW_SECRET_KEY=$(openssl rand -hex 32)
@@ -595,35 +454,127 @@ kubectl patch secret specterdefence-secrets -n specterdefence \
   --type='json' \
   -p='[{"op": "replace", "path": "/data/ADMIN_PASSWORD_HASH", "value":"'$(echo -n "$NEW_ADMIN_HASH" | base64)'"}]'
 
-kubectl scale deployment specterdefence-api -n specterdefence --replicas=3
+kubectl scale deployment specterdefence-backend -n specterdefence --replicas=1
 
 # 6. Verify
-kubectl rollout status deployment/specterdefence-api -n specterdefence
+kubectl rollout status deployment specterdefence-backend -n specterdefence
+```
+
+---
+
+## Recommendations for Production Hardening
+
+The current manifests provide a functional deployment. For a production-grade setup, consider adding the following:
+
+### Horizontal Pod Autoscaler (HPA)
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: specterdefence-backend-hpa
+  namespace: specterdefence
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: specterdefence-backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
+```
+
+### Pod Disruption Budget (PDB)
+
+```yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: specterdefence-backend-pdb
+  namespace: specterdefence
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: specterdefence
+      app.kubernetes.io/component: backend
+```
+
+### Network Policy
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: specterdefence-backend-netpol
+  namespace: specterdefence
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: specterdefence
+      app.kubernetes.io/component: backend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: postgresql
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+```
+
+### Pod Security Standards
+
+```bash
+kubectl label namespace specterdefence \
+  pod-security.kubernetes.io/enforce=restricted \
+  pod-security.kubernetes.io/enforce-version=latest \
+  pod-security.kubernetes.io/audit=restricted \
+  pod-security.kubernetes.io/warn=restricted
+```
+
+### Topology Spread Constraints
+
+Add to the deployment pod spec:
+
+```yaml
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/component: backend
 ```
 
 ---
 
 ## Troubleshooting
 
-### Pod Security Standards Violations
-
-```bash
-# Check for violations
-kubectl get events -n specterdefence --field-selector reason=FailedCreate
-
-# Temporarily relax to debug
-kubectl label namespace specterdefence \
-  pod-security.kubernetes.io/enforce=baseline --overwrite
-```
-
 ### Secret Validation Failures
 
 ```bash
-# Check init container logs
-kubectl logs -n specterdefence deployment/specterdefence-api -c validate-secrets
-
 # Verify secret exists
 kubectl get secret specterdefence-secrets -n specterdefence
+
+# Check pod events
+kubectl describe pod -n specterdefence -l app.kubernetes.io/component=backend
 ```
 
 ### TLS Certificate Issues
@@ -636,6 +587,16 @@ kubectl describe certificate specterdefence-tls -n specterdefence
 kubectl logs -n cert-manager deployment/cert-manager
 ```
 
+### Traefik Ingress Issues
+
+```bash
+# Check Traefik ingress controller
+kubectl get pods -n traefik
+
+# Check ingress resources
+kubectl describe ingress -n specterdefence
+```
+
 ---
 
 ## Security Contacts
@@ -646,4 +607,4 @@ kubectl logs -n cert-manager deployment/cert-manager
 
 ---
 
-*Last Updated: 2026-03-02*
+*Last Updated: 2026-08-28*

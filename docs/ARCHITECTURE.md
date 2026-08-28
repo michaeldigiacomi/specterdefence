@@ -35,8 +35,12 @@
 | **Login Anomaly Detection** | Identify impossible travel, new countries, and brute force attempts. |
 | **Insider Threat & DLP** | Monitor SharePoint sharing events and sensitive data exposure alerts |
 | **Endpoint Monitoring** | Track Windows endpoint health, heartbeats, and security events |
-| **Real-Time Alerting** | WebSocket-based alert streaming with Discord/Slack webhook integration |
+| **Real-Time Alerting** | WebSocket-based alert streaming with Discord webhook integration |
 | **Audit Log Collection** | Continuous ingestion of M365 audit logs (Entra, Exchange, SharePoint) |
+| **Website & SSL Monitoring** | Track website availability, SSL certificate expiration, and domain registration |
+| **User Management** | Multi-user support with tenant assignment and role-based access |
+| **Settings Management** | System-wide configuration with detection thresholds, API keys, and config import/export |
+| **Diagnostics** | Data ingestion diagnostics, audit log review, and login analytics |
 
 ### 1.3 Target Users
 
@@ -55,16 +59,16 @@
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              EXTERNAL SYSTEMS                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
-│  │   Microsoft  │  │   Discord    │  │    Slack     │  │   HashiCorp  │   │
-│  │    Graph API │  │   Webhooks   │  │   Webhooks   │  │     Vault    │   │
-│  └──────┬───────┘  └──────▲───────┘  └──────▲───────┘  └──────┬───────┘   │
-│         │                 │                 │                 │           │
-└─────────┼─────────────────┼─────────────────┼─────────────────┼───────────┘
-          │                 │                 │                 │
-          │ HTTPS           │ HTTPS           │ HTTPS           │ HTTPS
-          │                 │                 │                 │
-┌─────────▼─────────────────┴─────────────────┴─────────────────┴───────────┐
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                      │
+│  │   Microsoft  │  │   Discord    │  │   HashiCorp  │                      │
+│  │    Graph API │  │   Webhooks   │  │     Vault    │                      │
+│  └──────┬───────┘  └──────▲───────┘  └──────┬───────┘                      │
+│         │                 │                 │                               │
+└─────────┼─────────────────┼─────────────────┼───────────────────────────────┘
+          │                 │                 │
+          │ HTTPS           │ HTTPS           │ HTTPS
+          │                 │                 │
+┌─────────▼─────────────────┴─────────────────┴───────────────────────────────┐
 │                            SPECTERDEFENCE PLATFORM                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
@@ -116,10 +120,10 @@
 │                                │                                             │
 │  ┌─────────────────────────────▼────────────────────────────────────────┐   │
 │  │                        DATA LAYER                                     │   │
-│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐  │   │
-│  │  │   PostgreSQL    │  │     Redis       │  │   Encrypted Secrets │  │   │
-│  │  │   (SQLAlchemy)  │  │   (Caching)     │  │   (Fernet + PBKDF2) │  │   │
-│  │  └─────────────────┘  └─────────────────┘  └─────────────────────┘  │   │
+│  │  ┌─────────────────┐  ┌──────────────────────────────────────────┐    │   │
+│  │  │   PostgreSQL    │  │   Encrypted Secrets                       │    │   │
+│  │  │   (SQLAlchemy)  │  │   (Fernet + PBKDF2)                        │    │   │
+│  │  └─────────────────┘  └──────────────────────────────────────────┘    │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -145,9 +149,10 @@
 │                         KUBERNETES DEPLOYMENT                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐ │
-│  │   API Pod(s)    │  │  Frontend Pod(s)│  │   Collector CronJob         │ │
-│  │   (FastAPI)     │  │    (Nginx)      │  │   (Data Collection)         │ │
-│  │   Port: 8000    │  │   Port: 80      │  │   Schedule: */5 * * * *     │ │
+│  │   API Pod        │  │  Frontend Pod   │  │   Collector CronJob         │ │
+│  │   (FastAPI)      │  │    (Nginx)      │  │   (Data Collection)         │ │
+│  │   Port: 8000     │  │   Port: 80      │  │   Schedule: */5 * * * *     │ │
+│   Replicas: 1       │  │   Replicas: 1   │  │                             │ │
 │  └────────┬────────┘  └────────┬────────┘  └─────────────────────────────┘ │
 │           │                    │                                          │
 │  ┌────────▼────────────────────▼────────────────────────────────────────┐ │
@@ -186,9 +191,8 @@
 │  3. ALERT GENERATION                                                        │
 │          │     ┌──────────────┐    ┌──────────────┐    ┌──────────────┐     │
 │          └────▶│ Match Rules  │───▶│  Deduplicate │───▶│ Send Webhook │     │
-│                │              │    │  (Cooldown)  │    │ (Discord/    │     │
-│                └──────────────┘    └──────────────┘    │  Slack)      │     │
-│                                                        └──────────────┘     │
+│                │              │    │  (Cooldown)  │    │ (Discord)    │     │
+│                └──────────────┘    └──────────────┘    └──────────────┘     │
 │                                                                             │
 │  4. REAL-TIME STREAMING                                                     │
 │     ┌────────────┐    ┌──────────────┐    ┌──────────────┐                  │
@@ -211,7 +215,6 @@
 |-------------|----------|---------|
 | Microsoft Graph API | HTTPS / OAuth 2.0 | Read tenant data (users, policies, audit logs) |
 | Discord Webhooks | HTTPS / JSON | Real-time security alerts |
-| Slack Webhooks | HTTPS / JSON | Real-time security alerts |
 | Azure AD (MSAL) | OAuth 2.0 Client Credentials | Authentication to Graph API |
 | HashiCorp Vault (optional) | HTTPS | External secret management |
 
@@ -240,34 +243,48 @@ src/
 │   ├── mailbox_rules.py    # Mailbox rule endpoints
 │   ├── analytics.py        # Login analytics endpoints
 │   ├── sharepoint.py       # SharePoint analytics endpoints
-│   ├── insider_threat.py   # Insider threat endpoints
+│   ├── dlp.py              # DLP (Data Loss Prevention) endpoints
+│   ├── mailbox.py          # Mailbox security endpoints
 │   ├── endpoints.py        # Endpoint agent endpoints
 │   ├── dashboard.py        # Dashboard data endpoints
-│   └── settings.py         # System settings endpoints
+│   ├── diagnostics.py       # Data ingestion diagnostics endpoints
+│   ├── settings.py         # System settings endpoints
+│   ├── users.py            # User management endpoints
+│   ├── health.py           # Detailed health check endpoint
+│   └── monitoring/         # Monitoring module (websites, SSL, domains)
+│       ├── __init__.py     # Monitoring router aggregation
+│       ├── websites.py     # Website availability monitoring
+│       ├── ssl.py          # SSL certificate expiration monitoring
+│       └── domains.py      # Domain registration monitoring
 │
 ├── services/               # Business Logic Layer
 │   ├── tenant.py           # Tenant management service
 │   ├── encryption.py       # Fernet encryption for secrets
+│   ├── enhanced_encryption.py # Enhanced encryption service
+│   ├── credential_manager.py # Credential management service
+│   ├── k8s_secrets_storage.py # Kubernetes secrets storage service
 │   ├── mfa_report.py       # MFA tracking and compliance
 │   ├── ca_policies.py      # CA policy monitoring
 │   ├── oauth_apps.py       # OAuth app risk assessment
 │   ├── mailbox_rules.py    # Mailbox rule analysis
-│   ├── sharepoint.py       # SharePoint sharing analysis
-│   ├── insider_threat.py   # Insider threat (DLP) analysis
 │   ├── endpoints.py        # Endpoint agent management
 │   ├── dashboard.py        # Dashboard aggregation
 │   ├── alert_processor.py  # Alert processing logic
 │   ├── alert_stream.py     # WebSocket streaming service
-│   └── settings.py         # Settings management
+│   ├── settings.py         # Settings management
+│   └── monitoring/          # Monitoring services
+│       ├── __init__.py     # Monitoring service aggregation
+│       ├── domain.py       # Domain monitoring service
+│       ├── ssl.py           # SSL certificate monitoring service
+│       └── website.py       # Website monitoring service
 │
 ├── clients/                # External API Clients
+│   ├── __init__.py         # Client aggregation
 │   ├── ms_graph.py         # MSAL + Graph API client
 │   ├── mfa_report.py       # MFA-specific Graph queries
 │   ├── ca_policies.py      # CA policy Graph queries
 │   ├── oauth_apps.py       # OAuth app Graph queries
-│   ├── mailbox_rules.py    # Mailbox rule Graph queries
-│   ├── sharepoint.py       # SharePoint-specific queries
-│   └── endpoints.py        # Endpoint-specific queries
+│   └── mailbox_rules.py    # Mailbox rule Graph queries
 │
 ├── models/                 # Data Models (SQLAlchemy + Pydantic)
 │   ├── db.py               # SQLAlchemy ORM models
@@ -281,6 +298,12 @@ src/
 │   ├── ca_policies.py      # CA policy models
 │   ├── oauth_apps.py       # OAuth app models
 │   ├── mailbox_rules.py    # Mailbox rule models
+│   ├── mailbox.py          # Mailbox security models
+│   ├── dlp.py              # DLP event models
+│   ├── monitoring.py       # Website/SSL/domain monitoring models
+│   ├── settings.py         # Settings models
+│   ├── dashboard.py        # Dashboard data models
+│   ├── types.py            # Custom SQLAlchemy types
 │   └── audit_log.py        # Audit log models
 │
 ├── alerts/                 # Alerting System
@@ -298,9 +321,11 @@ src/
 │   └── geo_ip.py           # GeoIP lookup utilities
 │
 └── collector/              # Data Collection Jobs
+    ├── __init__.py         # Collector module init
     ├── main.py             # Collector entry point
     ├── o365_feed.py        # Office 365 audit log ingestion
-    └── security_scans.py   # Periodic security configuration scans
+    ├── security_scans.py   # Periodic security configuration scans
+    └── monitoring.py       # Website/SSL/domain monitoring collector
 ```
 
 #### Key FastAPI Configuration (main.py)
@@ -315,7 +340,17 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers['X-XSS-Protection'] = '1; mode=block'
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         response.headers['Content-Security-Policy'] = "default-src 'self'; ..."
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['Permissions-Policy'] = (
+            "geolocation=(), microphone=(), camera=(), "
+            "payment=(), usb=(), magnetometer=(), "
+            "gyroscope=(), speaker=()"
+        )
         return response
+
+# RequestLoggingMiddleware — logs all requests with method, path, status, duration
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    ...
 
 # Application lifespan for startup/shutdown
 @asynccontextmanager
@@ -557,12 +592,11 @@ The SpecterDefence Windows Agent (C#/.NET 8) provides granular visibility into e
 The agent uses the `EventLogWatcher` class to subscribe to specific event channels:
 - **Security Channel (4688)**: Captures process creation events, including command lines.
 - **PowerShell Channel (4104)**: Captures de-obfuscated script block content.
-- **System Channel (7045)**: Detects new service installations.
 
 #### 3. Local Buffering & Ingestion
 To prevent data loss during network instability:
 - All detected events are immediately serialized and stored in a local **SQLite** database (`agent.db`).
-- A background **Telemetry Uploader** service pulls batches of up to 50 events every 30 seconds.
+- A background **Telemetry Uploader** service pulls batches of events periodically.
 - Events are deleted from the local buffer only after a `200 OK` response from the backend.
 
 #### 4. Heartbeat logic
@@ -754,7 +788,7 @@ class EncryptionService:
 
 **Encrypted Fields:**
 - `TenantModel.client_secret` - Azure AD app secret
-- `AlertWebhookModel.webhook_url` - Discord/Slack webhook URLs
+- `AlertWebhookModel.webhook_url` - Discord webhook URLs
 
 #### Security Headers (Applied by Default)
 
@@ -766,6 +800,9 @@ class EncryptionService:
 | Strict-Transport-Security | max-age=31536000; includeSubDomains | HSTS |
 | Content-Security-Policy | default-src 'self'; ... | XSS mitigation |
 | Referrer-Policy | strict-origin-when-cross-origin | Privacy |
+| Permissions-Policy | geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), speaker=() | Disable browser features |
+
+Additionally, `RequestLoggingMiddleware` is active by default, logging all HTTP requests with method, path, status code, and duration.
 
 ---
 
@@ -902,6 +939,7 @@ class EndpointDeviceModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+
     hostname: Mapped[str] = mapped_column(String(255), nullable=False)
     os_version: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[DeviceStatus] = mapped_column(SQLEnum(DeviceStatus), nullable=False)
@@ -970,6 +1008,7 @@ class AuditLogModel(Base):
 | POST | `/api/v1/auth/local/login` | Login with username/password, returns JWT |
 | POST | `/api/v1/auth/local/logout` | Logout (client discards token) |
 | GET | `/api/v1/auth/local/me` | Get current user info |
+| GET | `/api/v1/auth/local/check` | Quick auth check |
 | POST | `/api/v1/auth/local/change-password` | Change password |
 
 ### 5.2 Tenants
@@ -978,48 +1017,74 @@ class AuditLogModel(Base):
 |--------|----------|-------------|
 | GET | `/api/v1/tenants` | List all tenants |
 | POST | `/api/v1/tenants` | Register new tenant |
+| POST | `/api/v1/tenants/validate` | Pre-creation validation |
 | GET | `/api/v1/tenants/{id}` | Get tenant details |
 | PATCH | `/api/v1/tenants/{id}` | Update tenant |
 | DELETE | `/api/v1/tenants/{id}` | Delete tenant |
 | POST | `/api/v1/tenants/{id}/health-check` | Run health check |
 | POST | `/api/v1/tenants/{id}/validate` | Validate credentials |
+| POST | `/api/v1/tenants/health-check/all` | Health check all tenants |
 
 ### 5.3 MFA Reports
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/api/v1/mfa-report/` | Get enrollment summary |
 | GET | `/api/v1/mfa-report/users` | List MFA users |
-| GET | `/api/v1/mfa-report/summary` | Get enrollment summary |
-| GET | `/api/v1/mfa-report/trends` | Get enrollment trends |
+| GET | `/api/v1/mfa-report/users-without-mfa` | Users without MFA |
 | GET | `/api/v1/mfa-report/admins-without-mfa` | Critical: Admins without MFA |
+| GET | `/api/v1/mfa-report/method-distribution` | MFA method distribution |
+| GET | `/api/v1/mfa-report/strength-distribution` | MFA strength distribution |
+| GET | `/api/v1/mfa-report/compliance-report` | Full compliance report |
+| GET | `/api/v1/mfa-report/trends` | Get enrollment trends |
 | POST | `/api/v1/mfa-report/scan` | Trigger MFA scan |
+| POST | `/api/v1/mfa-report/users/{id}/exemption` | Set MFA exemption for user |
+| GET | `/api/v1/mfa-report/alerts` | List MFA compliance alerts |
+| POST | `/api/v1/mfa-report/alerts/{id}/resolve` | Resolve MFA alert |
 
 ### 5.4 Conditional Access
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/ca-policies` | List CA policies |
+| GET | `/api/v1/ca-policies/` | List CA policies |
 | GET | `/api/v1/ca-policies/{id}` | Get policy details |
-| GET | `/api/v1/ca-policies/summary` | Get policy summary |
 | GET | `/api/v1/ca-policies/changes` | List policy changes |
 | POST | `/api/v1/ca-policies/scan` | Trigger policy scan |
+| GET | `/api/v1/ca-policies/tenants/{id}/policies` | Tenant-specific CA policies |
+| GET | `/api/v1/ca-policies/tenants/{id}/disabled` | Disabled policies for tenant |
+| GET | `/api/v1/ca-policies/tenants/{id}/mfa` | MFA policies for tenant |
+| GET | `/api/v1/ca-policies/tenants/{id}/summary` | Policy summary for tenant |
+| GET | `/api/v1/ca-policies/alerts` | CA policy alerts |
+| POST | `/api/v1/ca-policies/alerts/{id}/acknowledge` | Acknowledge alert |
+| GET/POST | `/api/v1/ca-policies/tenants/{id}/baseline` | Baseline configuration |
 
 ### 5.5 OAuth Apps
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/oauth-apps` | List OAuth apps |
+| GET | `/api/v1/oauth-apps/` | List OAuth apps |
 | GET | `/api/v1/oauth-apps/{id}` | Get app details |
-| GET | `/api/v1/oauth-apps/high-risk` | High-risk apps |
 | POST | `/api/v1/oauth-apps/scan` | Trigger app scan |
+| GET | `/api/v1/oauth-apps/tenants/{id}/apps` | Tenant OAuth apps |
+| GET | `/api/v1/oauth-apps/tenants/{id}/suspicious` | Suspicious apps for tenant |
+| GET | `/api/v1/oauth-apps/tenants/{id}/summary` | Apps summary for tenant |
+| GET | `/api/v1/oauth-apps/alerts` | OAuth app alerts |
+| POST | `/api/v1/oauth-apps/alerts/{id}/acknowledge` | Acknowledge alert |
+| GET | `/api/v1/oauth-apps/{id}/permissions` | App permissions detail |
+| POST | `/api/v1/oauth-apps/{id}/revoke` | Revoke app |
 
 ### 5.6 Mailbox Rules
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/mailbox-rules` | List mailbox rules |
+| GET | `/api/v1/mailbox-rules/` | List mailbox rules |
 | GET | `/api/v1/mailbox-rules/suspicious` | Suspicious rules |
 | POST | `/api/v1/mailbox-rules/scan` | Trigger rule scan |
+| GET | `/api/v1/mailbox-rules/tenants/{id}/rules` | Tenant mailbox rules |
+| GET | `/api/v1/mailbox-rules/tenants/{id}/suspicious` | Suspicious rules for tenant |
+| GET | `/api/v1/mailbox-rules/tenants/{id}/summary` | Rules summary for tenant |
+| GET | `/api/v1/mailbox-rules/alerts` | Mailbox rule alerts |
+| POST | `/api/v1/mailbox-rules/alerts/{id}/acknowledge` | Acknowledge alert |
 
 ### 5.7 Alerts
 
@@ -1027,20 +1092,31 @@ class AuditLogModel(Base):
 |--------|----------|-------------|
 | GET | `/api/v1/alerts/rules` | List alert rules |
 | POST | `/api/v1/alerts/rules` | Create alert rule |
+| GET | `/api/v1/alerts/rules/{id}` | Get specific rule |
+| PUT | `/api/v1/alerts/rules/{id}` | Update alert rule |
+| PATCH | `/api/v1/alerts/rules/{id}` | Patch alert rule |
 | GET | `/api/v1/alerts/webhooks` | List webhooks |
 | POST | `/api/v1/alerts/webhooks` | Create webhook |
+| DELETE | `/api/v1/alerts/webhooks/{id}` | Delete webhook |
 | GET | `/api/v1/alerts/history` | Alert history |
 | POST | `/api/v1/alerts/webhooks/{id}/test` | Test webhook |
 
-### 5.8 SharePoint & Insider Threat
+### 5.8 SharePoint & DLP
+
+#### SharePoint
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/sharepoint/stats` | Get SharePoint sharing stats |
-| GET | `/api/v1/sharepoint/links` | List active sharing links |
-| POST | `/api/v1/sharepoint/revoke/{id}` | Revoke a sharing link |
-| GET | `/api/v1/insider-threat/summary` | Get DLP/Insider threat summary |
-| GET | `/api/v1/insider-threat/events` | List sensitive data events |
+| GET | `/api/v1/sharepoint/metrics` | Get SharePoint sharing metrics |
+| GET | `/api/v1/sharepoint/sharing-links` | List active sharing links |
+| GET | `/api/v1/sharepoint/debug` | Debug endpoint (remove in production) |
+
+#### DLP / Insider Threat
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/dlp/` | List DLP events |
+| GET | `/api/v1/dlp/stats` | Get DLP statistics |
 
 ### 5.9 Endpoint Agent
 
@@ -1048,9 +1124,12 @@ class AuditLogModel(Base):
 |--------|----------|-------------|
 | GET | `/api/v1/endpoints/devices` | List enrolled devices |
 | POST | `/api/v1/endpoints/enroll` | Enroll a new device |
+| POST | `/api/v1/endpoints/generate-token` | Generate enrollment token |
 | POST | `/api/v1/endpoints/heartbeat` | Device heartbeat |
 | POST | `/api/v1/endpoints/events` | Report endpoint events |
 | GET | `/api/v1/endpoints/events` | List security events |
+| GET | `/api/v1/endpoints/devices/{id}/events` | Device-specific events |
+| GET | `/api/v1/endpoints/summary` | Endpoint summary stats |
 
 ### 5.10 WebSocket
 
@@ -1074,12 +1153,60 @@ class AuditLogModel(Base):
 {"type": "alert", "severity": "CRITICAL", "title": "...", "metadata": {...}}
 ```
 
-### 5.11 Health Checks
+### 5.11 Health Checks & Dashboard
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/health` | Liveness probe |
 | GET | `/ready` | Readiness probe |
+| GET | `/api/v1/health/` | Detailed health info |
+| GET | `/api/v1/dashboard/summary` | Dashboard summary |
+| GET | `/api/v1/dashboard/login-timeline` | Login activity timeline |
+| GET | `/api/v1/dashboard/geo-heatmap` | Geo heatmap data |
+| GET | `/api/v1/dashboard/successful-login-locations` | Successful login locations |
+| GET | `/api/v1/dashboard/anomaly-trend` | Anomaly trend data |
+| GET | `/api/v1/dashboard/top-risk-users` | Top risk users |
+| GET | `/api/v1/dashboard/alert-volume` | Alert volume data |
+| GET | `/api/v1/dashboard/anomaly-breakdown` | Anomaly type breakdown |
+| GET | `/api/v1/dashboard/full` | All dashboard data in one request |
+| POST | `/api/v1/dashboard/export` | Export dashboard data |
+| GET | `/api/v1/dashboard/export/download/{format}` | Download export |
+
+### 5.12 Monitoring
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/v1/monitoring/websites/*` | Website monitoring CRUD |
+| GET/POST | `/api/v1/monitoring/ssl/*` | SSL certificate monitoring |
+| GET/POST | `/api/v1/monitoring/domains/*` | Domain registration monitoring |
+
+### 5.13 Diagnostics
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/diagnostics/summary` | Data ingestion diagnostics summary |
+| GET | `/api/v1/diagnostics/audit-logs` | Recent audit logs |
+| GET | `/api/v1/diagnostics/login-analytics` | Recent login analytics |
+
+### 5.14 Settings
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST/PATCH/DELETE | `/api/v1/settings/*` | Full settings CRUD (system, preferences, detection, API keys, config import/export) |
+
+### 5.15 Users
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST/PATCH/DELETE | `/api/v1/users/*` | User management CRUD (list, create, update, tenant assignment) |
+
+### 5.16 Mailbox Security
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/mailbox-security/events` | Mailbox rule events |
+| GET | `/api/v1/mailbox-security/access` | Non-owner mailbox access |
+| GET | `/api/v1/mailbox-security/stats` | Mailbox security statistics |
 
 ---
 
@@ -1094,7 +1221,7 @@ class AuditLogModel(Base):
 | Vite | Build tool |
 | React Router | Client-side routing |
 | TanStack Query | Server state management |
-| Zustand | Client state management |
+| Zustand | Client state management (with persist middleware) |
 | Tailwind CSS | Styling |
 | Recharts | Charts and visualizations |
 | Leaflet | Map visualization |
@@ -1112,12 +1239,38 @@ frontend/
 │   │   ├── Layout.tsx        # Main layout with sidebar
 │   │   ├── ProtectedRoute.tsx # Auth guard
 │   │   ├── Sidebar.tsx       # Navigation sidebar
-│   │   ├── Header.tsx        # Top header bar
-│   │   ├── StatCard.tsx      # Dashboard stat cards
+│   │   ├── Navigation.tsx    # Navigation component
+│   │   ├── PageHeader.tsx    # Page header component
+│   │   ├── StatsCard.tsx     # Dashboard stat cards
 │   │   ├── AlertCard.tsx     # Alert display cards
-│   │   └── Map/              # Map components
+│   │   ├── AlertFeed.tsx     # Alert feed component
+│   │   ├── AnomalyCard.tsx   # Anomaly display cards
+│   │   ├── MobileAlertCard.tsx # Mobile alert cards
+│   │   ├── MobileNav.tsx     # Mobile navigation
+│   │   ├── LoginMap.tsx      # Login map visualization
+│   │   ├── LoginTimeline.tsx # Login timeline component
+│   │   ├── FilterPanel.tsx   # Filter panel
+│   │   ├── ChangePasswordDialog.tsx # Password change dialog
+│   │   ├── charts/          # Chart components
+│   │   │   ├── AlertVolume.tsx
+│   │   │   ├── AnomalyBreakdown.tsx
+│   │   │   ├── AnomalyTrend.tsx
+│   │   │   ├── GeoHeatmap.tsx
+│   │   │   ├── LoginTimeline.tsx
+│   │   │   ├── TopRiskUsers.tsx
+│   │   │   └── index.ts
+│   │   └── settings/        # Settings components
+│   │       ├── AlertRuleBuilder.tsx
+│   │       ├── ApiKeyManager.tsx
+│   │       ├── ConfigImportExport.tsx
+│   │       ├── DataDiagnostics.tsx
+│   │       ├── DetectionSettings.tsx
+│   │       ├── SystemSettings.tsx
+│   │       ├── UserPreferences.tsx
+│   │       ├── WebhookManager.tsx
+│   │       └── index.ts
 │   │
-│   ├── pages/                # Route pages
+│   ├── pages/                # Route pages (18 total)
 │   │   ├── Dashboard.tsx     # Main dashboard
 │   │   ├── Login.tsx         # Login page
 │   │   ├── Tenants.tsx       # Tenant management
@@ -1125,15 +1278,28 @@ frontend/
 │   │   ├── Anomalies.tsx     # Anomaly detection view
 │   │   ├── MapPage.tsx       # Geographic view
 │   │   ├── AlertFeed.tsx     # Real-time alerts
-│   │   └── Settings.tsx      # System settings
+│   │   ├── Settings.tsx      # System settings
+│   │   ├── CAPolicies.tsx    # Conditional Access policies
+│   │   ├── MailboxRules.tsx  # Mailbox rule monitoring
+│   │   ├── MFAReport.tsx     # MFA compliance report
+│   │   ├── OAuthApps.tsx     # OAuth application risk
+│   │   ├── Monitoring.tsx    # Website/SSL/domain monitoring
+│   │   ├── SharePoint.tsx    # SharePoint sharing analytics
+│   │   ├── InsiderThreat.tsx # DLP/insider threat view
+│   │   ├── MailboxSecurity.tsx # Mailbox security monitoring
+│   │   ├── Endpoints.tsx    # Endpoint agent management
+│   │   └── Users.tsx        # User management
 │   │
 │   ├── store/                # State management
-│   │   └── appStore.ts       # Zustand store (auth, theme)
+│   │   └── appStore.ts       # Zustand store (with persist middleware)
 │   │
 │   ├── hooks/                # Custom hooks
 │   │   ├── useAuth.ts        # Authentication hook
 │   │   ├── useWebSocket.ts   # WebSocket connection
-│   │   └── useTenants.ts     # Tenant data fetching
+│   │   ├── useApi.ts         # API data fetching (tenants, etc.)
+│   │   ├── useDashboard.ts   # Dashboard data hook
+│   │   ├── useOffline.ts     # Offline state hook
+│   │   └── useSettings.ts    # Settings hook
 │   │
 │   ├── lib/                  # Utilities
 │   │   ├── api.ts            # API client (axios/fetch)
@@ -1209,27 +1375,43 @@ export function useWebSocket(filters?: AlertFilters) {
 #### State Management (Zustand)
 
 ```typescript
-// store/appStore.ts
+// store/appStore.ts — uses persist middleware for localStorage persistence
 interface AppState {
-  isAuthenticated: boolean;
   theme: 'light' | 'dark';
+  sidebarOpen: boolean;
   user: User | null;
-  setAuthenticated: (value: boolean) => void;
-  setTheme: (theme: 'light' | 'dark') => void;
+  token: string | null;
+  isAuthenticated: boolean;
+  setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
+  toggleSidebar: () => void;
+  setSidebarOpen: (open: boolean) => void;
   setUser: (user: User | null) => void;
+  setToken: (token: string | null) => void;
+  login: (token: string) => void;
+  logout: () => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
-  isAuthenticated: !!localStorage.getItem('token'),
-  theme: localStorage.getItem('theme') as 'light' | 'dark' || 'dark',
-  user: null,
-  setAuthenticated: (value) => set({ isAuthenticated: value }),
-  setTheme: (theme) => {
-    localStorage.setItem('theme', theme);
-    set({ theme });
-  },
-  setUser: (user) => set({ user }),
-}));
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      theme: 'light',            // default theme is 'light'
+      sidebarOpen: true,
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      // ... actions
+    }),
+    {
+      name: 'specterdefence-storage',
+      partialize: (state) => ({
+        theme: state.theme,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    }
+  )
+);
 ```
 
 ---
@@ -1237,6 +1419,8 @@ export const useAppStore = create<AppState>((set) => ({
 ## 7. Deployment Architecture
 
 ### 7.1 Kubernetes Setup
+
+SpecterDefence is deployed using raw YAML manifests in the `k8s/prod/` directory. There is no Helm chart — the deployment uses straightforward Kubernetes manifests applied via `kubectl apply -f k8s/prod/`.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -1247,9 +1431,9 @@ export const useAppStore = create<AppState>((set) => ({
 │                                                                             │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
 │  │                        Ingress (Traefik)                              │  │
-│  │    Host: specterdefence.digitaladrenalin.net                          │  │
+│  │    Host: specterdefence.digitaladrenalin.net (marketing site)         │  │
+│  │    Host: app.specterdefence.digitaladrenalin.net (app)                │  │
 │  │    TLS: Let's Encrypt (cert-manager)                                  │  │
-│  │    Rate Limit: 100 req/min                                            │  │
 │  └──────────────────────────────┬───────────────────────────────────────┘  │
 │                                 │                                           │
 │           ┌─────────────────────┼─────────────────────┐                    │
@@ -1260,33 +1444,34 @@ export const useAppStore = create<AppState>((set) => ({
 │  └────────┬────────┘  └─────────┬────────┘  └────────┬────────┘           │
 │           │                     │                     │                    │
 │  ┌────────▼────────┐  ┌─────────▼────────┐           │                    │
-│  │   API Pods      │  │  Frontend Pods   │           │                    │
-│  │  (FastAPI)      │  │   (Nginx)        │           │                    │
-│  │   Port: 8000    │  │   Port: 80       │           │                    │
-│  │                 │  │                  │           │                    │
-│  │  Resources:     │  │  Resources:      │  ┌────────▼────────┐           │
-│  │  CPU: 250m-1    │  │  CPU: 100m-500m  │  │  Collector Pod  │           │
-│  │  Mem: 512Mi-1Gi │  │  Mem: 128Mi-256Mi│  │  (Runs every    │           │
-│  └─────────────────┘  └──────────────────┘  │   5 minutes)    │           │
-│                                             └─────────────────┘           │
-│                                                                            │
-│  ┌──────────────────────────────────────────────────────────────────────┐ │
-│  │                    Persistent Volume Claims                           │ │
-│  │  specterdefence-data (10Gi) - SQLite database storage                 │ │
-│  └──────────────────────────────────────────────────────────────────────┘ │
+│  │   API Pod        │  │  Frontend Pod   │           │                    │
+│  │  (FastAPI)       │  │   (Nginx)       │           │                    │
+│  │   Port: 8000    │  │   Port: 80      │           │                    │
+│  │   Replicas: 1   │  │   Replicas: 1   │  ┌────────▼────────┐           │
+│  │                 │  │                  │  │  Collector Pod  │           │
+│  │  Resources:     │  │  Resources:      │  │  (Runs every    │           │
+│  │  CPU: 250m-1    │  │  CPU: 100m-500m  │  │   5 minutes)   │           │
+│  │  Mem: 512Mi-1Gi │  │  Mem: 128Mi-256Mi│  └─────────────────┘           │
+│  └─────────────────┘  └──────────────────┘                                │
 │                                                                            │
 │  ┌──────────────────────────────────────────────────────────────────────┐ │
 │  │                    Secrets (External)                                 │ │
 │  │  specterdefence-secrets:                                              │ │
-│  │    - SECRET_KEY                                                       │ │
-│  │    - DATABASE_URL                                                     │ │
-│  │    - ENCRYPTION_KEY                                                   │ │
-│  │    - ENCRYPTION_SALT                                                  │ │
-│  │    - ADMIN_PASSWORD_HASH                                              │ │
+│  │    - SECRET_KEY, JWT_SECRET_KEY, DATABASE_URL                         │ │
+│  │    - ENCRYPTION_KEY, ADMIN_PASSWORD_HASH                              │ │
+│  │    - KIMI_API_KEY, ABUSEIPDB_API_KEY, ALIENVAULT_OTX_API_KEY          │ │
 │  └──────────────────────────────────────────────────────────────────────┘ │
 │                                                                            │
-└────────────────────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+**Key deployment characteristics:**
+- **Single replica** for API and frontend pods (no HPA, no PodDisruptionBudget, no NetworkPolicy)
+- **Traefik ingress** (not Nginx) with `ingressClassName: traefik`
+- **Two ingress rules**: marketing site at `specterdefence.digitaladrenalin.net`, app at `app.specterdefence.digitaladrenalin.net`
+- **App ingress** routes `/api` and `/ws` to backend, everything else to frontend
+- **CronJobs** for collector (every 5 minutes) and security scans
+- **No topology spread constraints** or Pod Security Standards labels
 
 ### 7.2 Database (PostgreSQL/SQLite)
 
@@ -1298,23 +1483,37 @@ DATABASE_URL: sqlite+aiosqlite:////app/data/specterdefence.db
 
 **Production (PostgreSQL):**
 ```yaml
-# Bitnami PostgreSQL subchart
-DATABASE_URL: postgresql://specterdefence:${PASSWORD}@postgresql:5432/specterdefence
+# External PostgreSQL instance
+DATABASE_URL: postgresql+asyncpg://specterdefence:${PASSWORD}@postgresql:5432/specterdefence
 ```
 
 ### 7.3 Environment Variables
 
-| Variable | Required | Description | Example |
-|----------|----------|-------------|---------|
-| `SECRET_KEY` | Yes | App secret for sessions | `openssl rand -hex 32` |
-| `DATABASE_URL` | Yes | Database connection string | `sqlite:///./data.db` |
-| `ENCRYPTION_KEY` | Yes | Fernet key for credential encryption | `Fernet.generate_key()` |
-| `ENCRYPTION_SALT` | Yes | Salt for key derivation | `openssl rand -hex 16` |
-| `ADMIN_PASSWORD_HASH` | Yes | Bcrypt hash of admin password | `get_password_hash("...")` |
-| `JWT_SECRET_KEY` | Yes | JWT signing key | `openssl rand -hex 32` |
-| `DEBUG` | No | Enable debug mode | `false` |
-| `CORS_ORIGINS` | No | Allowed CORS origins | `https://app.example.com` |
-| `KIMI_API_KEY` | No | API key for AI features | `sk-...` |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SECRET_KEY` | Yes* | auto-generated | App secret for sessions (min 32 chars) |
+| `DATABASE_URL` | Yes | `postgresql+asyncpg://...` | Database connection string |
+| `ENCRYPTION_KEY` | No | `""` | Base64 Fernet key for credential encryption |
+| `ENCRYPTION_SALT` | No | `""` | Salt for key derivation |
+| `ADMIN_USERNAME` | No | `admin` | Configurable admin username |
+| `ADMIN_PASSWORD_HASH` | Yes* | `""` | Bcrypt hash of admin password |
+| `JWT_SECRET_KEY` | Yes* | auto-generated | JWT signing key (min 32 chars) |
+| `JWT_EXPIRATION_HOURS` | No | `24` | JWT token expiration in hours |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `30` | Access token expiration in minutes |
+| `DEBUG` | No | `false` | Enable debug mode |
+| `HOST` | No | `0.0.0.0` | Server host |
+| `PORT` | No | `8000` | Server port |
+| `CORS_ORIGINS` | No | defaults to known origins | Allowed CORS origins (no wildcard) |
+| `TRUSTED_PROXIES` | No | `[]` | List of trusted proxy IP addresses |
+| `APP_NAME` | No | `SpecterDefence` | Application name |
+| `APP_VERSION` | No | `0.1.0` | Application version |
+| `MS_GRAPH_API_URL` | No | `https://graph.microsoft.com/v1.0` | Microsoft Graph API base URL |
+| `MS_LOGIN_URL` | No | `https://login.microsoftonline.com` | Microsoft login URL |
+| `ABUSEIPDB_API_KEY` | No | `""` | AbuseIPDB API key for threat intelligence |
+| `ALIENVAULT_OTX_API_KEY` | No | `""` | AlienVault OTX API key for threat intelligence |
+| `KIMI_API_KEY` | No | `""` | Kimi (Moonshot AI) API key (unused in current code) |
+
+\* Auto-generated with secure defaults if not provided, but validated against weak values in production mode.
 
 ### 7.4 Secrets Management
 
@@ -1364,7 +1563,7 @@ spec:
         spec:
           containers:
           - name: collector
-            image: specterdefence-api:latest
+            image: ghcr.io/michaeldigiacomi/specterdefence-backend:latest
             command: ["python", "-m", "src.collector.main"]
             env:
             - name: LOOKBACK_MINUTES
@@ -1382,11 +1581,11 @@ spec:
 
 | Component | Current | Future Scaling |
 |-----------|---------|----------------|
-| API Server | Single replica | HPA: 2-10 replicas based on CPU |
+| API Server | Single replica (replicas: 1) | HPA: 2-10 replicas based on CPU |
 | Database | SQLite/PostgreSQL | Read replicas, connection pooling |
-| Collector | Single CronJob | Distributed workers with Redis queue |
-| WebSocket | In-memory | Redis Pub/Sub for multi-replica |
-| Caching | None | Redis for tenant data, Graph API responses |
+| Collector | Single CronJob | Distributed workers with message queue |
+| WebSocket | In-memory | Redis Pub/Sub for multi-replica alert fan-out |
+| Caching | None | Consider caching for tenant data, Graph API responses |
 
 ### 8.2 Potential Improvements
 
@@ -1399,9 +1598,10 @@ spec:
    - Disable forwarding rules
 
 2. **Machine Learning Anomaly Detection**:
-   - Baseline user behavior patterns
-   - ML-based impossible travel (learn typical travel patterns)
+   - Baseline user behavior patterns with ML models
+   - ML-based impossible travel (learn typical travel patterns per user)
    - UEBA (User and Entity Behavior Analytics)
+   - Note: Rule-based anomaly detection (impossible travel, brute force, new country) is already implemented; ML-based detection would add adaptive, per-user baselining on top of the existing rules engine
 
 3. **Threat Intelligence Integration**:
    - Check IPs against threat feeds (AbuseIPDB, VirusTotal)
@@ -1486,11 +1686,11 @@ alembic upgrade head
 # Build frontend
 cd frontend && npm run build
 
-# Deploy to Kubernetes
-kubectl apply -f k8s-deployment.yaml
+# Deploy to Kubernetes (raw YAML manifests, no Helm)
+kubectl apply -f k8s/prod/
 
 # View logs
-kubectl logs -f deployment/specterdefence -n specterdefence
+kubectl logs -f deployment/specterdefence-backend -n specterdefence
 ```
 
 ### Key Files Reference
@@ -1504,10 +1704,11 @@ kubectl logs -f deployment/specterdefence -n specterdefence
 | `src/services/encryption.py` | Credential encryption |
 | `src/alerts/engine.py` | Alert processing |
 | `frontend/src/App.tsx` | React app root |
-| `k8s-deployment.yaml` | Kubernetes manifests |
+| `k8s/prod/deployment.yaml` | Kubernetes deployment manifests |
+| `k8s/prod/ingress.yaml` | Traefik ingress configuration |
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: 2024-03-04*
+*Document Version: 2.0*
+*Last Updated: 2026-08-28*
 *SpecterDefence Version: 0.1.0*

@@ -15,7 +15,7 @@
 - 🔍 **Insider Threat & DLP**: Monitor SharePoint sharing events and sensitive data exposure alerts to prevent data exfiltration.
 - 🖥️ **Endpoint Security**: Optional Windows-based endpoint monitoring tracks device health, heartbeats, and suspicious process executions (LOLBins, PowerShell abuse).
 - 🛡️ **Malicious App & Rule Detection**: Proactively identify risky OAuth applications with long-standing permissions (e.g., Mail.ReadWrite) and detect suspicious mailbox forwarding rules.
-- ⚡ **Instant Actionable Alerting**: Powerful real-time streaming to security teams via WebSockets, Slack, or Discord—complete with deduplication.
+- ⚡ **Instant Actionable Alerting**: Powerful real-time streaming to security teams via WebSockets and Discord—complete with deduplication.
 
 ## Why Choose SpecterDefence?
 

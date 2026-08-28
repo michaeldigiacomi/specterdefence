@@ -253,16 +253,18 @@ src/
 
 ---
 
-## Current Status (v1.1.0)
+## Current Status (v0.1.0)
+
+> ⚠️ **Note:** All AI features described in this proposal are currently unimplemented. This is a design proposal, not a description of existing functionality. The `KIMI_API_KEY` config field exists but is unused.
 
 **Infrastructure Ready:**
 - `KIMI_API_KEY` configuration added to `src/config.py` (Moonshot AI / Kimi integration ready).
 - Alert pipeline supports metadata enrichment.
-- Frontend "AI Analyst" UI components in development.
+- Frontend "AI Analyst" UI components (Planned).
 
 **Implementation Priority:**
 1. ✅ Alert Metadata (Implemented)
-2. 🔄 LLM Webhook (In Progress)
+2. ⏳ LLM Webhook (Planned)
 3. ⏳ AI Response Suggestions (Planned)
 
 Want me to create a proper feature specification for any of these? Or should we start implementing the AI Security Analyst (Alert Enrichment) feature? 🚀

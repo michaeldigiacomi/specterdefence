@@ -1,3 +1,5 @@
+> ⚠️ **Historical Document:** This was the original feasibility assessment for the endpoint agent. The agent has since been built — see [ENDPOINT-AGENT.md](./ENDPOINT-AGENT.md) for current documentation. This document is retained for historical context.
+
 # Windows Endpoint Agent Assessment
 
 ## Executive Summary
@@ -192,4 +194,4 @@ A phased approach starting with basic event collection is recommended to minimiz
 ---
 
 *Document created: 2026-03-13*
-*Author: Blue Di Giacomi*
+*Author: Blue Di Giacomo*
