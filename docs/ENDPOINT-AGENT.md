@@ -4,11 +4,11 @@ The SpecterDefence Windows Agent is a lightweight background service that extend
 
 ## Features (Phase 1)
 
-- **Process Creation Monitoring**: Detects LOLBins (`certutil`, `mshta`, `regsvr32`, etc.) and suspicious execution patterns (Event ID 4688).
-- **PowerShell Abuse Detection**: Captures script block content to identify encoded commands, download cradles, and obfuscated scripts (Event ID 4104).
-- **Heartbeat & Health Tracking**: Reports device status (Online/Offline), OS version, and agent version every 5 minutes.
-- **Resilient Telemetry**: Local SQLite buffering ensures events are preserved during network outages and uploaded automatically when connectivity is restored.
-- **Silent Deployment**: MSI-compatible service that supports enrollment via command-line tokens.
+- **Process Creation Monitoring**: Watches Security Event ID 4688; command lines are flagged suspicious on pattern match (`-enc`, `iex`, `downloadstring`, `certutil`, `curl`). Suspicious → HIGH, otherwise LOW.
+- **PowerShell Abuse Detection**: Captures script block content (Event ID 4104) to identify encoded commands and download cradles. Suspicious → HIGH, otherwise MEDIUM.
+- **Heartbeat & Health Tracking**: Reports device status, OS version, and agent version every 5 minutes.
+- **Resilient Telemetry**: Events are buffered in a local SQLite database (`agent.db`, in the install directory) and uploaded on a 30-second loop; entries are deleted only after the backend acknowledges them.
+- **Silent Deployment**: Standalone single-file `SpecterAgent.exe` Windows service supporting enrollment tokens via CLI flags for Intune/GPO-style mass deployment.
 
 ---
 
@@ -17,7 +17,7 @@ The SpecterDefence Windows Agent is a lightweight background service that extend
 The agent is built using **.NET 8.0**. You will need the .NET 8 SDK installed on your build machine.
 
 ### 🚀 Automated Build (CI/CD)
-The agent is automatically built via GitHub Actions on every push to the `agent/` directory. You can download the latest standalone `SpecterAgent.exe` from the **Actions** tab in the GitHub repository (Artifacts section).
+The agent is built by the GitHub Actions workflow on changes under `agent/`. Download the standalone `SpecterAgent.exe` from the workflow's **Artifacts**.
 
 ### Manual Build (Single-File)
 To generate a standalone executable manually:
@@ -33,7 +33,7 @@ dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=
 ### Prerequisites
 - Windows 10/11 or Windows Server 2016+
 - Administrator privileges.
-- **Visibility Bridge**: This agent provides enterprise-grade process and PowerShell monitoring for tenants on **Microsoft 365 E3** or **Business Premium**, bridging the gap to E5-level security without the per-user licensing overhead.
+- Uses native Windows APIs only — no kernel driver, no Sysmon dependency.
 
 ### Manual Installation
 1.  Generate an **Enrollment Token** from the **Endpoints** page in the SpecterDefence dashboard.
@@ -50,19 +50,19 @@ dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=
     ```
 
 ### Silent / Mass Deployment
-For mass deployment (Intune, GPO, NinjaOne), use the CLI flags in your install script to ensure every device is enrolled immediately upon service start. MSI packaging support is available in the `build-agent` workflow output.
+For mass deployment (Intune, GPO, RMM), wrap `SpecterAgent.exe` in your own MSI/Intune package and pass the CLI flags in the install step so devices enroll at first service start. The CI artifact is the single-file exe only — no MSI is produced.
 
 ---
 
 ## 3. Configuration & Management
 
 ### Local Data
-- **Config**: `config.json` stores the backend URL and enrollment token (until enrolled).
+- **Config**: `config.json` (in the exe directory) stores the backend URL and enrollment token until enrolled.
 - **Identity**: Once enrolled, the agent stores its `DeviceId` and `DeviceToken` in `config.json`.
-- **Buffer**: `agent.db` is a local SQLite database that stores events until they are successfully uploaded.
+- **Buffer**: `agent.db` (SQLite, exe directory) stores events until the backend acknowledges them.
 
 ### Logs
-The agent logs its own activity to the Windows **Application** event log and a local `logs/` directory if configured.
+The agent logs through the standard .NET host logging pipeline. When run as a Windows Service, inspect via `sc.exe query SpecterAgent` and the Service Control Manager log, or run the exe directly in a console to see live output.
 
 ---
 

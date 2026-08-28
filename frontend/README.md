@@ -1,124 +1,39 @@
 # SpecterDefence Frontend
 
-React-based dashboard for SpecterDefence security monitoring platform.
+React 18 + TypeScript dashboard for the SpecterDefence backend. Built with Vite, Tailwind CSS, TanStack Query, Zustand, Recharts, and Leaflet. Tests use Vitest (jsdom, v8 coverage, 70% global thresholds).
 
-## Features
-
-- 📊 **Dashboard** - Overview of security metrics and recent anomalies
-- 📈 **Analytics** - Login timeline with filtering and CSV export
-- 🗺️ **Geographic Map** - Interactive map showing login locations
-- 🚨 **Anomalies** - Review detected security anomalies
-- 🏢 **Tenants** - Manage Microsoft 365 tenant connections
-- 🌓 **Dark Mode** - Toggle between light and dark themes
-- 📱 **Responsive** - Mobile-friendly design
-
-## Tech Stack
-
-- **React 18** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **Tailwind CSS** - Styling
-- **TanStack Query** - Data fetching
-- **Recharts** - Charts
-- **Leaflet** - Maps
-- **Vitest** - Testing
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
-
-### Installation
+## Getting started
 
 ```bash
 cd frontend
 npm install
-```
-
-### Development
-
-```bash
-npm run dev
-```
-
-The dev server runs on `http://localhost:3000` and proxies API requests to `http://localhost:8000`.
-
-### Build
-
-```bash
-npm run build
-```
-
-### Testing
-
-```bash
-# Run tests
-npm test
-
-# Run tests with coverage
+npm run dev        # dev server on http://localhost:3000
+npm run build      # production build to dist/
+npm test           # vitest
 npm run test:coverage
-
-# Run tests with UI
-npm run test:ui
 ```
 
-### Docker
+**API access in dev**: `vite.config.ts` proxies `/api` (HTTP+WS) and `/ws` to `https://app.specterdefence.digitaladrenalin.net`. Point it at a local backend (`http://localhost:8000`, `ws://localhost:8000`) if you're running one.
 
-```bash
-docker build -t specterdefence-frontend .
-docker run -p 80:80 specterdefence-frontend
-```
-
-## Project Structure
+## Structure
 
 ```
 src/
-├── components/     # Reusable UI components
-│   ├── Layout.tsx
-│   ├── Sidebar.tsx
-│   ├── StatsCard.tsx
-│   ├── AnomalyCard.tsx
-│   ├── FilterPanel.tsx
-│   ├── LoginTimeline.tsx
-│   └── LoginMap.tsx
-├── pages/          # Page components
-│   ├── Dashboard.tsx
-│   ├── LoginAnalytics.tsx
-│   ├── MapPage.tsx
-│   ├── Anomalies.tsx
-│   └── Tenants.tsx
-├── hooks/          # Custom React hooks
-│   └── useApi.ts
-├── services/       # API services
-│   └── api.ts
-├── store/          # State management
-│   └── appStore.ts
-├── types/          # TypeScript types
-│   └── index.ts
-├── test/           # Test setup
-│   └── setup.ts
-├── App.tsx
-├── main.tsx
-└── index.css
+├── pages/       # Dashboard, Tenants, LoginAnalytics, Anomalies, MapPage, AlertFeed,
+│                # Settings, CAPolicies, MailboxRules, MFAReport, OAuthApps, Monitoring,
+│                # SharePoint, InsiderThreat, MailboxSecurity, Endpoints, Users, Login
+├── components/  # Shared UI incl. charts/ and settings/ subfolders
+├── hooks/       # useApi, useAuth, useWebSocket, useDashboard, useOffline, useSettings
+├── services/    # api.ts (API client), monitoring.ts
+├── store/       # appStore.ts (Zustand, persisted)
+├── types/       # Shared TypeScript types
+└── test/        # Vitest setup
 ```
 
-## Environment Variables
+Auth: JWT from `/api/v1/auth/local/login`, stored via the Zustand `specterdefence-storage` persist key; `ProtectedRoute` guards pages.
 
-No environment variables are required for development. The app uses proxy configuration in `vite.config.ts`.
+## Production
 
-For production, configure the API endpoint in `nginx.conf`.
+Docker image (`frontend/Dockerfile`) serves the build with Nginx (`nginx.conf`), container port 80. Deployed via `k8s/prod/frontend.yaml` behind the Traefik ingress.
 
-## API Integration
-
-The frontend integrates with the SpecterDefence FastAPI backend:
-
-- `GET /api/v1/analytics/logins` - Login data
-- `GET /api/v1/analytics/anomalies/recent` - Recent anomalies
-- `GET /api/v1/tenants` - Tenant list
-- `GET /api/v1/alerts/history` - Alert history
-
-## License
-
-MIT
+Coding standards: [STANDARDS.md](STANDARDS.md).

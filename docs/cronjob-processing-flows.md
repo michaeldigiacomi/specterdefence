@@ -1,391 +1,80 @@
-# CronJob Processing Flows - Mermaid Diagrams
+# Collector & Scan Processing Flows
 
-## Overview
+Two scheduled jobs (CronJobs in `k8s/prod/`) plus an hourly monitoring job:
 
-There are two main CronJobs in SpecterDefence:
+- **Collector** `src.collector.main` — every 5 minutes: pulls the O365 Management Activity API feed and processes sign-ins.
+- **Security scans** `src.collector.security_scans` — every 4 hours: MFA report, CA policies, OAuth apps, mailbox rules.
+- **Monitoring** `src.collector.monitoring` — hourly: website availability, SSL expiry, domain registration.
 
-1. **Collector CronJob** - Runs every 5 minutes
-2. **Security Scans CronJob** - Runs every 4 hours
-
----
-
-## Collector CronJob Flow (Every 5 Minutes)
+## Collector flow
 
 ```mermaid
 flowchart TD
-    A[Start: Collector CronJob - python -m src.collector.main] --> B[Initialize Database]
-    B --> C[Get Active Tenants]
-    C --> D{For each tenant}
-
-    subgraph Tenant_Collection["For Each Tenant"]
-        D --> E[Create O365ManagementClient]
-        E --> F[Fetch from O365 Management API]
-
-        subgraph Content_Types["Fetch Content Types"]
-            F --> G1[Audit.AzureActiveDirectory - Sign-ins]
-            F --> G2[Audit.Exchange]
-            F --> G3[Audit.SharePoint]
-            F --> G4[Audit.General]
-            F --> G5[DLP.All]
-        end
-
-        G1 --> H[Store events in audit_logs table]
-        G2 --> H
-        G3 --> H
-        G4 --> H
-        G5 --> H
-
-        H --> I[Process Signin Logs - LoginAnalyticsService.process_audit_log_signins]
-
-        subgraph Signin_Processing["Signin Processing (per log)"]
-            I --> I1[Get unprocessed signin logs]
-            I1 --> I2{For each signin log}
-
-            I2 --> I3[Parse raw audit data]
-            I3 --> I4[Extract: UserPrincipalName, ClientIP, Operation, ErrorNumber, LogonError]
-
-            I4 --> I5{Determine is_success}
-
-            subgraph Success_Detection["Success/Failure Detection (PR #20)"]
-                I5 --> S1{Operation contains - 'UserLoginFailed'?}
-                S1 -->|Yes| S2[is_success = False - failure_reason = LogonError]
-                S1 -->|No| S3{Check ErrorNumber}
-
-                S3 --> S4{ErrorNumber in - failure_error_codes?}
-                S4 -->|Yes| S5[is_success = False - failure_reason = LogonError - or Error: code]
-                S4 -->|No| S6{ErrorNumber = 50140?}
-
-                S6 -->|Yes| S7[is_success = True - Strong auth required - NOT a failure]
-                S6 -->|No| S8{Check LogonError}
-
-                S7 --> S8
-                S5 --> S8
-                S2 --> S8
-
-                S8 --> S9{LogonError present?}
-                S9 -->|Yes| S10[is_success = False - failure_reason = LogonError]
-                S9 -->|No| S11{Check ExtendedProperties}
-
-                S10 --> S11
-                S11 --> S12{ResultStatusDetail - != 'Success'?}
-
-                S12 -->|Yes| S13[failure_reason = ResultStatusDetail]
-                S12 -->|No| S14[failure_reason = null]
-
-                S13 --> S15[Continue]
-                S14 --> S15[Continue]
-            end
-
-            I5 --> J[Look up IP in Threat Intel]
-
-            subgraph Threat_Intel["Threat Intel Lookup"]
-                J --> T1[Check AbuseIPDB API]
-                J --> T2[Check AlienVault OTX API]
-                T1 --> T3[Combine results]
-                T2 --> T3
-                T3 --> T4{is_malicious?}
-                T4 -->|Yes| T5[Set threat_score, threat_tags - threat_sources]
-                T4 -->|No| T6[threat_score = 0 - threat_tags = empty]
-            end
-
-            J --> K[Run Anomaly Detection]
-
-            subgraph Anomaly_Detection["Anomaly Detection"]
-                K --> A1[Check new device]
-                K --> A2[Check new location]
-                K --> A3[Check impossible travel]
-                K --> A4[Check time-of-day]
-                K --> A5[Check failed attempts]
-
-                A1 --> A6{Detected?}
-                A2 --> A6
-                A3 --> A6
-                A4 --> A6
-                A5 --> A6
-
-                A6 -->|Yes| A7[Add to anomaly_flags - Calculate risk_score]
-                A6 -->|No| A8[Continue]
-            end
-
-            K --> L[Check Unapproved Country]
-
-            subgraph Unapproved_Country["Unapproved Country Check"]
-                L --> UC1{Login successful? -  and geo.country_code exists?}
-                UC1 -->|Yes| UC2{Geo country NOT in - tenant approved_countries?}
-                UC1 -->|No| UC6[Skip]
-                UC2 -->|Yes| UC3[Add 'unapproved_country' - risk_score += 80]
-                UC2 -->|No| UC4[Continue]
-                UC3 --> UC5[Log warning]
-                UC4 --> UC5[Continue]
-                UC5 --> M
-                UC6 --> M
-            end
-
-            A7 --> M
-            A8 --> M
-            T5 --> M
-            T6 --> M
-            S13 --> M
-            S14 --> M
-
-            M[Create login_analytics record - with all fields]
-            M --> N[Insert into login_analytics table]
-            N --> O[Mark audit_log as processed]
-            O --> I2
-        end
-
-        I --> P[Process General Logs - LoginAnalyticsService.process_audit_log_general]
-        P --> Q[Mark general audit_logs - as processed]
-    end
-
-    Q --> D
-    D --> R[End: Return results]
-    R --> S[Log summary: - Tenants processed, events collected]
-
-    style S1 fill:#ffcccc
-    style S4 fill:#ffcccc
-    style S5 fill:#ffcccc
-    style S9 fill:#ffcccc
-    style S10 fill:#ffcccc
-    style T5 fill:#ffcccc
-    style A7 fill:#ffcccc
-    style UC3 fill:#ffcccc
-    style S7 fill:#ccffcc
+    A[CronJob: python -m src.collector.main] --> B[init_db, get active tenants]
+    B --> C{For each tenant}
+    C --> D[O365ManagementClient + token]
+    D --> E[Fetch content: Audit.AzureActiveDirectory, Audit.Exchange, Audit.SharePoint, Audit.General, DLP.All]
+    E --> F[Store raw events in audit_logs]
+    F --> G[LoginAnalyticsService.process_audit_log_signins]
+    G --> H{Per sign-in record}
+    H --> I[Parse UPN, IP, Operation, ErrorNumber, LogonError]
+    I --> J[Determine is_success — see below]
+    J --> K[GeoIP lookup ip-api.com]
+    K --> L[Threat intel: AbuseIPDB + AlienVault OTX]
+    L --> M[Anomaly detection on user history]
+    M --> N[Unapproved-country check vs tenant.approved_countries]
+    N --> O[Insert login_analytics row, set anomaly_flags + risk_score]
+    O --> H
+    H --> P[Mark audit_logs processed]
+    P --> C
+    C --> Q[Summary log]
 ```
 
----
+### Success/failure determination
 
-## Security Scans CronJob Flow (Every 4 Hours)
+`ResultStatus: Success` from the Management API means the request was processed — not that the login succeeded. `is_success` is decided by: `Operation` containing `UserLoginFailed` → failure; `ErrorNumber` in `FAILURE_ERROR_CODES` (50053, 50074, 50076, 50126, 50127, 50133, 50134, 50135, 50136, 50144, 50146–50152) → failure; ErrorNumber **50140** (strong-auth interrupt) → explicitly **not** a failure; otherwise `LogonError`, `ExtendedProperties/ResultStatusDetail`, and `Status.ErrorCode` are used as fallbacks.
+
+### Anomaly types
+
+From `src/analytics/anomalies.py` (`AnomalyType`) + the tenant-country check in `logins.py`:
+
+`impossible_travel` (max 900 km/h), `new_country`, `new_ip`, `failed_login`, `multiple_failures`, `suspicious_location`, `malicious_ip`, `unapproved_country`.
+
+## Security scan flow
 
 ```mermaid
 flowchart TD
-    A[Start: Security Scans CronJob - python -m src.collector.security_scans] --> B[Initialize Database]
-    B --> C[Get Active Tenants]
-    C --> D{For each tenant}
-
-    subgraph Tenant_Security_Scans["For Each Tenant"]
-        D --> E[MFA Report Service]
-
-        subgraph MFA_Scan["MFA Report Scan"]
-            E --> M1[Fetch users from Entra ID]
-            M1 --> M2[Check each user's MFA methods]
-            M2 --> M3[Check: Phone auth, Authenticator, FIDO2, etc.]
-            M3 --> M4{ MFA enabled?}
-            M4 -->|No| M5[Mark as 'no_mfa' - Add to report]
-            M4 -->|Yes| M6[Mark as 'mfa_enabled']
-            M5 --> M6
-            M6 --> M7[Store in tenant_mfa_enforcement table]
-        end
-
-        E --> F[CA Policies Service]
-
-        subgraph CA_Scan["CA Policies Scan"]
-            F --> C1[Fetch CA policies from Entra ID]
-            C1 --> C2[Check: Require MFA, Compliant device, etc.]
-            C2 --> C3[Store in tenant_ca_policies table]
-        end
-
-        E --> G[OAuth Apps Service]
-
-        subgraph OAuth_Scan["OAuth Apps Scan"]
-            G --> O1[Fetch OAuth apps from Entra ID]
-            O1 --> O2[Check permissions, consent status]
-            O2 --> O3{Dangerous permissions? - e.g., Mail.Read, Files.Read}
-            O3 -->|Yes| O4[Mark as high_risk - Add to report]
-            O3 -->|No| O5[Mark as normal]
-            O4 --> O6[Store in tenant_oauth_apps table]
-            O5 --> O6
-        end
-
-        E --> H[Mailbox Rules Service]
-
-        subgraph Mailbox_Scan["Mailbox Rules Scan"]
-            H --> R1[Fetch inbox rules from user mailboxes]
-            R1 --> R2[Check each rule action]
-            R2 --> R3{Forward to external? - or Auto-forward?}
-            R3 -->|Yes| R4[Mark as suspicious - Add to report]
-            R3 -->|No| R5[Check: Delete, Move, etc.]
-            R5 --> R6{Suspicious action?}
-            R6 -->|Yes| R7[Mark as suspicious]
-            R6 -->|No| R8[Mark as normal]
-            R4 --> R9[Store in mailbox_rules table]
-            R7 --> R9
-            R8 --> R9
-        end
-    end
-
-    M7 --> C3
-    C3 --> O6
-    O6 --> R9
-    R9 --> D
-
-    D --> I[End: Return results]
-    I --> J[Log summary: - Scans completed per tenant]
+    A[CronJob: python -m src.collector.security_scans] --> B{For each active tenant}
+    B --> M[MFA report: /users + authentication/methods → strength tiers]
+    B --> C[CA policies: /identity/conditionalAccess/policies → drift + scoring]
+    B --> O[OAuth apps: /servicePrincipals + grants → risk score]
+    B --> R[Mailbox rules: mailFolders/inbox/messageRules → suspicious patterns]
+    M --> S[(security report tables)]
+    C --> S
+    O --> S
+    R --> S
+    S --> D[End: summary log]
 ```
 
----
+## Alerting flow
 
-## Complete Data Flow Summary
+Two trigger paths into `AlertEngine.process_event`:
 
-```mermaid
-flowchart TB
-    subgraph O365["Office 365"]
-        O365A[Azure AD - Sign-ins] --> O365API[Management API]
-        O365E[Exchange] --> O365API
-        O365S[SharePoint] --> O365API
-    end
-
-    O365API --> COLLECTOR[Collector CronJob - Every 5 min]
-
-    COLLECTOR --> DB[(audit_logs)]
-
-    subgraph Processing["Processing"]
-        DB --> LOGINS[Login Analytics Service]
-        LOGINS --> TI[Threat Intel - AbuseIPDB + AlienVault]
-        LOGINS --> ANOMALY[Anomaly Detection]
-        LOGINS --> GEO[GeoIP Lookup]
-    end
-
-    LOGINS --> ANALYTICS[(login_analytics)]
-
-    TI --> ANALYTICS
-    ANOMALY --> ANALYTICS
-    GEO --> ANALYTICS
-
-    subgraph API["API Layer"]
-        ANALYTICS --> API1[GET /api/analytics/logins]
-        ANALYTICS --> API2[GET /api/dashboard]
-    end
-
-    API1 --> UI[Frontend UI - Login Timeline]
-
-    COLLECTOR --> SECURITY[Security Scans CronJob - Every 4 hours]
-
-    SECURITY --> MFA[MFA Report]
-    SECURITY --> CA[CA Policies]
-    SECURITY --> OAUTH[OAuth Apps]
-    SECURITY --> MAILBOX[Mailbox Rules]
-
-    MFA --> DBD[(Security Reports)]
-    CA --> DBD
-    OAUTH --> DBD
-    MAILBOX --> DBD
-```
-
----
-
-## Key Processing Logic Details
-
-### Failure Error Codes (PR #20)
-The following ErrorNumbers indicate actual login failures:
-- **50053**: Account locked
-- **50074**: Password expired
-- **50126**: Invalid credentials
-- **50127**: User does not exist
-- **50140**: **SKIP** - Strong auth required (not a failure!)
-- **And 11 more codes...**
-
-### Anomaly Types Detected
-- `new_device` - Login from unknown device
-- `new_location` - Login from new country/city
-- `impossible_travel` - Login from distant location in short time
-- `time_of_day` - Login at unusual hour
-- `failed_attempts` - Multiple failed attempts
-- `unapproved_country` - Login from non-approved country
-
-### Security Scan Services
-1. **MFA Report** - Checks which users have MFA enabled
-2. **CA Policies** - Reviews Conditional Access policies
-3. **OAuth Apps** - Audits third-party app permissions
-4. **Mailbox Rules** - Detects suspicious inbox rules (forwarding)
----
-
-## Alerting Flow
+1. **Security scans** — CA policy, OAuth app, and mailbox-rule services raise alerts directly at the end of their scans.
+2. **Login anomalies** — `AlertProcessor` (background loop, 60 s) polls new `login_analytics` rows and maps anomaly flags to `EventType`s: `impossible_travel→IMPOSSIBLE_TRAVEL`, `new_country→NEW_COUNTRY`, `new_ip→NEW_IP`, `multiple_failures→MULTIPLE_FAILURES`, `failed_login→BRUTE_FORCE`, `suspicious_location→SUSPICIOUS_LOCATION`, `malicious_ip→MALICIOUS_IP`. (The `unapproved_country` flag is stored in analytics but currently has no `EventType` mapping, so it does not produce an alert.)
 
 ```mermaid
 flowchart TD
-    A[Security Issue Detected] --> B{Check Issue Type}
-
-    subgraph Security_Scan_Alerts["Security Scan Alerts"]
-        B --> C1{OAuth App High Risk?}
-        C1 -->|Yes| D1[Call AlertEngine.process_event]
-        
-        B --> C2{Mailbox Rule Suspicious?}
-        C2 -->|Yes| D1
-        
-        B --> C3{CA Policy Issue?}
-        C3 -->|Yes| D1
-        
-        B --> C4{User Without MFA?}
-        C4 -->|Yes| D1
-    end
-
-    subgraph Login_Anomaly_Alerts["Login Anomaly Alerts"]
-        B --> C5{Login Anomaly Detected?}
-        C5 -->|Yes| D2[AlertProcessor.process_login_analytics]
-        D2 --> D1
-    end
-
-    D1 --> E[AlertEngine.process_event]
-
-    subgraph Alert_Processing["Alert Processing"]
-        E --> E1[Deduplication Check]
-        E1 --> E2{Alert already exists?}
-        E2 -->|Yes| E3[Skip - already alerted]
-        E2 -->|No| E4[Create Alert History]
-        
-        E4 --> E5[Send Webhook Notifications]
-        E5 --> E6[Discord]
-        E5 --> E7[Custom Webhooks]
-    end
-
-    E3 --> END[End]
-    E6 --> END
-    E7 --> END
-
-    style D1 fill:#ffcccc
-    style E4 fill:#ffcccc
-    style E5 fill:#ffcccc
+    A[process_event] --> B[Dedup: SHA-256 of type+user+tenant(+location/IP)]
+    B --> C{Same rule fired within cooldown_minutes?}
+    C -->|Yes| D[Suppressed]
+    C -->|No| E[Insert alert_history row]
+    E --> F[Send configured webhooks: Discord / custom]
+    E --> G[WebSocket fan-out to connected dashboard clients]
 ```
 
-### Alert Trigger Sources
+Severity derives from risk score: ≥80 CRITICAL, ≥60 HIGH, ≥30 MEDIUM, else LOW. New alerts also appear in the dashboard via `/api/v1/ws/alerts`.
 
-1. **Security Scans (every 4 hours)**
-   - OAuth Apps: High-risk permissions detected
-   - Mailbox Rules: Suspicious forwarding rules
-   - CA Policies: Policy misconfigurations
-   - MFA Report: Users without MFA enabled
+## Key tables
 
-2. **Login Anomalies (Real-time)**
-   - New device detected
-   - New location / country
-   - Impossible travel
-   - Unusual time of day
-   - Multiple failed attempts
-   - Login from unapproved country
-
-### Alert Flow Details
-
-1. **Trigger**: Issue detected in security scan or login processing
-2. **Process Event**: Call `AlertEngine.process_event()` with event details
-3. **Deduplication**: Check if similar alert already exists (based on event signature)
-4. **Create History**: Store alert in alert history table
-5. **Send Notifications**: Send to configured webhooks (Discord, custom)
-
-### Alert Severity Levels
-
-- **Critical**: Account compromise, suspicious mailbox rules
-- **High**: MFA not enabled, high-risk OAuth permissions
-- **Medium**: Policy changes, unusual login patterns
-- **Low**: Informational alerts
-
-### Alert Event Types
-
-- `OAUTH_APP_HIGH_RISK`
-- `MAILBOX_RULE_SUSPICIOUS`
-- `CA_POLICY_ISSUE`
-- `MFA_NOT_ENABLED`
-- `LOGIN_ANOMALY_NEW_DEVICE`
-- `LOGIN_ANOMALY_NEW_LOCATION`
-- `LOGIN_ANOMALY_IMPOSSIBLE_TRAVEL`
-- `LOGIN_ANOMALY_UNAPPROVED_COUNTRY`
+Raw events → `audit_logs` (+ `collection_state`, `content_subscriptions`); processed sign-ins → `login_analytics` (+ `user_login_history` baselines); scan results → `mfa_users`/`mfa_enrollment_history`/`mfa_compliance_alerts`, `ca_policies`/`ca_policy_changes`/`ca_policy_alerts`, `oauth_apps`/`oauth_app_*`, `mailbox_rules`/`mailbox_rule_*`; alerts → `alert_rules`, `alert_history`; devices → `endpoint_devices`, `endpoint_events`.

@@ -1,8 +1,8 @@
 # SpecterDefence
 
-[![CI](https://github.com/bluedigiacomi/specterdefence/actions/workflows/ci.yml/badge.svg)](https://github.com/bluedigiacomi/specterdefence/actions)
+[![Backend CI/CD](https://github.com/michaeldigiacomi/specterdefence/actions/workflows/backend.yml/badge.svg)](https://github.com/michaeldigiacomi/specterdefence/actions)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688.svg)](https://fastapi.tiangolo.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
 
 > Microsoft 365 security posture monitoring and management platform
 
@@ -10,212 +10,100 @@
 
 ## Overview
 
-SpecterDefence provides automated security monitoring, alerting, and remediation for Microsoft 365 environments. It continuously monitors tenant configurations, security policies, and threat indicators to ensure your organization maintains a strong security posture.
+SpecterDefence continuously monitors Microsoft 365 tenants for security drift and threats: MFA compliance, Conditional Access policy changes, risky OAuth apps, suspicious mailbox rules, login anomalies (impossible travel, brute force, unapproved countries), SharePoint/DLP exposure, and Windows endpoint events. Alerts stream to the dashboard over WebSocket and to Discord webhooks, with rule-based deduplication.
 
 ## Features
 
-- 🔐 **Multi-Tenant Management** - Register and manage multiple Office 365 tenants
-- 📊 **Security Posture Monitoring** - Continuous assessment of MFA and policy configurations
-- 🚨 **Real-Time Threat Detection** - Impossible travel, new country logins, and brute-force detection
-- 🔍 **Insider Threat & DLP** - Monitor SharePoint sharing and sensitive data exposure
-- 🖥️ **Endpoint Agent** - Windows-based device monitoring and event collection
-- 📈 **Compliance Reporting** - Track compliance against security frameworks
-- 🌐 **Geographic Map** - Visualize login activity and anomalies globally
-- 🔧 **Automated Alerting** - WebSocket-based alerts and Discord integrations
+- **Multi-tenant management** — register and monitor multiple M365 tenants
+- **Security posture scans** — MFA enrollment/strength, CA policy drift, OAuth app risk, mailbox rules
+- **Login anomaly detection** — impossible travel, new country/IP, brute force, malicious IP (AbuseIPDB/OTX), per-tenant approved countries
+- **Insider threat & DLP** — SharePoint sharing and DLP event monitoring
+- **Windows endpoint agent** — process creation (4688) and PowerShell script-block (4104) telemetry with local SQLite buffering
+- **Website/SSL/domain monitoring** — availability, certificate expiry, domain registration
+- **Real-time alerts** — WebSocket feed + Discord webhooks with cooldown deduplication
 
-## Architecture
+## Stack
+
+- **Backend** — Python 3.11+, FastAPI, SQLAlchemy (async), PostgreSQL/SQLite, MSAL → Graph API, O365 Management Activity API collector
+- **Frontend** — React 18 + TypeScript + Vite, Tailwind, TanStack Query, Zustand
+- **Agent** — C# / .NET 8 Windows service (`agent/SpecterAgent`)
+- **Deploy** — Docker images, raw Kubernetes manifests in `k8s/prod/` (Traefik ingress + CronJobs)
+
+## Repository layout
 
 ```
-specterdefence/
-├── src/                # Backend API (FastAPI)
-│   ├── api/           # Routes and endpoints
-│   │   └── monitoring/  # Website, SSL, and domain monitoring routes
-│   ├── alerts/        # Alert processing logic
-│   ├── analytics/     # Security analytics
-│   ├── clients/       # Microsoft Graph API client
-│   ├── collector/     # Data collection services
-│   │   └── monitoring.py  # Monitoring data collector
-│   ├── models/        # Pydantic data models
-│   ├── services/      # Business logic layer
-│   │   └── monitoring/  # Website, SSL, and domain monitoring services
-│   └── config.py      # Application configuration
-├── frontend/           # React frontend (Vite/Tailwind)
-├── tests/              # Test suites
-│   ├── unit/          # Unit tests
-│   └── integration/   # Integration tests
-├── k8s/               # Kubernetes deployment manifests
-└── docs/              # Documentation
+src/            # FastAPI backend (api/, services/, clients/, models/, alerts/, analytics/, collector/)
+frontend/       # React dashboard (see frontend/README.md)
+agent/          # Windows endpoint agent (see docs/ENDPOINT-AGENT.md)
+k8s/            # Kubernetes manifests (see k8s/README.md)
+marketing/      # Static marketing site
+tests/          # unit/ and integration/ pytest suites
+docs/           # Architecture, deployment, and permission guides
 ```
 
-## Quick Start
+## Quick start
 
-### Prerequisites
-
-- Python 3.11+
-- Docker (optional)
-- Microsoft 365 tenant with admin access
-
-### Local Development
+### Local development
 
 ```bash
-# Clone the repository
 git clone https://github.com/michaeldigiacomi/specterdefence.git
 cd specterdefence
-
-# Install dependencies with Poetry
 poetry install
-
-# Run the application
+cp frontend/.env.example frontend/.env   # for frontend, if needed
 poetry run uvicorn src.main:app --reload
 ```
+
+The API listens on `http://localhost:8000` with Swagger UI at `/docs`. For the frontend, `cd frontend && npm install && npm run dev` (dev server on port 3000; the Vite proxy target is configured in `frontend/vite.config.ts`).
 
 ### Docker
 
 ```bash
-# Build and run with Docker
-docker build -t specterdefence .
-docker run -p 8000:8000 specterdefence
+docker build -t specterdefence-backend -f Dockerfile.backend .
+docker build -t specterdefence-frontend -f frontend/Dockerfile frontend/
 ```
-
 
 ## Configuration
 
-Copy `.env.example` to `.env` and configure:
+Configuration is read from environment variables (see `src/config.py`). Minimum required for a dev run:
 
 ```bash
-# Required
-SECRET_KEY=your-secret-key-here
-
-# Optional
-DEBUG=false
-HOST=0.0.0.0
-PORT=8000
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/specterdefence
+SECRET_KEY=                # 64-hex: python -c "import secrets; print(secrets.token_hex(32))"
+JWT_SECRET_KEY=            # same generation method
+ADMIN_PASSWORD_HASH=       # bcrypt: python -c "from src.api.auth_local import get_password_hash; print(get_password_hash('pw'))"
+ENCRYPTION_KEY=            # Fernet: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+ENCRYPTION_SALT=           # openssl rand -hex 16
+DATABASE_URL=sqlite:///./specterdefence.db
 ```
 
-## API Documentation
+Optional: `ABUSEIPDB_API_KEY`, `ALIENVAULT_OTX_API_KEY` (threat intel), `CORS_ORIGINS`, `COLLECTION_*` tuning vars for the collector. Login geo-lookups use the free [ip-api.com](https://ip-api.com) tier (45 req/min, no key).
 
-Once running, access the interactive API documentation:
-
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-## Development
+## Tests and quality
 
 ```bash
-# Run linting
-ruff check .
-black --check .
-mypy src/
-
-# Run tests
-pytest
-
-# Run with coverage
-pytest --cov=src --cov-report=html
+make test          # pytest with coverage (source: src/)
+make lint          # ruff
+make format-check  # black
+make type-check    # mypy
+make validate      # full suite before committing
+pre-commit install # black, ruff, mypy, bandit, eslint, hadolint hooks
 ```
 
-## Pre-commit Hooks
+## Kubernetes deployment
 
-Install pre-commit hooks to ensure code quality:
+Deploy with `kubectl apply -f k8s/prod/` after creating the `specterdefence` namespace and a `specterdefence-secrets` secret. See [k8s/README.md](k8s/README.md) for the manifest breakdown and [docs/SECURE-DEPLOYMENT.md](docs/SECURE-DEPLOYMENT.md) for the full production checklist, secret generation commands, and rotation notes ([docs/secret-rotation.md](docs/secret-rotation.md)).
 
-```bash
-pre-commit install
-```
+## Documentation
 
-Hooks configured:
-- **Black** - Code formatting
-- **Ruff** - Linting and import sorting
-- **MyPy** - Type checking
-- **Bandit** - Security scanning
-- **Hadolint** - Dockerfile linting
-- **ESLint** - Frontend linting
-
-## Kubernetes Deployment
-
-### Prerequisites
-
-- Kubernetes 1.24+
-- kubectl configured for your cluster
-
-#### Quick Deploy
-
-```bash
-# Create namespace
-kubectl apply -f k8s/namespace.yaml
-
-# Create secrets (refer to Secret Management section)
-# Standard deployment
-kubectl apply -f k8s/prod/
-```
-
-### Secret Management
-
-SpecterDefence requires sensitive configuration (database credentials, encryption keys, OAuth secrets) to be provided securely.
-
-#### Option 1: Manual Secret Creation (Recommended for Production)
-
-Create secrets manually before deploying:
-
-```bash
-# Generate secure values
-export SECRET_KEY=$(openssl rand -hex 32)
-export ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
-export ADMIN_PASSWORD_HASH=$(python3 -c "from src.api.auth_local import get_password_hash; print(get_password_hash('your-password'))")
-
-# Create the Kubernetes secret
-kubectl create secret generic specterdefence-secrets \
-  --namespace specterdefence \
-  --from-literal=SECRET_KEY="$SECRET_KEY" \
-  --from-literal=DATABASE_URL="postgresql+asyncpg://user:password@postgres:5432/specterdefence" \
-  --from-literal=ENCRYPTION_KEY="$ENCRYPTION_KEY" \
-  --from-literal=ADMIN_PASSWORD_HASH="$ADMIN_PASSWORD_HASH" \
-  --from-literal=ABUSEIPDB_API_KEY="your-key" \
-  --from-literal=ALIENVAULT_OTX_API_KEY="your-key"
-```
-
-### Required Secrets
-
-| Secret | Description | Required |
-|--------|-------------|----------|
-| `SECRET_KEY` | Application secret for sessions/CSRF protection | Yes |
-| `DATABASE_URL` | Database connection string | Yes |
-| `ENCRYPTION_KEY` | Fernet key for encrypting tenant credentials | Yes |
-| `ADMIN_PASSWORD_HASH` | Bcrypt hash for the local admin user | Yes |
-| `ABUSEIPDB_API_KEY` | IP reputation check API key | Optional |
-| `ALIENVAULT_OTX_API_KEY` | Threat intelligence feed API key | Optional |
-
-### IP Lookup Service
-
-The IP lookup feature uses [ip-api.com](https://ip-api.com) for geographic IP lookups (used for login country detection and per-tenant approved countries feature).
-
-- **Free tier**: 45 requests/minute, no API key required
-- **Pro version**: Higher rate limits and commercial use requires an API key
-
-### Security Documentation
-
-- [Secure Deployment Guide](./docs/SECURE-DEPLOYMENT.md) - Comprehensive production setup guide
-- [Architecture Overview](./docs/ARCHITECTURE.md) - Detailed system design and data flows
-- [Secret Rotation Guide](./docs/secret-rotation.md) - Procedures for rotating credentials
-
-### Deployment with Ingress
-
-```bash
-kubectl apply -f k8s/prod/ingress.yaml
-```
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system design, components, detection logic, API map
+- [docs/SECURE-DEPLOYMENT.md](docs/SECURE-DEPLOYMENT.md) — production deployment guide
+- [docs/OFFICE365-PERMISSIONS.md](docs/OFFICE365-PERMISSIONS.md) — required tenant app permissions
+- [docs/ENDPOINT-AGENT.md](docs/ENDPOINT-AGENT.md) — Windows agent build/install guide
+- [docs/cronjob-processing-flows.md](docs/cronjob-processing-flows.md) — collector/scan pipeline diagrams
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+See [CONTRIBUTING.md](CONTRIBUTING.md). Open an issue or PR; CI runs on push to `main` (`.github/workflows/`).
 
-## License
+## License / Security
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Security
-
-For security concerns, please email security@digitaladrenalin.net
+MIT — see [LICENSE](LICENSE). Report vulnerabilities to security@digitaladrenalin.net.

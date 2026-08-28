@@ -1,165 +1,46 @@
-# SpecterDefence Kubernetes Deployment
+# SpecterDefence Kubernetes Manifests
 
-This directory contains plain Kubernetes YAML manifests for deploying SpecterDefence via ArgoCD.
+Plain Kubernetes YAML (no Helm, no Kustomize). Deploy with `kubectl apply -f k8s/prod/`.
 
-## Files
+## Manifests
 
-| File | Purpose |
-|------|---------|
-| `namespace.yaml` | Creates the specterdefence namespace |
-| `pvc.yaml` | Persistent volume for app data |
-| `deployment.yaml` | Main application deployment (2 replicas) |
-| `service.yaml` | ClusterIP service |
-| `ingress.yaml` | HTTPS ingress with TLS |
-| `kustomization.yaml` | Kustomize configuration |
+| File | Contents |
+|------|----------|
+| `prod/namespace.yaml` | `specterdefence` namespace |
+| `prod/deployment.yaml` | Backend `specterdefence-backend`: FastAPI, 1 replica, port 8000, `/health` liveness/readiness probes |
+| `prod/frontend.yaml` | Frontend `specterdefence-frontend`: Nginx serving the React build, 1 replica, port 80 |
+| `prod/marketing.yaml` | Marketing site `specterdefence-marketing`, port 80 |
+| `prod/ingress.yaml` | Traefik ingress: `specterdefence.digitaladrenalin.net` → marketing; `app.specterdefence.digitaladrenalin.net` → `/api`,`/ws` → backend :8000, `/` → frontend :80 |
+| `prod/collector-cronjob.yaml` | `specterdefence-collector-prod`, `*/5 * * * *`, `python -m src.collector.main` |
+| `prod/security-cronjob.yaml` | `specterdefence-security-scans-prod`, `0 */4 * * *`, `python -m src.collector.security_scans` |
+| `cronjob-monitoring.yaml` | `specterdefence-monitoring`, hourly, `python -m src.collector.monitoring` |
+
+Images: `ghcr.io/michaeldigiacomi/specterdefence-[backend|frontend]:latest`. TLS is not declared in the manifests — terminate it at your ingress controller (e.g. cert-manager + Let's Encrypt).
 
 ## Prerequisites
 
-### 1. GitHub Container Registry Access
+1. **Image pull secret** (GHCR):
 
-The deployment pulls images from GHCR. You need to create a pull secret:
+   ```bash
+   kubectl create secret docker-registry ghcr-registry-secret \
+     -n specterdefence \
+     --docker-server=ghcr.io \
+     --docker-username=YOUR_GITHUB_USERNAME \
+     --docker-password=GHCR_READ_PACKAGE_TOKEN
+   ```
 
-```bash
-# Create a GitHub Personal Access Token with 'read:packages' scope
-# https://github.com/settings/tokens
+2. **App secret** `specterdefence-secrets` with the keys the manifests reference: `SECRET_KEY`, `JWT_SECRET_KEY`, `DATABASE_URL`, `ENCRYPTION_KEY`, `ADMIN_PASSWORD_HASH`, `KIMI_API_KEY`, `ABUSEIPDB_API_KEY`, `ALIENVAULT_OTX_API_KEY`. The optional keys can hold empty values. See `docs/SECURE-DEPLOYMENT.md` for generation commands, and `docs/secret-rotation.md` for rotation.
 
-# Create the pull secret in Kubernetes
-kubectl create secret docker-registry ghcr-registry-secret \
-  --namespace specterdefence \
-  --docker-server=ghcr.io \
-  --docker-username=YOUR_GITHUB_USERNAME \
-  --docker-password=YOUR_GITHUB_TOKEN \
-  --docker-email=YOUR_EMAIL
-```
-
-### 2. Required Secrets
-
-The following secrets must exist in the `specterdefence` namespace:
-
-**specterdefence-secrets:**
-- `SECRET_KEY` - Django/FastAPI secret key
-- `DATABASE_URL` - PostgreSQL connection string (with asyncpg)
-- `ENCRYPTION_KEY` - Key for encrypting sensitive data
-- `KIMI_API_KEY` - Kimi API key
-- `ADMIN_PASSWORD_HASH` - Bcrypt hash of admin password
-
-Create with:
-```bash
-kubectl create secret generic specterdefence-secrets \
-  -n specterdefence \
-  --from-literal=SECRET_KEY='your-secret-key' \
-  --from-literal=DATABASE_URL='postgresql+asyncpg://user:pass@host/db?ssl=require' \
-  --from-literal=ENCRYPTION_KEY='your-encryption-key' \
-  --from-literal=KIMI_API_KEY='your-kimi-key' \
-  --from-literal=ADMIN_PASSWORD_HASH='your-bcrypt-hash'
-```
-
-### 3. Traefik Middleware (for HTTP→HTTPS redirect)
-
-If not already created:
-
-```yaml
-apiVersion: traefik.containo.us/v1alpha1
-kind: Middleware
-metadata:
-  name: specterdefence-redirect
-  namespace: specterdefence
-spec:
-  redirectScheme:
-    scheme: https
-    permanent: true
-```
-
-## Deployment
-
-### Option 1: Direct kubectl apply
-```bash
-kubectl apply -k .
-```
-
-### Option 2: ArgoCD
-
-The ArgoCD Application is defined in the repo root:
-
-```yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: specterdefence
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/michaeldigiacomi/specterdefence.git
-    targetRevision: main
-    path: k8s
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: specterdefence
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-```
-
-Apply with:
-```bash
-kubectl apply -f specterdefence-argocd-app.yaml
-```
-
-## Image Updates
-
-The deployment uses `imagePullPolicy: Always` and tags images as:
-- `latest` - Latest main branch build
-- `v1.2.3` - Semantic version tags
-- `abc1234` - Short commit SHA
-
-To update the deployment to a specific version:
+## Deploy and verify
 
 ```bash
-# Update image tag
-kubectl set image deployment/specterdefence \
-  specterdefence=ghcr.io/michaeldigiacomi/specterdefence:v1.2.3 \
-  -n specterdefence
+kubectl apply -f k8s/prod/
+kubectl get pods,ingress,cronjobs -n specterdefence
+kubectl logs -n specterdefence deployment/specterdefence-backend --tail=50
 ```
 
-Or edit `kustomization.yaml`:
-```yaml
-images:
-  - name: ghcr.io/michaeldigiacomi/specterdefence
-    newTag: v1.2.3
-```
+## Notes / limitations
 
-## Scaling
-
-```bash
-# Scale to 3 replicas
-kubectl scale deployment specterdefence --replicas=3 -n specterdefence
-
-# Or edit deployment.yaml and let ArgoCD sync
-```
-
-## Monitoring
-
-The deployment includes:
-- Liveness probe on `/health`
-- Readiness probe on `/health`
-- Prometheus scraping annotations (if needed, add to pod template)
-
-## Troubleshooting
-
-Check pod status:
-```bash
-kubectl get pods -n specterdefence
-kubectl logs -n specterdefence deployment/specterdefence
-```
-
-Check events:
-```bash
-kubectl get events -n specterdefence --sort-by='.lastTimestamp'
-```
-
-Verify image pull:
-```bash
-kubectl describe pod -n specterdefence -l app.kubernetes.io/name=specterdefence
-```
+- Single replica per deployment — no HPA, PDB, or NetworkPolicy. Recommendations live in `docs/SECURE-DEPLOYMENT.md`.
+- `imagePullPolicy: Always` on `:latest` — every pod start pulls the newest main-branch image. For pinned releases, edit the image tag yourself.
+- CronJobs use `concurrencyPolicy: Forbid` so overlapping collector runs do not happen.
