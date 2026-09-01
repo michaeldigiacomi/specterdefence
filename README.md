@@ -37,6 +37,7 @@ frontend/       # React dashboard (see frontend/README.md)
 agent/          # Windows endpoint agent (see docs/ENDPOINT-AGENT.md)
 k8s/            # Kubernetes manifests (see k8s/README.md)
 marketing/      # Static marketing site
+mcp_server/     # MCP server for AI agent access (see docs/MCP.md)
 tests/          # unit/ and integration/ pytest suites
 docs/           # Architecture, deployment, and permission guides
 ```
@@ -99,6 +100,7 @@ Deploy with `kubectl apply -f k8s/prod/` after creating the `specterdefence` nam
 - [docs/OFFICE365-PERMISSIONS.md](docs/OFFICE365-PERMISSIONS.md) — required tenant app permissions
 - [docs/ENDPOINT-AGENT.md](docs/ENDPOINT-AGENT.md) — Windows agent build/install guide
 - [docs/cronjob-processing-flows.md](docs/cronjob-processing-flows.md) — collector/scan pipeline diagrams
+- [docs/MCP.md](docs/MCP.md) — MCP server setup for AI agent access
 
 ## Contributing
 
