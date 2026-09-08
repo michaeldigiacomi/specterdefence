@@ -68,7 +68,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: development
     container_name: specterdefence-frontend
     ports:
       - "3000:3000"
