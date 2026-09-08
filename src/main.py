@@ -9,11 +9,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.api import router
 from src.config import settings
 from src.database import init_db
+
+# ============== Rate Limiting ==============
+limiter = Limiter(key_func=get_remote_address)
 
 # ============== Logging Configuration ==============
 
@@ -153,6 +158,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Add rate limiter state to app
+app.state.limiter = limiter
 
 # Add request logging middleware (outermost - runs first)
 app.add_middleware(RequestLoggingMiddleware)

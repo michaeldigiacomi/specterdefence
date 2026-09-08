@@ -33,25 +33,29 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
         working-directory: ./frontend
-        run: npm install --legacy-peer-deps
+        run: npm ci
+
+      - name: Check npm audit
+        working-directory: ./frontend
+        run: npm audit --audit-level=moderate
 
       - name: Run lint
         working-directory: ./frontend
-        run: npm run lint || echo "Lint issues found (non-blocking)"
+        run: npm run lint
 
       - name: Run type check
         working-directory: ./frontend
-        run: npm run typecheck || echo "Type issues found (non-blocking)"
+        run: npm run type-check
 
       - name: Run tests
         working-directory: ./frontend
-        run: npm run test -- --coverage --passWithNoTests || echo "Tests failed (non-blocking)"
+        run: npm run test -- --coverage --passWithNoTests
 
   # ============================================
   # Build and Push
@@ -104,6 +108,8 @@ jobs:
           cache-from: type=gha,scope=frontend-${{ github.ref_name }}
           cache-to: type=gha,mode=max,scope=frontend-${{ github.ref_name }}
           platforms: linux/amd64
+          sbom: true
+          provenance: mode=max
 
   # ============================================
   # Deploy (main branch only)

@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16.1-alpine
+    container_name: specterdefence-postgres
+    environment:
+      POSTGRES_USER: specterdefence
+      POSTGRES_PASSWORD: dev-password-change-me
+      POSTGRES_DB: specterdefence
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U specterdefence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - specterdefence
+
+  # Redis Cache (optional, for future caching)
+  redis:
+    image: redis:7.2-alpine
+    container_name: specterdefence-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - specterdefence
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      args:
+        GIT_SHA: dev
+    container_name: specterdefence-backend
+    environment:
+      DATABASE_URL: ******postgres:5432/specterdefence
+      REDIS_URL: redis://redis:6379
+      PYTHONUNBUFFERED: 1
+      DEBUG: 1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src:cached
+      - ./tests:/app/tests:cached
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - specterdefence
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend dev server
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: specterdefence-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src:cached
+      - ./frontend/public:/app/public:cached
+    environment:
+      VITE_API_URL: http://localhost:8000
+    networks:
+      - specterdefence
+    command: npm run dev
+
+  # pgAdmin for database management (optional)
+  pgadmin:
+    image: dpage/pgadmin4:8.0
+    container_name: specterdefence-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@specterdefence.local
+      PGADMIN_DEFAULT_PASSWORD: admin-password-change-me
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - specterdefence
+
+volumes:
+  postgres_data:
+
+networks:
+  specterdefence:
+    driver: bridge

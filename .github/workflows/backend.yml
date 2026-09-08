@@ -36,32 +36,42 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up virtual environment
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install Poetry
         run: |
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-          pip install pytest pytest-asyncio pytest-cov httpx faker black ruff mypy
+          python -m pip install --upgrade pip poetry
+          poetry config virtualenvs.in-project true
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Run pip-audit
+        run: poetry run pip-audit
 
       - name: Run Ruff (linter)
-        run: |
-          source venv/bin/activate
-          ruff check src/ || echo "Lint issues found (non-blocking)"
+        run: poetry run ruff check src/
 
       - name: Run Black (format check)
-        run: |
-          source venv/bin/activate
-          black --check src/ || echo "Format issues found (non-blocking)"
+        run: poetry run black --check src/
 
       - name: Run MyPy (type check)
-        run: |
-          source venv/bin/activate
-          mypy src/ || echo "Type issues found (non-blocking)"
+        run: poetry run mypy src/
 
       - name: Run tests
-        run: |
-          source venv/bin/activate
-          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term || echo "Tests failed (non-blocking)"
+        run: poetry run pytest tests/ -v --cov=src --cov-report=xml --cov-report=term
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -121,6 +131,8 @@ jobs:
           cache-from: type=gha,scope=backend-${{ github.ref_name }}
           cache-to: type=gha,mode=max,scope=backend-${{ github.ref_name }}
           platforms: linux/amd64
+          sbom: true
+          provenance: mode=max
 
   # ============================================
   # Deploy (main branch only)
