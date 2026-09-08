@@ -26,15 +26,15 @@ repos:
 
   # Black code formatter - STRICT
   - repo: https://github.com/psf/black
-    rev: 23.12.0
+    rev: 24.10.0
     hooks:
       - id: black
-        language_version: python3
+        language_version: python313
         args: ['--check']  # Fail if not formatted
 
   # Ruff linter - STRICT with all rules
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.9
+    rev: v0.8.0
     hooks:
       # Main linting hook - all rules enabled
       - id: ruff
@@ -48,7 +48,7 @@ repos:
 
   # MyPy type checker - STRICT
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.1
+    rev: v1.14.0
     hooks:
       - id: mypy
         additional_dependencies:
@@ -57,6 +57,7 @@ repos:
           - types-python-jose
           - types-passlib
           - pytest>=8.0.0
+          - sqlalchemy>=2.0.0
         args: [--strict]
         files: ^(src|tests)/.*\.py$
         pass_filenames: false  # Check entire project for better import resolution
@@ -74,7 +75,7 @@ repos:
     hooks:
       - id: eslint
         name: eslint
-        entry: bash -c 'cd /home/mdigiacomi/.openclaw/workspace/specterdefence/frontend && npx eslint --fix' --
+        entry: bash -c 'cd frontend && npx eslint --fix src/' --
         language: system
         files: frontend/.*\.(ts|tsx|js|jsx)$
         types: [file]

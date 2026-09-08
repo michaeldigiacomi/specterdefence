@@ -59,10 +59,10 @@ help:
 # =============================================================================
 
 install:
-	pip install -e .
+	poetry install
 
 install-dev:
-	pip install -e ".[dev]"
+	poetry install
 	pre-commit install
 	@echo "✅ Development dependencies installed and pre-commit hooks configured"
 
@@ -75,19 +75,19 @@ pre-commit:
 # =============================================================================
 
 test:
-	pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html --cov-fail-under=75
+	poetry run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html --cov-fail-under=75
 
 test-cov:
-	pytest tests/ -v --cov=src --cov-report=html --cov-report=xml --cov-report=term-missing
+	poetry run pytest tests/ -v --cov=src --cov-report=html --cov-report=xml --cov-report=term-missing
 
 test-unit:
-	pytest tests/unit/ -v
+	poetry run pytest tests/unit/ -v
 
 test-integration:
-	pytest tests/integration/ -v -m integration
+	poetry run pytest tests/integration/ -v -m integration
 
 test-ci:
-	pytest tests/ -v --cov=src --cov-report=xml --cov-report=term --cov-fail-under=75 --strict-markers
+	poetry run pytest tests/ -v --cov=src --cov-report=xml --cov-report=term --cov-fail-under=75 --strict-markers
 
 # =============================================================================
 # Code Quality - STRICT MODE (Zero Tolerance)
@@ -95,37 +95,37 @@ test-ci:
 
 lint:
 	@echo "🔍 Running Ruff Linter (STRICT MODE)..."
-	ruff check .
+	poetry run ruff check .
 	@echo "✅ Ruff linting passed"
 
 lint-fix:
 	@echo "🔧 Running Ruff with Auto-fix..."
-	ruff check . --fix
+	poetry run ruff check . --fix
 	@echo "✅ Ruff auto-fix complete"
 
 format:
 	@echo "🎨 Formatting code with Black..."
-	black .
+	poetry run black .
 	@echo "✅ Code formatted"
 
 format-check:
 	@echo "🔍 Checking Black formatting (CI mode)..."
-	black --check --diff .
+	poetry run black --check --diff .
 	@echo "✅ Black formatting check passed"
 
 type-check:
 	@echo "🔍 Running MyPy Type Checker (STRICT MODE)..."
-	mypy src/ tests/ --strict
+	poetry run mypy src/ tests/ --strict
 	@echo "✅ Type checking passed"
 
 import-check:
 	@echo "🔍 Checking import sorting..."
-	ruff check . --select I
+	poetry run ruff check . --select I
 	@echo "✅ Import sorting check passed"
 
 security-check:
 	@echo "🔒 Running Bandit Security Scanner..."
-	bandit -r src/ -f screen
+	poetry run bandit -r src/ -f screen
 	@echo "✅ Security scan complete"
 
 # Run ALL quality checks (what CI runs)
@@ -147,31 +147,40 @@ quality-fix: lint-fix format
 # =============================================================================
 
 migrate:
-	alembic upgrade head
+	poetry run alembic upgrade head
 
 migration:
 	@read -p "Migration message: " MSG; \
-	alembic revision --autogenerate -m "$$MSG"
+	poetry run alembic revision --autogenerate -m "$$MSG"
 
 # =============================================================================
 # Docker
 # =============================================================================
 
 docker-build:
-	docker build -t specterdefence:latest .
+	docker build -t specterdefence:latest -f Dockerfile.backend .
 
 docker-run:
 	docker run -p 8000:8000 --env-file .env specterdefence:latest
+
+docker-compose-up:
+	docker-compose up -d
+
+docker-compose-down:
+	docker-compose down
+
+docker-compose-logs:
+	docker-compose logs -f
 
 # =============================================================================
 # Development Server
 # =============================================================================
 
 run:
-	uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+	poetry run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
 run-prod:
-	uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 4
+	poetry run uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 4
 
 # =============================================================================
 # Full Validation (run this before committing)

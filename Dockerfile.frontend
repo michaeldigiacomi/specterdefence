@@ -1,19 +1,19 @@
 # Frontend-only Dockerfile using nginx
 # Serves static files from /frontend/dist
 
-FROM node:20-slim AS builder
+FROM node:22.9-alpine AS builder
 
 ARG GIT_SHA=dev
 ENV VITE_GIT_SHA=${GIT_SHA}
 
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm install --legacy-peer-deps
+RUN npm ci
 COPY frontend/ ./
 RUN npm run build:docker
 
 # Nginx to serve static files
-FROM nginx:alpine
+FROM nginx:1.27-alpine
 
 # Copy built frontend from builder
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html

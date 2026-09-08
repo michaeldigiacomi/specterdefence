@@ -1,54 +1,34 @@
 # Multi-stage Dockerfile for SpecterDefence
-# Builds both the React frontend and Python backend
+# Builds backend (with optional frontend) - backend targets: production, development
 
 # ============================================
-# Stage 1: Build the React frontend
+# Stage 1: Backend production
 # ============================================
-FROM node:20-slim AS frontend-builder
-
-ARG GIT_SHA=dev
-ENV VITE_GIT_SHA=${GIT_SHA}
-
-WORKDIR /app/frontend
-
-# Copy package files first for better layer caching
-COPY frontend/package.json frontend/package-lock.json* ./
-
-# Install dependencies
-RUN npm install --legacy-peer-deps
-
-# Copy frontend source code
-COPY frontend/ ./
-
-# Build the frontend for production
-RUN npm run build:docker
-
-# ============================================
-# Stage 2: Production image
-# ============================================
-FROM python:3.13-slim AS production
+FROM python:3.13.1-slim AS backend-production
 
 ARG GIT_SHA=dev
 
 WORKDIR /app
 
-# Install build dependencies and create user in one layer
+# Install build tools and create app user
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --shell /bin/bash app \
     && chown -R app:app /app
 
-# Copy and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip list | grep msal
+# Install Poetry
+RUN pip install --no-cache-dir poetry==1.8.3
 
-# Copy application code
+# Copy dependency files
+COPY pyproject.toml poetry.lock* ./
+
+# Install Python dependencies
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi --only main
+
+# Copy source code
 COPY --chown=app:app src/ ./src/
-
-# Copy built frontend from frontend-builder
-COPY --from=frontend-builder --chown=app:app /app/frontend/dist ./frontend/dist/
 
 # Set environment
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -66,21 +46,46 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ============================================
-# Stage 3: Development image
+# Stage 2: Backend with frontend production
 # ============================================
-FROM python:3.13-slim AS development
+FROM node:22.9-alpine AS frontend-builder
+
+ARG GIT_SHA=dev
+ENV VITE_GIT_SHA=${GIT_SHA}
+
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build:docker
+
+FROM backend-production AS backend-frontend-production
+
+# Copy built frontend
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist/
+
+# ============================================
+# Stage 3: Backend development
+# ============================================
+FROM python:3.13.1-slim AS backend-development
 
 WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install with dev dependencies
-COPY requirements.txt pyproject.toml ./
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir pytest pytest-asyncio black ruff mypy pre-commit
+# Install Poetry
+RUN pip install --no-cache-dir poetry==1.8.3
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock* ./
+
+# Install all dependencies including dev
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi
 
 # Copy application code
 COPY src/ ./src/
@@ -92,3 +97,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 EXPOSE 8000
 
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# ============================================
+# Default: backend-production
+# ============================================
+FROM backend-production
