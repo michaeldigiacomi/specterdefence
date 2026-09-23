@@ -5,6 +5,7 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from typing import Optional
+import threading
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,22 +18,20 @@ from src.api import router
 from src.config import settings
 from src.database import init_db
 
-# Correlation ID setup
-_correlation_id_var: Optional[str] = None
+# Correlation ID setup - use threading.local for thread safety
+_correlation_id_local = threading.local()
 
 
 def set_correlation_id(cid: str) -> None:
     """Set the correlation ID for the current context."""
-    global _correlation_id_var
-    _correlation_id_var = cid
+    _correlation_id_local.cid = cid
 
 
 def get_correlation_id() -> str:
     """Get the current correlation ID, generating one if not set."""
-    global _correlation_id_var
-    if _correlation_id_var is None:
-        _correlation_id_var = str(uuid.uuid4())
-    return _correlation_id_var
+    if not hasattr(_correlation_id_local, 'cid'):
+        _correlation_id_local.cid = str(uuid.uuid4())
+    return _correlation_id_local.cid
 
 # ============== Logging Configuration ==============
 
