@@ -24,3 +24,10 @@ class DLPEventModel(Base):
     action_taken: Mapped[str | None] = mapped_column(String(50), nullable=True)
     raw_data: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    # Enhanced fields for enforcement
+    enforcement_status: Mapped[str | None] = mapped_column(String(50), nullable=True)  # pending, enforced, failed, ignored
+    enforcement_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    enforcement_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    related_alert_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    risk_score: Mapped[float | None] = mapped_column(Integer, nullable=True)  # 0-100 scale for risk assessment

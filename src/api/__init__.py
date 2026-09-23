@@ -56,3 +56,4 @@ router.include_router(sharepoint.router, prefix="/sharepoint", tags=["sharepoint
 router.include_router(dlp.router, prefix="/dlp", tags=["dlp"], dependencies=protected_deps)
 router.include_router(mailbox.router, prefix="/mailbox-security", tags=["mailbox-security"], dependencies=protected_deps)
 router.include_router(ueba.router, prefix="/ueba", tags=["ueba"], dependencies=protected_deps)  # Added UEBA router
+router.include_router(dlp_enforcement.router, prefix="/dlp/enforcement", tags=["dlp-enforcement"], dependencies=protected_deps)  # Added DLP enforcement router
