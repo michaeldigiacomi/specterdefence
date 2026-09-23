@@ -2,7 +2,9 @@ import logging
 import os
 import sys
 import time
+import uuid
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,18 +17,47 @@ from src.api import router
 from src.config import settings
 from src.database import init_db
 
+# Correlation ID setup
+_correlation_id_var: Optional[str] = None
+
+
+def set_correlation_id(cid: str) -> None:
+    """Set the correlation ID for the current context."""
+    global _correlation_id_var
+    _correlation_id_var = cid
+
+
+def get_correlation_id() -> str:
+    """Get the current correlation ID, generating one if not set."""
+    global _correlation_id_var
+    if _correlation_id_var is None:
+        _correlation_id_var = str(uuid.uuid4())
+    return _correlation_id_var
+
 # ============== Logging Configuration ==============
 
 LOG_LEVEL = logging.DEBUG if settings.DEBUG else logging.INFO
 
-# Configure root logger
+# Configure root logger with correlation ID support
+class CorrelationIdFilter(logging.Filter):
+    """Add correlation ID to log records."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.correlation_id = get_correlation_id()
+        return True
+
+
 logging.basicConfig(
     level=LOG_LEVEL,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(correlation_id)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     stream=sys.stdout,
     force=True,
 )
+
+# Add correlation ID filter to root logger
+root_logger = logging.getLogger()
+root_logger.addFilter(CorrelationIdFilter())
 
 # Quiet down noisy libraries
 logging.getLogger("uvicorn.access").setLevel(logging.INFO)
@@ -115,6 +146,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         # Skip noisy health/ready checks
         if path in ("/health", "/ready"):
+            # Still need to get correlation ID for these endpoints
+            correlation_id = get_correlation_id()
             return await call_next(request)
 
         try:
@@ -134,8 +167,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         duration_ms = (time.time() - start_time) * 1000
         status_code = response.status_code
-        log_msg = "%s %s%s -> %d (%.1fms)"
-        log_args = (method, path, f"?{query}" if query else "", status_code, duration_ms)
+        correlation_id = get_correlation_id()
+        log_msg = "%s %s%s -> %d (%.1fms) [cid:%s]"
+        log_args = (method, path, f"?{query}" if query else "", status_code, duration_ms, correlation_id)
 
         if status_code >= 500:
             logger.error(log_msg, *log_args)
@@ -159,6 +193,32 @@ app.add_middleware(RequestLoggingMiddleware)
 
 # Add security headers middleware
 app.add_middleware(SecurityHeadersMiddleware)
+
+
+# Correlation ID middleware - generates a unique ID per request and adds it to logs and response headers
+class CorrelationIdMiddleware(BaseHTTPMiddleware):
+    """Add correlation ID to request logs and response headers."""
+
+    async def dispatch(self, request: Request, call_next):
+        # Generate or retrieve correlation ID
+        # Check if X-Correlation-ID header is provided
+        correlation_id = request.headers.get("X-Correlation-ID")
+        if not correlation_id:
+            correlation_id = str(uuid.uuid4())
+
+        # Set for use in loggers within this request context
+        set_correlation_id(correlation_id)
+
+        response = await call_next(request)
+
+        # Add correlation ID to response headers
+        response.headers["X-Correlation-ID"] = correlation_id
+
+        return response
+
+
+# Add correlation ID middleware (after security headers, before CORS)
+app.add_middleware(CorrelationIdMiddleware)
 
 # CORS middleware - only if origins are configured
 if settings.CORS_ORIGINS:
