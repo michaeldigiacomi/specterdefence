@@ -18,6 +18,9 @@ from src.api import router
 from src.config import settings
 from src.database import init_db
 
+# Import UEBA components
+from src.ueba.integration import UEBAIntegration
+
 # Correlation ID setup - use threading.local for thread safety
 _correlation_id_local = threading.local()
 
